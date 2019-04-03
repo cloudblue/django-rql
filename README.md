@@ -14,6 +14,11 @@ This is a query language fast and convenient database interaction. RQL was desig
 [RQL for Web](https://www.sitepen.com/blog/resource-query-language-a-query-language-for-the-web-nosql/)
 [RQL Reference](https://docs.cloudblue.com/oa/8.0/sdk/api/rest/rql/index.html)
 
+Notes
+-----
+
+Parsing is done with [Lark](https://github.com/lark-parser/lark).
+The current parsing algorithm is [LALR(1)](https://www.wikiwand.com/en/LALR_parser) with standard lexer.
 
 Development
 ===========
