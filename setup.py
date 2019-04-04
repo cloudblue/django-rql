@@ -9,7 +9,7 @@ def read_file(name):
 
 setup(
     name='django-rql',
-    author='Ingram Micro / Connect',
+    author='Ingram Micro',
     url='https://connect.cloud.im',
     version=read_file('VERSION'),
     description='Django RQL Filtering',
