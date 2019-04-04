@@ -34,3 +34,10 @@ Testing
 
 Check code style: `flake8`
 Run tests: `pytest`
+
+Tests reports are generated in `tests/reports`. 
+* `out.xml` - JUnit test results
+* `coverage.xml` - Coverage xml results
+
+To generate HTML coverage reports use:
+`--cov-report html:tests/reports/cov_html`
