@@ -1,10 +1,10 @@
 #! /bin/bash
 set -e
 
-virtualenv django_rql_env
+python2.7 -m virtualenv django_rql_env
 . django_rql_env/bin/activate
 
-python setup.py test
+python2.7 setup.py test
 deactivate
 
 export PATH=$PATH:/opt/sonar-scanner-2.6.1/bin/
