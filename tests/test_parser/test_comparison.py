@@ -1,5 +1,8 @@
+# coding=utf-8
+
 from __future__ import unicode_literals
 
+import sys
 from functools import partial
 
 import pytest
@@ -64,12 +67,17 @@ cmp_eq_transform = partial(cmp_transform, '{prop}{operator}{value}', '=')
 
 ok_props = ['p', 'p1', 'prop.p2', 'u_p', 'p1__p2__p3', 'lt']
 ok_values = [
-    'value', 'PRD-000-000', 'ne', "0", '""', "-3.23", '"text , t lt"',
+    'value', 'PRD-000-000', 'ne', "0", '""', "''", '-3.23', '"text , t lt"',
     '2014-01-21T19:31:58+03:00', '2015-02-12', '"eq(1,2)"',
 ]
 
 fail_props = ['', '23', '=', 't t', '1p', '"p"']
 fail_values = ['', '"sdsd']
+
+if sys.version_info[0] >= 3:
+    unicode_text = 'текст'
+    ok_values.append(unicode_text)
+    fail_props.append(unicode_text)
 
 
 @pytest.mark.parametrize('operator', [CO.EQ, CO.GT, CO.LE])

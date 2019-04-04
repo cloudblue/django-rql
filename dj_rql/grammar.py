@@ -21,7 +21,7 @@ prop: comp_op
     
 !comp_op: "eq" | "ne" | "gt" | "ge" | "lt" | "le"
     
-PROP: /[a-zA-Z]/ /[a-zA-Z\d\.\-_]/*
-QUOTED_VAL: /"[^"]*"/ 
-UNQUOTED_VAL: /[\w\d\-]/ /[\w\d\.\-_:+]/*
+PROP: /[a-zA-Z]([\w\.\-])*/
+QUOTED_VAL: /("[^"]*")|('[^']*')/ 
+UNQUOTED_VAL: /[\w\-]([\w\.\-:+])*/
 """
