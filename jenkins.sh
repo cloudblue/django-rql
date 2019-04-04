@@ -11,6 +11,10 @@ export PATH=$PATH:/opt/sonar-scanner-2.6.1/bin/
 export VERSION=$(cat VERSION)
 export PR_ID=`git branch -a --contains ${GIT_COMMIT} | grep 'remotes/origin/pr/[0-9]*/' | head -1 | sed 's/[^0-9]*//g'`
 
+source /root/.virtualenvs/coverage_processing_ve/bin/activate
+update_covered_file_paths
+deactivate
+
 sonar-scanner \
     -Dsonar.analysis.mode=preview \
     -Dsonar.projectVersion=$VERSION \
