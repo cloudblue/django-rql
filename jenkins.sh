@@ -2,7 +2,7 @@
 set -e
 
 virtualenv django_rql_env
-. env/bin/activate
+. django_rql_env/bin/activate
 
 python setup.py test
 deactivate
