@@ -3,14 +3,12 @@ set -e
 
 python2.7 -m virtualenv django_rql_env
 . django_rql_env/bin/activate
-
 python2.7 setup.py test
 deactivate
 rm -rf django_rql_env
 
-python3.6 -m virtualenv django_rql_env
+virtualenv -p python3.6 django_rql_env
 . django_rql_env/bin/activate
-
 python3.6 setup.py test
 deactivate
 
