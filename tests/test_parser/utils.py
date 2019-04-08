@@ -15,6 +15,7 @@ class ComparisonOperators(object):
 class LogicalOperators:
     AND = 'and'
     OR = 'or'
+    NOT = 'not'
 
     @staticmethod
     def get_grammar_key(key):

@@ -13,6 +13,7 @@ expr_term: comp
     
 logical: and_op
     | or_op
+    | not_op
     
 and_op: _and 
     | _L_COLON _and _R_COLON
@@ -29,6 +30,8 @@ _or: _OR _logical_exp
 
 _logical_exp: _L_COLON expr_term (_COMA expr_term)+ _R_COLON
 
+not_op: _NOT _L_COLON expr_term _R_COLON
+
 comp: comp_op _L_COLON prop _COMA val _R_COLON
     | prop _EQUALITY comp_op _EQUALITY val
     | prop _EQUALITY val
@@ -38,11 +41,11 @@ val: prop
     | UNQUOTED_VAL
     
 prop: comp_op
-    | and_or
+    | res_logic
     | PROP
     
 !comp_op: "eq" | "ne" | "gt" | "ge" | "lt" | "le"
-!and_or: _AND | _OR
+!res_logic: _AND | _OR | _NOT
 
     
 PROP: /[a-zA-Z]/ /[\w\-\.]/*
@@ -52,6 +55,7 @@ UNQUOTED_VAL: /[\w\-]/ /[\w\.\-\:\+]/*
 
 _AND: "and"
 _OR: "or"
+_NOT: "not"
 
 _COMA: ","
 _L_COLON: "("
