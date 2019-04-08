@@ -1,0 +1,5 @@
+[run]
+branch = True
+
+[xml]
+output = tests/reports/coverage.xml

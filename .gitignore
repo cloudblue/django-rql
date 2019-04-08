@@ -1,6 +1,14 @@
 __pycache__/
 .pytest_cache
 *.py[cod]
-venv/
+venv*/
+
+build/
+dist/
+*.egg-info
+.eggs
 
 .idea
+
+tests/reports/
+.coverage
