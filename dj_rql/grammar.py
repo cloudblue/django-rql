@@ -24,5 +24,5 @@ prop: comp_op
 PROP: /[a-zA-Z]/ /[\w\-\.]/*
 QUOTED_VAL: /"[^"]*"/
     | /'[^']*'/
-UNQUOTED_VAL: /[\w\d\-]/ /[\w\.\-\:\+]/*
+UNQUOTED_VAL: /[\w\-]/ /[\w\.\-\:\+]/*
 """
