@@ -1,6 +1,8 @@
 #! /bin/bash
 set -e
 
+flake8
+
 python2.7 -m virtualenv django_rql_env
 . django_rql_env/bin/activate
 python2.7 setup.py test

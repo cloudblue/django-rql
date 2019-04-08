@@ -71,10 +71,10 @@ ok_values = [
     '2014-01-21T19:31:58+03:00', '2015-02-12', '"eq(1,2)"',
 ]
 
-fail_props = ['', '23', '=', 't t', '1p', '"p"']
+fail_props = ['', '=', 't t', '"p"', '23', '1p']
 fail_values = ['', '"sdsd']
 
-if sys.version_info[0] >= 3:
+if sys.version_info[0] == 3:
     unicode_text = 'текст'
     ok_values.append(unicode_text)
     fail_props.append(unicode_text)
