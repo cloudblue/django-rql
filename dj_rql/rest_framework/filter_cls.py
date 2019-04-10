@@ -4,7 +4,6 @@ from dj_rql.filter_cls import FilterClass
 
 
 class RQLFilterClass(FilterClass):
-    @classmethod
-    def filter_queryset(cls, queryset, query):
+    def apply_filters(self, query):
         # TODO: Filtering
-        return queryset
+        return self.queryset

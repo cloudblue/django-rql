@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 
 from dj_rql.rest_framework.filter_cls import RQLFilterClass
-from dj_rql.constants import LookupTypes
+from dj_rql.constants import FilterLookupTypes
 from tests.dj_rf.models import Book
 
 
@@ -16,7 +16,7 @@ AUTHOR_FILTERS = ['is_male', {
 
 PAGE_FILTERS = [{
     'filter': 'number',
-    'lookups': {LookupTypes.EQ, LookupTypes.NE},
+    'lookups': {FilterLookupTypes.EQ, FilterLookupTypes.NE},
 }, {
     'filter': 'id',
     'source': 'uuid',
@@ -48,8 +48,13 @@ class BooksFilterClass(RQLFilterClass):
         'use_repr': True,
     }, {
         'filter': 'amazon_rating',
-        'lookups': {LookupTypes.GE, LookupTypes.LT},
+        'lookups': {FilterLookupTypes.GE, FilterLookupTypes.LT},
     }, {
         'filter': 'url',
         'source': 'publishing_url',
+    }, {
+        # Sometimes it's needed to filter by several sources at once (distinct is always True).
+        # F.e. this could be helpful for searching.
+        'filter': 'd_id',
+        'sources': {'id', 'author__id'},
     }]

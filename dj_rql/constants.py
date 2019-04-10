@@ -25,7 +25,7 @@ SUPPORTED_FIELD_TYPES = (
 )
 
 
-class LookupTypes(object):
+class FilterLookupTypes(object):
     EQ = 'eq'
     NE = 'ne'
     GE = 'ge'
@@ -79,12 +79,12 @@ class FilterTypes(object):
         return mapper[type(field)]
 
     @classmethod
-    def default_field_lookups(cls, field):
+    def default_field_filter_lookups(cls, field):
         lookups = {
-            cls.INT: LookupTypes.numeric(),
-            cls.FLOAT: LookupTypes.numeric(),
-            cls.DATETIME: LookupTypes.numeric(),
-            cls.STRING: LookupTypes.string(),
-            cls.BOOLEAN: LookupTypes.boolean(),
+            cls.INT: FilterLookupTypes.numeric(),
+            cls.FLOAT: FilterLookupTypes.numeric(),
+            cls.DATETIME: FilterLookupTypes.numeric(),
+            cls.STRING: FilterLookupTypes.string(),
+            cls.BOOLEAN: FilterLookupTypes.boolean(),
         }
         return lookups[cls.field_filter_type(field)]

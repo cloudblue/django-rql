@@ -1,13 +1,13 @@
 from __future__ import unicode_literals
 
-from dj_rql.rest_framework.filter_class import RQLFilterClass
+from dj_rql.rest_framework.filter_cls import RQLFilterClass
 
 
 class RQLFilterBackend(object):
     def filter_queryset(self, request, queryset, view):
         rql_filter_class = self._get_filter_class(view)
         query = self._get_query(request)
-        return rql_filter_class.filter_queryset(queryset, query)
+        return rql_filter_class(queryset).apply_filters(query)
 
     @staticmethod
     def _get_filter_class(view):
