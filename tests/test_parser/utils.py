@@ -20,7 +20,7 @@ class ComparisonTransformer(Transformer):
             operation = ComparisonOperators.EQ
             prop_index = 0
             value_index = 1
-        elif args[0].data == 'comp_op':
+        elif args[0].data == 'comp_term':
             operation = self._cmp_value(args[0])
         else:
             operation = self._cmp_value(args[1])
