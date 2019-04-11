@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 
 
 from dj_rql.rest_framework.filter_cls import RQLFilterClass
-from dj_rql.constants import FilterLookupTypes
+from dj_rql.constants import FilterLookups
 from tests.dj_rf.models import Book
 
 
@@ -16,7 +16,7 @@ AUTHOR_FILTERS = ['is_male', {
 
 PAGE_FILTERS = [{
     'filter': 'number',
-    'lookups': {FilterLookupTypes.EQ, FilterLookupTypes.NE},
+    'lookups': {FilterLookups.EQ, FilterLookups.NE},
 }, {
     'filter': 'id',
     'source': 'uuid',
@@ -48,7 +48,7 @@ class BooksFilterClass(RQLFilterClass):
         'use_repr': True,
     }, {
         'filter': 'amazon_rating',
-        'lookups': {FilterLookupTypes.GE, FilterLookupTypes.LT},
+        'lookups': {FilterLookups.GE, FilterLookups.LT},
     }, {
         'filter': 'url',
         'source': 'publishing_url',

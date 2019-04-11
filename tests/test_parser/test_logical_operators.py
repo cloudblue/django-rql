@@ -6,7 +6,8 @@ import pytest
 from lark.exceptions import LarkError
 
 from dj_rql.parser import RQLParser
-from tests.test_parser.utils import ComparisonOperators, LogicalOperators, LogicalTransformer
+from tests.test_parser.utils import LogicalTransformer
+from dj_rql.constants import ComparisonOperators, LogicalOperators
 
 
 def logical_transform(tpl, operator=None, exp1=None, exp2=None):

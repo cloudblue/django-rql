@@ -10,7 +10,8 @@ import pytest
 from lark.exceptions import LarkError
 
 from dj_rql.parser import RQLParser
-from tests.test_parser.utils import ComparisonOperators as CompOp, ComparisonTransformer
+from tests.test_parser.utils import ComparisonTransformer
+from dj_rql.constants import ComparisonOperators as CompOp
 
 
 def cmp_transform(tpl, operator, prop, value):

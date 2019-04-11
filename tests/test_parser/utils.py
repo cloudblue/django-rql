@@ -2,24 +2,7 @@ from __future__ import unicode_literals
 
 from lark import Transformer, Tree
 
-
-class ComparisonOperators(object):
-    EQ = 'eq'
-    NE = 'ne'
-    GT = 'gt'
-    GE = 'ge'
-    LT = 'lt'
-    LE = 'le'
-
-
-class LogicalOperators:
-    AND = 'and'
-    OR = 'or'
-    NOT = 'not'
-
-    @staticmethod
-    def get_grammar_key(key):
-        return '{}_op'.format(key)
+from dj_rql.constants import ComparisonOperators
 
 
 class ComparisonTransformer(Transformer):

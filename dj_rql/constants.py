@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 
+
 SUPPORTED_FIELD_TYPES = (
     models.AutoField,
     models.BigAutoField,
@@ -25,7 +26,7 @@ SUPPORTED_FIELD_TYPES = (
 )
 
 
-class FilterLookupTypes(object):
+class FilterLookups(object):
     EQ = 'eq'
     NE = 'ne'
     GE = 'ge'
@@ -81,10 +82,37 @@ class FilterTypes(object):
     @classmethod
     def default_field_filter_lookups(cls, field):
         lookups = {
-            cls.INT: FilterLookupTypes.numeric(),
-            cls.FLOAT: FilterLookupTypes.numeric(),
-            cls.DATETIME: FilterLookupTypes.numeric(),
-            cls.STRING: FilterLookupTypes.string(),
-            cls.BOOLEAN: FilterLookupTypes.boolean(),
+            cls.INT: FilterLookups.numeric(),
+            cls.FLOAT: FilterLookups.numeric(),
+            cls.DATETIME: FilterLookups.numeric(),
+            cls.STRING: FilterLookups.string(),
+            cls.BOOLEAN: FilterLookups.boolean(),
         }
         return lookups[cls.field_filter_type(field)]
+
+
+class ComparisonOperators(object):
+    EQ = 'eq'
+    NE = 'ne'
+    GT = 'gt'
+    GE = 'ge'
+    LT = 'lt'
+    LE = 'le'
+
+
+class LogicalOperators:
+    AND = 'and'
+    OR = 'or'
+    NOT = 'not'
+
+    @staticmethod
+    def get_grammar_key(key):
+        return '{}_op'.format(key)
+
+
+class DjangoLookups:
+    EXACT = 'exact'
+    GT = 'gt'
+    GTE = 'gte'
+    LT = 'lt'
+    LTE = 'lte'

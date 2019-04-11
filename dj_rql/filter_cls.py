@@ -2,8 +2,9 @@ from __future__ import unicode_literals
 
 import six
 from django.db.models import Q
+from django.utils.dateparse import parse_datetime
 
-from dj_rql.constants import FilterLookupTypes, FilterTypes, SUPPORTED_FIELD_TYPES
+from dj_rql.constants import FilterLookups, FilterTypes, SUPPORTED_FIELD_TYPES
 
 
 class FilterClass(object):
@@ -23,16 +24,34 @@ class FilterClass(object):
     def apply_filters(self, query):
         raise NotImplementedError
 
-    def _get_filter_lookup_by_operator(self, operator):
+    @classmethod
+    def _get_filter_lookup_by_operator(cls, operator):
         raise NotImplementedError
+
+    @classmethod
+    def _change_filter_lookup_by_value(cls, filter_lookup, typed_value):
+        return filter_lookup
 
     def get_django_q_for_filter_expression(self, filter_name, operator, str_value):
         if filter_name not in self.mapper:
             return Q()
 
         filter_item = self.mapper[filter_name]
-        typed_value = self._convert_value(filter_item, str_value)
+
+        if isinstance(filter_item, list):
+            django_field = filter_item[0]['field']
+            available_lookups = filter_item[0]['lookups']
+        else:
+            django_field = filter_item['field']
+            available_lookups = filter_item['lookups']
+
         filter_lookup = self._get_filter_lookup_by_operator(operator)
+        if filter_lookup not in available_lookups:
+            return Q()
+
+        # TODO: Check Value Error in tests
+        typed_value = self._convert_value(django_field, str_value)
+        filter_lookup = self._change_filter_lookup_by_value(filter_lookup, typed_value)
 
         if not isinstance(filter_item, list):
             return self._get_django_q_for_filter_expression(filter_item, filter_lookup, typed_value)
@@ -43,8 +62,19 @@ class FilterClass(object):
         return q
 
     @staticmethod
-    def _convert_value(filter_item, str_value):
-        # TODO: Conversion (for list) +
+    def _convert_value(django_field, str_value):
+        filter_type = FilterTypes.field_filter_type(django_field)
+        if filter_type == FilterTypes.INT:
+            return int(str_value)
+        elif filter_type == FilterTypes.FLOAT:
+            return float(str_value)
+        elif filter_type == FilterTypes.DATETIME:
+            return parse_datetime(str_value)
+        elif filter_type == FilterTypes.BOOLEAN:
+            low_str = str_value.lower()
+            if low_str not in ('false', 'true'):
+                raise ValueError
+            return low_str == 'true'
         return str_value
 
     def _fill_mapper(self, filters, filter_route='', orm_route='', orm_model=None):
@@ -101,7 +131,9 @@ class FilterClass(object):
                         'field': field,
                         'orm_route': full_orm_route,
                         'use_repr': item.get('use_repr', False),
-                        'lookups': item.get('lookups', FilterTypes.default_field_filter_lookups(field)),
+                        'lookups': item.get(
+                            'lookups', FilterTypes.default_field_filter_lookups(field),
+                        ),
                     }
                 self.mapper[field_filter_route] = mapping
 
@@ -125,4 +157,4 @@ class FilterClass(object):
     @staticmethod
     def _get_django_q_for_filter_expression(filter_item, filter_lookup, typed_value):
         kwargs = {'{}__{}'.format(filter_item['orm_route'], filter_lookup): typed_value}
-        return ~Q(**kwargs) if filter_lookup == FilterLookupTypes.NE else Q(**kwargs)
+        return ~Q(**kwargs) if filter_lookup == FilterLookups.NE else Q(**kwargs)
