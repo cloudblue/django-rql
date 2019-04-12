@@ -31,9 +31,9 @@ class Book(models.Model):
     blog_rating = models.BigIntegerField(null=True, choices=BLOG_RATING_CHOICES)
     github_stars = models.PositiveIntegerField(null=True)
     amazon_rating = models.FloatField(null=True)
-    current_price = models.DecimalField(null=True)
+    current_price = models.DecimalField(null=True, decimal_places=4)
 
-    written = models.DateField(auto_now_add=True)
+    written = models.DateField(null=True)
     published_at = models.DateTimeField(null=True)
 
     author = models.ForeignKey(Author, related_name='books', on_delete=models.CASCADE, null=True)

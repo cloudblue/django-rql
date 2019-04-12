@@ -49,7 +49,9 @@ class FilterLookups(object):
 
 class FilterTypes(object):
     INT = 'int'
+    DECIMAL = 'decimal'
     FLOAT = 'float'
+    DATE = 'date'
     DATETIME = 'datetime'
     STRING = 'string'
     BOOLEAN = 'boolean'
@@ -62,9 +64,9 @@ class FilterTypes(object):
             models.BigIntegerField: cls.INT,
             models.BooleanField: cls.BOOLEAN,
             models.CharField: cls.STRING,
-            models.DateField: cls.DATETIME,
+            models.DateField: cls.DATE,
             models.DateTimeField: cls.DATETIME,
-            models.DecimalField: cls.FLOAT,
+            models.DecimalField: cls.DECIMAL,
             models.EmailField: cls.STRING,
             models.FloatField: cls.FLOAT,
             models.IntegerField: cls.INT,
@@ -83,7 +85,9 @@ class FilterTypes(object):
     def default_field_filter_lookups(cls, field):
         lookups = {
             cls.INT: FilterLookups.numeric(),
+            cls.DECIMAL: FilterLookups.numeric(),
             cls.FLOAT: FilterLookups.numeric(),
+            cls.DATE: FilterLookups.numeric(),
             cls.DATETIME: FilterLookups.numeric(),
             cls.STRING: FilterLookups.string(),
             cls.BOOLEAN: FilterLookups.boolean(),

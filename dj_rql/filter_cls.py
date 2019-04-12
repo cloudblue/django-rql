@@ -1,13 +1,16 @@
 from __future__ import unicode_literals
 
 import six
+from django.db import models
 from django.db.models import Q
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 
-from dj_rql.constants import FilterLookups, FilterTypes, SUPPORTED_FIELD_TYPES
+from dj_rql.constants import (
+    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SUPPORTED_FIELD_TYPES,
+)
 
 
-class FilterClass(object):
+class RQLFilterClass(object):
     MODEL = None
     FILTERS = None
 
@@ -22,15 +25,13 @@ class FilterClass(object):
         self.queryset = queryset
 
     def apply_filters(self, query):
-        raise NotImplementedError
+        # TODO: Implement
+        return self.queryset.distinct()
 
     @classmethod
-    def _get_filter_lookup_by_operator(cls, operator):
-        raise NotImplementedError
-
-    @classmethod
-    def _change_filter_lookup_by_value(cls, filter_lookup, typed_value):
-        return filter_lookup
+    def _change_django_lookup_by_value(cls, django_lookup, typed_value):
+        # TODO: Add support for specific values, like NULL
+        return django_lookup
 
     def get_django_q_for_filter_expression(self, filter_name, operator, str_value):
         if filter_name not in self.mapper:
@@ -49,16 +50,22 @@ class FilterClass(object):
         if filter_lookup not in available_lookups:
             return Q()
 
+        django_lookup = self._get_django_lookup_by_filter_lookup(filter_lookup)
+
         # TODO: Check Value Error in tests
         typed_value = self._convert_value(django_field, str_value)
-        filter_lookup = self._change_filter_lookup_by_value(filter_lookup, typed_value)
+        django_lookup = self._change_django_lookup_by_value(django_lookup, typed_value)
 
         if not isinstance(filter_item, list):
-            return self._get_django_q_for_filter_expression(filter_item, filter_lookup, typed_value)
+            return self._get_django_q_for_filter_expression(
+                filter_item, django_lookup, filter_lookup, typed_value,
+            )
 
         q = Q()
         for item in filter_item:
-            q |= self._get_django_q_for_filter_expression(item, filter_lookup, typed_value)
+            q |= self._get_django_q_for_filter_expression(
+                item, django_lookup, filter_lookup, typed_value,
+            )
         return q
 
     @staticmethod
@@ -68,6 +75,13 @@ class FilterClass(object):
             return int(str_value)
         elif filter_type == FilterTypes.FLOAT:
             return float(str_value)
+        elif filter_type == FilterTypes.DECIMAL:
+            value = float(str_value)
+            if django_field.decimal_places is not None:
+                value = round(value, django_field.decimal_places)
+            return value
+        elif filter_type == FilterTypes.DATE:
+            return parse_date(str_value)
         elif filter_type == FilterTypes.DATETIME:
             return parse_datetime(str_value)
         elif filter_type == FilterTypes.BOOLEAN:
@@ -155,6 +169,30 @@ class FilterClass(object):
         return model._meta.get_field(field_name)
 
     @staticmethod
-    def _get_django_q_for_filter_expression(filter_item, filter_lookup, typed_value):
-        kwargs = {'{}__{}'.format(filter_item['orm_route'], filter_lookup): typed_value}
+    def _get_django_q_for_filter_expression(filter_item, django_lookup, filter_lookup, typed_value):
+        kwargs = {'{}__{}'.format(filter_item['orm_route'], django_lookup): typed_value}
         return ~Q(**kwargs) if filter_lookup == FilterLookups.NE else Q(**kwargs)
+
+    @staticmethod
+    def _get_filter_lookup_by_operator(operator):
+        mapper = {
+            ComparisonOperators.EQ: FilterLookups.EQ,
+            ComparisonOperators.NE: FilterLookups.NE,
+            ComparisonOperators.LT: FilterLookups.LT,
+            ComparisonOperators.LE: FilterLookups.LE,
+            ComparisonOperators.GT: FilterLookups.GT,
+            ComparisonOperators.GE: FilterLookups.GE,
+        }
+        return mapper[operator]
+
+    @staticmethod
+    def _get_django_lookup_by_filter_lookup(filter_lookup):
+        mapper = {
+            FilterLookups.EQ: DjangoLookups.EXACT,
+            FilterLookups.NE: DjangoLookups.EXACT,
+            FilterLookups.LT: DjangoLookups.LT,
+            FilterLookups.LE: DjangoLookups.LTE,
+            FilterLookups.GT: DjangoLookups.GT,
+            FilterLookups.GE: DjangoLookups.GTE,
+        }
+        return mapper[filter_lookup]

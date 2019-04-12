@@ -4,7 +4,7 @@ import pytest
 from django.core.exceptions import FieldDoesNotExist
 
 from dj_rql.constants import FilterLookups as FL
-from dj_rql.rest_framework.filter_cls import RQLFilterClass
+from dj_rql.filter_cls import RQLFilterClass
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author
 

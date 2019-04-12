@@ -1,6 +1,6 @@
 from __future__ import unicode_literals
 
-from dj_rql.rest_framework.filter_cls import RQLFilterClass
+from dj_rql.filter_cls import RQLFilterClass
 
 
 class RQLFilterBackend(object):
