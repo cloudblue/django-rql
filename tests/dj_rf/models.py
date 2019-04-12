@@ -43,5 +43,5 @@ class Page(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     content = models.TextField(null=True)
 
-    number = models.IntegerField(unique=True)
+    number = models.IntegerField(null=True)
     book = models.ForeignKey(Book, related_name='pages', on_delete=models.CASCADE)

@@ -39,12 +39,10 @@ class RQLFilterClass(object):
 
         filter_item = self.mapper[filter_name]
 
-        if isinstance(filter_item, list):
-            django_field = filter_item[0]['field']
-            available_lookups = filter_item[0]['lookups']
-        else:
-            django_field = filter_item['field']
-            available_lookups = filter_item['lookups']
+        base_item = filter_item[0] if isinstance(filter_item, list) else filter_item
+        django_field = base_item['field']
+        available_lookups = base_item['lookups']
+        use_repr = base_item.get('use_repr', False)
 
         filter_lookup = self._get_filter_lookup_by_operator(operator)
         if filter_lookup not in available_lookups:
@@ -53,7 +51,7 @@ class RQLFilterClass(object):
         django_lookup = self._get_django_lookup_by_filter_lookup(filter_lookup)
 
         # TODO: Check Value Error in tests
-        typed_value = self._convert_value(django_field, str_value)
+        typed_value = self._convert_value(django_field, str_value, use_repr=use_repr)
         django_lookup = self._change_django_lookup_by_value(django_lookup, typed_value)
 
         if not isinstance(filter_item, list):
@@ -63,13 +61,18 @@ class RQLFilterClass(object):
 
         q = Q()
         for item in filter_item:
-            q |= self._get_django_q_for_filter_expression(
+            item_q = self._get_django_q_for_filter_expression(
                 item, django_lookup, filter_lookup, typed_value,
             )
+            q = q & item_q if filter_lookup == FilterLookups.NE else q | item_q
         return q
 
     @staticmethod
-    def _convert_value(django_field, str_value):
+    def _convert_value(django_field, str_value, use_repr=False):
+        if use_repr:
+            db_value = next(choice[0] for choice in django_field.choices if choice[1] == str_value)
+            return db_value
+
         filter_type = FilterTypes.field_filter_type(django_field)
         if filter_type == FilterTypes.INT:
             return int(str_value)
