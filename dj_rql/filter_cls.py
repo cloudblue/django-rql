@@ -84,14 +84,17 @@ class RQLFilterClass(object):
                 value = round(value, django_field.decimal_places)
             return value
         elif filter_type == FilterTypes.DATE:
-            return parse_date(str_value)
-        elif filter_type == FilterTypes.DATETIME:
-            return parse_datetime(str_value)
-        elif filter_type == FilterTypes.BOOLEAN:
-            low_str = str_value.lower()
-            if low_str not in ('false', 'true'):
+            dt = parse_date(str_value)
+            if dt is None:
                 raise ValueError
-            return low_str == 'true'
+        elif filter_type == FilterTypes.DATETIME:
+            dt = parse_datetime(str_value)
+            if dt is None:
+                raise ValueError
+        elif filter_type == FilterTypes.BOOLEAN:
+            if str_value not in ('false', 'true'):
+                raise ValueError
+            return str_value == 'true'
         return str_value
 
     def _fill_mapper(self, filters, filter_route='', orm_route='', orm_model=None):

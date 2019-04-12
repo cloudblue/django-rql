@@ -212,8 +212,48 @@ def test_d_id():
         Book.objects.create(author=authors[0]),
         Book.objects.create(author=authors[1]),
     ]
+    assert filter_field(filter_name, CO.EQ, '3') == [books[2]]
     assert filter_field(filter_name, CO.EQ, '2') == [books[1], books[2]]
     assert filter_field(filter_name, CO.NE, '2') == [books[0]]
-    assert filter_field(filter_name, CO.EQ, '0') == []
     assert filter_field(filter_name, CO.EQ, '1') == [books[0], books[1]]
     assert filter_field(filter_name, CO.NE, '1') == [books[2]]
+    assert filter_field(filter_name, CO.EQ, '0') == []
+
+
+@pytest.mark.parametrize('bad_value', ['str', '2012-01-01', '2.18'])
+@pytest.mark.parametrize('filter_name', ['id', 'author.publisher.id', 'page.number', 'd_id'])
+def test_integer_field_fail(filter_name, bad_value):
+    with pytest.raises(Exception):
+        filter_field(filter_name, CO.EQ, bad_value)
+
+
+@pytest.mark.parametrize('bad_value', ['str', '2012-01-01'])
+@pytest.mark.parametrize('filter_name', ['current_price', 'amazon_rating'])
+def test_float_field_fail(filter_name, bad_value):
+    with pytest.raises(Exception):
+        filter_field(filter_name, CO.GE, bad_value)
+
+
+@pytest.mark.parametrize('bad_value', ['TRUE', '0', 'False'])
+@pytest.mark.parametrize('filter_name', ['author.is_male'])
+def test_boolean_field_fail(filter_name, bad_value):
+    with pytest.raises(Exception):
+        filter_field(filter_name, CO.EQ, bad_value)
+
+
+@pytest.mark.parametrize('bad_value', [
+    '2019-02-12T10:02:00', '0', 'date', '2019:02:12', '2019-27-1',
+])
+@pytest.mark.parametrize('filter_name', ['written'])
+def test_date_field_fail(filter_name, bad_value):
+    with pytest.raises(Exception):
+        filter_field(filter_name, CO.EQ, bad_value)
+
+
+@pytest.mark.parametrize('bad_value', [
+    '2019-02-12', '0', 'date', '2019-02-12T27:00:00', '2019-02-12T21:00:00K',
+])
+@pytest.mark.parametrize('filter_name', ['published.at'])
+def test_datetime_field_fail(filter_name, bad_value):
+    with pytest.raises(Exception):
+        filter_field(filter_name, CO.EQ, bad_value)
