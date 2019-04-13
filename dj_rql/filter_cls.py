@@ -8,6 +8,7 @@ from django.utils.dateparse import parse_date, parse_datetime
 from dj_rql.constants import (
     ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SUPPORTED_FIELD_TYPES,
 )
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
 
 
 class RQLFilterClass(object):
@@ -28,11 +29,6 @@ class RQLFilterClass(object):
         # TODO: Implement
         return self.queryset.distinct()
 
-    @classmethod
-    def _change_django_lookup_by_value(cls, django_lookup, typed_value):
-        # TODO: Add support for specific values, like NULL
-        return django_lookup
-
     def get_django_q_for_filter_expression(self, filter_name, operator, str_value):
         if filter_name not in self.mapper:
             return Q()
@@ -46,12 +42,19 @@ class RQLFilterClass(object):
 
         filter_lookup = self._get_filter_lookup_by_operator(operator)
         if filter_lookup not in available_lookups:
-            return Q()
+            raise RQLFilterLookupError(details={
+                'lookup': filter_lookup,
+                'value': str_value,
+            })
 
         django_lookup = self._get_django_lookup_by_filter_lookup(filter_lookup)
-
-        # TODO: Check Value Error in tests
-        typed_value = self._convert_value(django_field, str_value, use_repr=use_repr)
+        try:
+            typed_value = self._convert_value(django_field, str_value, use_repr=use_repr)
+        except (ValueError, TypeError):
+            raise RQLFilterValueError(details={
+                'lookup': filter_lookup,
+                'value': str_value,
+            })
         django_lookup = self._change_django_lookup_by_value(django_lookup, typed_value)
 
         if not isinstance(filter_item, list):
@@ -69,9 +72,15 @@ class RQLFilterClass(object):
 
     @staticmethod
     def _convert_value(django_field, str_value, use_repr=False):
+        # TODO: Rework choices logic for fields (int, str, bool)
         if use_repr:
-            db_value = next(choice[0] for choice in django_field.choices if choice[1] == str_value)
-            return db_value
+            try:
+                db_value = next(
+                    choice[0] for choice in django_field.choices if choice[1] == str_value
+                )
+                return db_value
+            except StopIteration:
+                raise ValueError
 
         filter_type = FilterTypes.field_filter_type(django_field)
         if filter_type == FilterTypes.INT:
@@ -173,6 +182,11 @@ class RQLFilterClass(object):
     @staticmethod
     def _get_model_field(model, field_name):
         return model._meta.get_field(field_name)
+
+    @classmethod
+    def _change_django_lookup_by_value(cls, django_lookup, typed_value):
+        # TODO: Add support for specific values, like NULL
+        return django_lookup
 
     @staticmethod
     def _get_django_q_for_filter_expression(filter_item, django_lookup, filter_lookup, typed_value):

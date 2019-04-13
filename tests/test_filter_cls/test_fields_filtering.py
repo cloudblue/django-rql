@@ -1,10 +1,12 @@
 from __future__ import unicode_literals
 
 from datetime import date, datetime
+from functools import partial
 
 import pytest
 
 from dj_rql.constants import ComparisonOperators as CO
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
 
@@ -16,6 +18,19 @@ def filter_field(filter_name, operator, value):
     filter_cls = BooksFilterClass(book_qs)
     q = filter_cls.get_django_q_for_filter_expression(filter_name, operator, value)
     return list(book_qs.filter(q))
+
+
+def assert_filter_field(error_cls, filter_name, operator, value):
+    with pytest.raises(error_cls) as e:
+        filter_field(filter_name, operator, value)
+    assert e.value.details == {
+        'lookup': operator,
+        'value': value,
+    }
+
+
+assert_filter_field_value_error = partial(assert_filter_field, RQLFilterValueError)
+assert_filter_field_lookup_error = partial(assert_filter_field, RQLFilterLookupError)
 
 
 @pytest.mark.django_db
@@ -180,6 +195,18 @@ def test_rating_blog():
 
 
 @pytest.mark.django_db
+def test_rating_blog_int():
+    filter_name = 'rating.blog_int'
+    books = [
+        Book.objects.create(blog_rating=Book.LOW_RATING),
+        Book.objects.create(blog_rating=Book.HIGH_RATING),
+    ]
+    assert filter_field(filter_name, CO.EQ, Book.LOW_RATING) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, Book.HIGH_RATING) == [books[1]]
+    assert filter_field(filter_name, CO.NE, Book.HIGH_RATING) == [books[0]]
+
+
+@pytest.mark.django_db
 def test_amazon_rating():
     filter_name = 'amazon_rating'
     books = [
@@ -223,22 +250,19 @@ def test_d_id():
 @pytest.mark.parametrize('bad_value', ['str', '2012-01-01', '2.18'])
 @pytest.mark.parametrize('filter_name', ['id', 'author.publisher.id', 'page.number', 'd_id'])
 def test_integer_field_fail(filter_name, bad_value):
-    with pytest.raises(Exception):
-        filter_field(filter_name, CO.EQ, bad_value)
+    assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
 
 @pytest.mark.parametrize('bad_value', ['str', '2012-01-01'])
 @pytest.mark.parametrize('filter_name', ['current_price', 'amazon_rating'])
 def test_float_field_fail(filter_name, bad_value):
-    with pytest.raises(Exception):
-        filter_field(filter_name, CO.GE, bad_value)
+    assert_filter_field_value_error(filter_name, CO.GE, bad_value)
 
 
 @pytest.mark.parametrize('bad_value', ['TRUE', '0', 'False'])
 @pytest.mark.parametrize('filter_name', ['author.is_male'])
 def test_boolean_field_fail(filter_name, bad_value):
-    with pytest.raises(Exception):
-        filter_field(filter_name, CO.EQ, bad_value)
+    assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
 
 @pytest.mark.parametrize('bad_value', [
@@ -246,8 +270,7 @@ def test_boolean_field_fail(filter_name, bad_value):
 ])
 @pytest.mark.parametrize('filter_name', ['written'])
 def test_date_field_fail(filter_name, bad_value):
-    with pytest.raises(Exception):
-        filter_field(filter_name, CO.EQ, bad_value)
+    assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
 
 @pytest.mark.parametrize('bad_value', [
@@ -255,5 +278,12 @@ def test_date_field_fail(filter_name, bad_value):
 ])
 @pytest.mark.parametrize('filter_name', ['published.at'])
 def test_datetime_field_fail(filter_name, bad_value):
-    with pytest.raises(Exception):
-        filter_field(filter_name, CO.EQ, bad_value)
+    assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
+
+
+@pytest.mark.parametrize('bad_operator', [CO.GT, CO.LE])
+@pytest.mark.parametrize('filter_name,value', [
+    ('amazon_rating', '1.23'), ('page.number', '5'),
+])
+def test_field_lookup_fail(filter_name, value, bad_operator):
+    assert_filter_field_lookup_error(filter_name, bad_operator, value)

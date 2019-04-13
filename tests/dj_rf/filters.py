@@ -46,6 +46,10 @@ class BooksFilterClass(RQLFilterClass):
         'source': 'blog_rating',
         'use_repr': True,
     }, {
+        'filter': 'rating.blog_int',
+        'source': 'blog_rating',
+        'use_repr': False,
+    }, {
         'filter': 'amazon_rating',
         'lookups': {FilterLookups.GE, FilterLookups.LT},
     }, {

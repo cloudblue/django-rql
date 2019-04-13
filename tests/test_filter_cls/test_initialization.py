@@ -34,6 +34,9 @@ def test_collecting_mapper():
         'rating.blog': {
             'orm_route': 'blog_rating', 'lookups': FL.numeric(), 'use_repr': True,
         },
+        'rating.blog_int': {
+            'orm_route': 'blog_rating', 'lookups': FL.numeric(), 'use_repr': False,
+        },
         'amazon_rating': {
             'orm_route': 'amazon_rating', 'lookups': {FL.GE, FL.LT},
         },
