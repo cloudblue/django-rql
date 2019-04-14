@@ -31,7 +31,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'untitled.urls'
+ROOT_URLCONF = 'tests.dj_rf.urls'
 
 DATABASES = {
     'default': {
