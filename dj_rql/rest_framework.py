@@ -20,5 +20,5 @@ class RQLFilterBackend(object):
 
     @staticmethod
     def _get_query(request):
-        # TODO: Fix
+        # TODO: get query string from request
         return ''

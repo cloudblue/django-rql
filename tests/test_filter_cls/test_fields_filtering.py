@@ -287,3 +287,19 @@ def test_datetime_field_fail(filter_name, bad_value):
 ])
 def test_field_lookup_fail(filter_name, value, bad_operator):
     assert_filter_field_lookup_error(filter_name, bad_operator, value)
+
+
+@pytest.mark.parametrize('filter_name,bad_value', [
+    ('status', 'invalid'), ('rating.blog', 'invalid'), ('rating.blog_int', '0'),
+])
+def test_bad_choice_fail(filter_name, bad_value):
+    assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('operator', [CO.EQ, CO.NE, CO.GT])
+@pytest.mark.parametrize('filter_name', ['invalid', 'search', 'ordering'])
+def test_ignored_filters(filter_name, operator):
+    Book.objects.bulk_create([Book() for _ in range(2)])
+    books = list(book_qs)
+    assert filter_field(filter_name, operator, 'value') == books

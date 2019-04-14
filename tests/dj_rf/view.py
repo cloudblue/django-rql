@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 
-from dj_rql.rest_framework.backend import RQLFilterBackend
+from dj_rql.backend import RQLFilterBackend
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Book
 

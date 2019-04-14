@@ -1,7 +1,6 @@
 from __future__ import unicode_literals
 
 import six
-from django.db import models
 from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
 
@@ -72,20 +71,9 @@ class RQLFilterClass(object):
 
     @staticmethod
     def _convert_value(django_field, str_value, use_repr=False):
-        # TODO: Rework choices logic for fields (int, str, bool)
-        if use_repr:
-            try:
-                db_value = next(
-                    choice[0] for choice in django_field.choices if choice[1] == str_value
-                )
-                return db_value
-            except StopIteration:
-                raise ValueError
-
         filter_type = FilterTypes.field_filter_type(django_field)
-        if filter_type == FilterTypes.INT:
-            return int(str_value)
-        elif filter_type == FilterTypes.FLOAT:
+
+        if filter_type == FilterTypes.FLOAT:
             return float(str_value)
         elif filter_type == FilterTypes.DECIMAL:
             value = float(str_value)
@@ -104,7 +92,20 @@ class RQLFilterClass(object):
             if str_value not in ('false', 'true'):
                 raise ValueError
             return str_value == 'true'
-        return str_value
+
+        choices = getattr(django_field, 'choices', None)
+        if not choices:
+            if filter_type == FilterTypes.INT:
+                return int(str_value)
+            return str_value
+        iterator = iter(choice[0] for choice in choices if choice[int(use_repr)] == str_value) \
+            if isinstance(choices[0], tuple) \
+            else iter(choice for choice in choices if choice == str_value)
+        try:
+            db_value = next(iterator)
+            return db_value
+        except StopIteration:
+            raise ValueError
 
     def _fill_mapper(self, filters, filter_route='', orm_route='', orm_model=None):
         model = orm_model or self.MODEL
