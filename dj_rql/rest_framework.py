@@ -1,11 +1,9 @@
 from __future__ import unicode_literals
 
-from rest_framework.filters import BaseFilterBackend
-
 from dj_rql.filter_cls import RQLFilterClass
 
 
-class RQLFilterBackend(BaseFilterBackend):
+class RQLFilterBackend(object):
     def filter_queryset(self, request, queryset, view):
         rql_filter_class = self._get_filter_class(view)
         query = self._get_query(request)
