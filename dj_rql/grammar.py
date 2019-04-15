@@ -51,7 +51,7 @@ prop: comp_term
 PROP: /[a-zA-Z]/ /[\w\-\.]/*
 QUOTED_VAL: /"[^"]*"/
     | /'[^']*'/
-UNQUOTED_VAL: /[\w\-]/ /[\w\.\-\:\+]/*
+UNQUOTED_VAL: /[\w\-]/ /[\w\.\-\:\+\@]/*
 
 _AND: "and"
 _OR: "or"

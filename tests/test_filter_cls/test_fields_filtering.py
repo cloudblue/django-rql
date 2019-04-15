@@ -11,7 +11,6 @@ from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
 
 book_qs = Book.objects.order_by('id')
-r_book_qs = book_qs.select_related('author', 'author__publisher').prefetch_related('pages')
 
 
 def filter_field(filter_name, operator, value):
@@ -20,7 +19,7 @@ def filter_field(filter_name, operator, value):
     return list(book_qs.filter(q))
 
 
-def assert_filter_field(error_cls, filter_name, operator, value):
+def assert_filter_field_error(error_cls, filter_name, operator, value):
     with pytest.raises(error_cls) as e:
         filter_field(filter_name, operator, value)
     assert e.value.details == {
@@ -29,8 +28,8 @@ def assert_filter_field(error_cls, filter_name, operator, value):
     }
 
 
-assert_filter_field_value_error = partial(assert_filter_field, RQLFilterValueError)
-assert_filter_field_lookup_error = partial(assert_filter_field, RQLFilterLookupError)
+assert_filter_field_value_error = partial(assert_filter_field_error, RQLFilterValueError)
+assert_filter_field_lookup_error = partial(assert_filter_field_error, RQLFilterLookupError)
 
 
 @pytest.mark.django_db
@@ -53,6 +52,8 @@ def test_title():
         Book.objects.create(title='R'),
     ]
     assert filter_field(filter_name, CO.EQ, books[0].title) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, '"{}"'.format(books[0].title)) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, "'{}'".format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, 'N') == []
     assert filter_field(filter_name, CO.NE, books[0].title) == [books[1]]
 
@@ -66,7 +67,7 @@ def test_current_price():
     ]
     assert filter_field(filter_name, CO.EQ, str(books[0].current_price)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, str(5.2300123)) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, 2) == []
+    assert filter_field(filter_name, CO.EQ, '2') == []
     assert filter_field(filter_name, CO.NE, str(books[1].current_price)) == [books[0]]
     assert filter_field(filter_name, CO.LE, str(books[0].current_price)) == books
     assert filter_field(filter_name, CO.GT, str(books[1].current_price)) == [books[0]]
@@ -162,9 +163,9 @@ def test_page__id():
     filter_name = 'page.id'
     books = [Book.objects.create() for _ in range(2)]
     pages = [Page.objects.create(book=books[index]) for index in range(2)]
-    assert filter_field(filter_name, CO.EQ, pages[1].pk) == [books[1]]
+    assert filter_field(filter_name, CO.EQ, str(pages[1].pk)) == [books[1]]
     assert filter_field(filter_name, CO.EQ, '5fde36e2-3442-4d2e-b221-a6758663dd72') == []
-    assert filter_field(filter_name, CO.NE, pages[1].pk) == [books[0]]
+    assert filter_field(filter_name, CO.NE, str(pages[1].pk)) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -201,9 +202,9 @@ def test_rating_blog_int():
         Book.objects.create(blog_rating=Book.LOW_RATING),
         Book.objects.create(blog_rating=Book.HIGH_RATING),
     ]
-    assert filter_field(filter_name, CO.EQ, Book.LOW_RATING) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, Book.HIGH_RATING) == [books[1]]
-    assert filter_field(filter_name, CO.NE, Book.HIGH_RATING) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, str(Book.LOW_RATING)) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, str(Book.HIGH_RATING)) == [books[1]]
+    assert filter_field(filter_name, CO.NE, str(Book.HIGH_RATING)) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -213,9 +214,9 @@ def test_amazon_rating():
         Book.objects.create(amazon_rating=3.02),
         Book.objects.create(amazon_rating=2),
     ]
-    assert filter_field(filter_name, CO.GE, 3.0200000) == [books[0]]
-    assert filter_field(filter_name, CO.GE, 2.01) == [books[0]]
-    assert filter_field(filter_name, CO.LT, 3.02) == [books[1]]
+    assert filter_field(filter_name, CO.GE, '3.0200000') == [books[0]]
+    assert filter_field(filter_name, CO.GE, '2.01') == [books[0]]
+    assert filter_field(filter_name, CO.LT, '3.02') == [books[1]]
 
 
 @pytest.mark.django_db
@@ -290,7 +291,7 @@ def test_field_lookup_fail(filter_name, value, bad_operator):
 
 
 @pytest.mark.parametrize('filter_name,bad_value', [
-    ('status', 'invalid'), ('rating.blog', 'invalid'), ('rating.blog_int', '0'),
+    ('status', 'invalid'), ('rating.blog', 'invalid'), ('rating.blog_int', '-1'),
 ])
 def test_bad_choice_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)

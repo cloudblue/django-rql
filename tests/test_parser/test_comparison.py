@@ -27,7 +27,7 @@ eq_cmp_transform = partial(cmp_transform, '{prop}{operator}{value}', '=')
 ok_props = ['p', 'p1', 'prop.p2', 'u_p', 'p1__p2__p3', 'lt', 'and', 'not']
 ok_values = [
     'value', 'PRD-000-000', 'ne', "0", '""', "''", '-3.23', '"text , t lt"',
-    '2014-01-21T19:31:58+03:00', '2015-02-12', '"eq(1,2)"', 'or', 'not',
+    '2014-01-21T19:31:58+03:00', '2015-02-12', '"eq(1,2)"', 'or', 'not', 'email@example.com',
 ]
 
 fail_props = ['', '=', 't t', '"p"', '23', '1p']

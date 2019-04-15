@@ -13,7 +13,7 @@ class RQLFilterBackend(object):
     def _get_filter_class(view):
         rql_filter_class = getattr(view, 'rql_filter_class', None)
 
-        assert rql_filter_class is not None, 'RQL Filter Class must be set in view'
+        assert rql_filter_class is not None, 'RQL Filter Class must be set in view.'
         assert issubclass(rql_filter_class, RQLFilterClass)
 
         return rql_filter_class

@@ -3,11 +3,14 @@ from __future__ import unicode_literals
 import six
 from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
+from lark.exceptions import LarkError
 
 from dj_rql.constants import (
     ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SUPPORTED_FIELD_TYPES,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
+from dj_rql.parser import RQLParser
+from dj_rql.transformer import RQLtoDjangoORMTransformer
 
 
 class RQLFilterClass(object):
@@ -25,8 +28,16 @@ class RQLFilterClass(object):
         self.queryset = queryset
 
     def apply_filters(self, query):
-        # TODO: Implement
-        return self.queryset.distinct()
+        if not query:
+            return self.queryset
+
+        try:
+            self.queryset = RQLtoDjangoORMTransformer(self).transform(RQLParser.parse(query))
+            return self.queryset
+        except LarkError as e:
+            raise RQLFilterParsingError(details={
+                'error': str(e),
+            })
 
     def get_django_q_for_filter_expression(self, filter_name, operator, str_value):
         if filter_name not in self.mapper:
@@ -71,6 +82,8 @@ class RQLFilterClass(object):
 
     @staticmethod
     def _convert_value(django_field, str_value, use_repr=False):
+        if str_value[0] in ('"', "'"):
+            str_value = str_value[1:-1]
         filter_type = FilterTypes.field_filter_type(django_field)
 
         if filter_type == FilterTypes.FLOAT:
@@ -98,9 +111,13 @@ class RQLFilterClass(object):
             if filter_type == FilterTypes.INT:
                 return int(str_value)
             return str_value
-        iterator = iter(choice[0] for choice in choices if choice[int(use_repr)] == str_value) \
-            if isinstance(choices[0], tuple) \
-            else iter(choice for choice in choices if choice == str_value)
+
+        if isinstance(choices[0], tuple):
+            iterator = iter(
+                choice[0] for choice in choices if str(choice[int(use_repr)]) == str_value
+            )
+        else:
+            iterator = iter(choice for choice in choices if choice == str_value)
         try:
             db_value = next(iterator)
             return db_value
