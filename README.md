@@ -17,7 +17,7 @@ This is a query language fast and convenient database interaction. RQL was desig
 Notes
 -----
 
-Parsing is done with [Lark](https://github.com/lark-parser/lark).
+Parsing is done with [Lark](https://github.com/lark-parser/lark) ([cheatsheet](https://lark-parser.readthedocs.io/en/latest/lark_cheatsheet.pdf)).
 The current parsing algorithm is [LALR(1)](https://www.wikiwand.com/en/LALR_parser) with standard lexer.
 
 Development

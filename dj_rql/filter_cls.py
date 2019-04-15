@@ -19,7 +19,7 @@ class RQLFilterClass(object):
 
     def __init__(self, queryset):
         assert self.MODEL, 'Model must be set for Filter Class.'
-        assert isinstance(self.FILTERS, list) and self.FILTERS, \
+        assert isinstance(self.FILTERS, (list, tuple)) and self.FILTERS, \
             'List of filters must be set for Filter Class.'
 
         self.mapper = {}
@@ -28,6 +28,7 @@ class RQLFilterClass(object):
         self.queryset = queryset
 
     def apply_filters(self, query):
+        """ Entry point function for model queryset filtering. """
         if not query:
             return self.queryset
 
@@ -40,6 +41,7 @@ class RQLFilterClass(object):
             })
 
     def get_django_q_for_filter_expression(self, filter_name, operator, str_value):
+        """ Django Q() builder for the given expression. """
         if filter_name not in self.mapper:
             return Q()
 
@@ -82,17 +84,20 @@ class RQLFilterClass(object):
 
     @staticmethod
     def _convert_value(django_field, str_value, use_repr=False):
+        # Values can start with single or double quotes, if they have special chars inside them
         if str_value[0] in ('"', "'"):
             str_value = str_value[1:-1]
         filter_type = FilterTypes.field_filter_type(django_field)
 
         if filter_type == FilterTypes.FLOAT:
             return float(str_value)
+
         elif filter_type == FilterTypes.DECIMAL:
             value = float(str_value)
             if django_field.decimal_places is not None:
                 value = round(value, django_field.decimal_places)
             return value
+
         elif filter_type == FilterTypes.DATE:
             dt = parse_date(str_value)
             if dt is None:
@@ -101,6 +106,7 @@ class RQLFilterClass(object):
             dt = parse_datetime(str_value)
             if dt is None:
                 raise ValueError
+
         elif filter_type == FilterTypes.BOOLEAN:
             if str_value not in ('false', 'true'):
                 raise ValueError
@@ -112,6 +118,9 @@ class RQLFilterClass(object):
                 return int(str_value)
             return str_value
 
+        # `use_repr=True` makes it possible to map choice representations to real db values
+        # F.e.: `choices=((0, 'v0'), (1, 'v1'))` can be filtered by 'v1' if `use_repr=True` or
+        # by '1' if `use_repr=False`
         if isinstance(choices[0], tuple):
             iterator = iter(
                 choice[0] for choice in choices if str(choice[int(use_repr)]) == str_value
@@ -125,6 +134,7 @@ class RQLFilterClass(object):
             raise ValueError
 
     def _fill_mapper(self, filters, filter_route='', orm_route='', orm_model=None):
+        """ Converter of provided nested filter configuration to linear inner representation. """
         model = orm_model or self.MODEL
 
         if not orm_route:
@@ -186,6 +196,12 @@ class RQLFilterClass(object):
 
     @classmethod
     def _get_field(cls, base_model, field_name):
+        """ Django ORM field getter.
+
+        Notes:
+            field_name can have dots or double underscores in them. They are interpreted as
+            links to the related models.
+        """
         field_name_parts = field_name.split('.' if '.' in field_name else '__')
         field_name_parts_length = len(field_name_parts)
         current_model = base_model
@@ -212,7 +228,7 @@ class RQLFilterClass(object):
         return ~Q(**kwargs) if filter_lookup == FilterLookups.NE else Q(**kwargs)
 
     @staticmethod
-    def _get_filter_lookup_by_operator(operator):
+    def _get_filter_lookup_by_operator(grammar_operator):
         mapper = {
             ComparisonOperators.EQ: FilterLookups.EQ,
             ComparisonOperators.NE: FilterLookups.NE,
@@ -221,7 +237,7 @@ class RQLFilterClass(object):
             ComparisonOperators.GT: FilterLookups.GT,
             ComparisonOperators.GE: FilterLookups.GE,
         }
-        return mapper[operator]
+        return mapper[grammar_operator]
 
     @staticmethod
     def _get_django_lookup_by_filter_lookup(filter_lookup):

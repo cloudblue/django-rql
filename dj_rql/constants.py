@@ -104,7 +104,7 @@ class ComparisonOperators(object):
     LE = 'le'
 
 
-class LogicalOperators:
+class LogicalOperators(object):
     AND = 'and'
     OR = 'or'
     NOT = 'not'
@@ -114,7 +114,7 @@ class LogicalOperators:
         return '{}_op'.format(key)
 
 
-class DjangoLookups:
+class DjangoLookups(object):
     EXACT = 'exact'
     GT = 'gt'
     GTE = 'gte'
