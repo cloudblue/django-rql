@@ -7,7 +7,7 @@ from tests.dj_rf.view import DRFViewSet
 
 
 router = SimpleRouter()
-router.register(r'books', DRFViewSet, basename='books')
+router.register(r'books', DRFViewSet, basename='book')
 
 urlpatterns = [
     url(r'^', include(router.urls)),

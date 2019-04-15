@@ -14,11 +14,11 @@ class RQLFilterBackend(object):
         rql_filter_class = getattr(view, 'rql_filter_class', None)
 
         assert rql_filter_class is not None, 'RQL Filter Class must be set in view.'
-        assert issubclass(rql_filter_class, RQLFilterClass)
+        assert issubclass(rql_filter_class, RQLFilterClass), \
+            'Filtering class must subclass RQLFilterClass.'
 
         return rql_filter_class
 
     @staticmethod
-    def _get_query(request):
-        # TODO: get query string from request
-        return ''
+    def _get_query(drf_request):
+        return drf_request._request.META['QUERY_STRING']
