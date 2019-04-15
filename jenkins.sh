@@ -9,10 +9,10 @@ python2.7 setup.py test
 deactivate
 rm -rf django_rql_env
 
-virtualenv -p python3 django_rql_env
+virtualenv -p python3.6 django_rql_env
 . django_rql_env/bin/activate
-python3 setup.py test
-python3 setup.py publish $@
+python3.6 setup.py test
+python3.6 setup.py publish $@
 deactivate
 
 export PATH=$PATH:/opt/sonar-scanner-2.6.1/bin/
