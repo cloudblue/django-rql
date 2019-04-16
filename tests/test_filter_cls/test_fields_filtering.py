@@ -5,7 +5,7 @@ from functools import partial
 
 import pytest
 
-from dj_rql.constants import ComparisonOperators as CO, RQL_NULL
+from dj_rql.constants import ComparisonOperators as CO, RQL_EMPTY, RQL_NULL
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
@@ -49,15 +49,18 @@ def test_title():
         Book.objects.create(title='G'),
         Book.objects.create(title='R'),
         Book.objects.create(),
+        Book.objects.create(title=''),
     ]
     assert filter_field(filter_name, CO.EQ, books[0].title) == [books[0]]
     assert filter_field(filter_name, CO.EQ, '"{}"'.format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, "'{}'".format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, 'N') == []
-    assert filter_field(filter_name, CO.NE, books[0].title) == [books[1], books[2]]
+    assert filter_field(filter_name, CO.NE, books[0].title) == [books[1], books[2], books[3]]
     assert filter_field(filter_name, CO.EQ, RQL_NULL) == [books[2]]
     assert filter_field(filter_name, CO.EQ, 'NULL_ID') == [books[2]]
-    assert filter_field(filter_name, CO.NE, 'NULL_ID') == [books[0], books[1]]
+    assert filter_field(filter_name, CO.NE, 'NULL_ID') == [books[0], books[1], books[3]]
+    assert filter_field(filter_name, CO.EQ, RQL_EMPTY) == [books[3]]
+    assert filter_field(filter_name, CO.NE, RQL_EMPTY) == [books[0], books[1], books[2]]
 
 
 @pytest.mark.django_db
@@ -300,13 +303,19 @@ def test_bad_choice_fail(filter_name, bad_value):
 
 
 @pytest.mark.parametrize('bad_operator', [CO.LT, CO.GT, CO.LE, CO.LT])
-def test_null_value_lookup_fail(bad_operator):
-    assert_filter_field_lookup_error('title', bad_operator, RQL_NULL)
+@pytest.mark.parametrize('value', [RQL_NULL, RQL_EMPTY])
+def test_null_empty_value_lookup_fail(bad_operator, value):
+    assert_filter_field_lookup_error('title', bad_operator, value)
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('operator', [CO.EQ, CO.NE, CO.GT])
-@pytest.mark.parametrize('filter_name', ['invalid', 'search', 'ordering'])
+@pytest.mark.parametrize('filter_name', ['invalid'])
 def test_ignored_filters(filter_name, operator):
     books = create_books()
     assert filter_field(filter_name, operator, 'value') == books
+
+
+@pytest.mark.parametrize('filter_name', ['id', 'page.number', 'author.is_male', 'name'])
+def test_empty_value_fail(filter_name):
+    assert_filter_field_value_error(filter_name, CO.EQ, RQL_EMPTY)

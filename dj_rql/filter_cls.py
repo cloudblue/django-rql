@@ -6,7 +6,8 @@ from django.utils.dateparse import parse_date, parse_datetime
 from lark.exceptions import LarkError
 
 from dj_rql.constants import (
-    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, RQL_NULL, SUPPORTED_FIELD_TYPES,
+    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes,
+    RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.parser import RQLParser
@@ -177,7 +178,11 @@ class RQLFilterClass(object):
             null_lookups = {FilterLookups.EQ, FilterLookups.NE}
             if (FilterLookups.NULL not in available_lookups) or (filter_lookup not in null_lookups):
                 raise RQLFilterLookupError(**cls._get_error_details(filter_lookup, str_value))
-        elif filter_lookup not in available_lookups:
+
+        if str_value == RQL_EMPTY:
+            available_lookups = {FilterLookups.EQ, FilterLookups.NE}
+
+        if filter_lookup not in available_lookups:
             raise RQLFilterLookupError(**cls._get_error_details(filter_lookup, str_value))
 
         return filter_lookup
@@ -254,6 +259,11 @@ class RQLFilterClass(object):
             if str_value not in ('false', 'true'):
                 raise ValueError
             return str_value == 'true'
+
+        if str_value == RQL_EMPTY:
+            if (filter_type == FilterTypes.INT) or (not django_field.blank):
+                raise ValueError
+            return ''
 
         choices = getattr(django_field, 'choices', None)
         if not choices:

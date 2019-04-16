@@ -65,8 +65,10 @@ PROP: /[a-zA-Z]/ /[\w\-\.]/*
 QUOTED_VAL: /"[^"]*"/
     | /'[^']*'/
 UNQUOTED_VAL: NULL
+    | EMPTY
     | /[\w\-]/ /[\w\.\-\:\+\@]/*
 
+EMPTY: "empty()"
 NULL: "null()"
 
 _AND: "and"

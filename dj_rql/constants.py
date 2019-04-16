@@ -134,4 +134,5 @@ class DjangoLookups(object):
     NULL = 'isnull'
 
 
+RQL_EMPTY = 'empty()'
 RQL_NULL = 'null()'
