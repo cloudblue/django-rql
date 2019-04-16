@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 from django.db.models import Q
 from lark import Transformer, Tree
 
-from dj_rql.constants import ComparisonOperators, LogicalOperators
+from dj_rql.constants import ComparisonOperators, ListOperators, LogicalOperators
 
 
 class RQLtoDjangoORMTransformer(Transformer):
@@ -53,6 +53,19 @@ class RQLtoDjangoORMTransformer(Transformer):
         q = Q()
         for child in children:
             q |= child
+        return q
+
+    def listing(self, args):
+        # Django __in lookup is not used, because of null() values
+        operation, prop = self._get_value(args[0]), self._get_value(args[1])
+        f_op = ComparisonOperators.EQ if operation == ListOperators.IN else ComparisonOperators.NE
+
+        q = Q()
+        for value_tree in args[2:]:
+            field_q = self._filter_cls_instance.get_django_q_for_filter_expression(
+                prop, f_op, self._get_value(value_tree),
+            )
+            q = q | field_q if operation == ListOperators.IN else q & field_q
         return q
 
     def term(self, args):

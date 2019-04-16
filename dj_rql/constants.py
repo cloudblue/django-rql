@@ -34,13 +34,16 @@ class FilterLookups(object):
     LE = 'le'
     LT = 'lt'
 
+    IN = 'in'
+    OUT = 'out'
+
     @classmethod
     def numeric(cls):
-        return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE}
+        return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE, cls.IN, cls.OUT}
 
     @classmethod
     def string(cls):
-        return {cls.EQ, cls.NE}
+        return {cls.EQ, cls.NE, cls.IN, cls.OUT}
 
     @classmethod
     def boolean(cls):
