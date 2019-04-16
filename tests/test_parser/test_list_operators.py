@@ -1,0 +1,42 @@
+from __future__ import unicode_literals
+
+import pytest
+from lark.exceptions import LarkError
+
+from dj_rql.constants import ListOperators
+from dj_rql.parser import RQLParser
+from tests.test_parser.constants import FAIL_PROPS, FAIL_VALUES, OK_PROPS, OK_VALUES
+from tests.test_parser.utils import ListTransformer
+
+REVERSED_OK = reversed(OK_VALUES)
+list_operators = [ListOperators.IN, ListOperators.OUT]
+
+
+def list_transform(operator, prop, values):
+    query = '{operator}({prop},({values}))'.format(
+        operator=operator, prop=prop, values=','.join(values),
+    )
+    return ListTransformer().transform(RQLParser.parse(query))
+
+
+@pytest.mark.parametrize('operator', list_operators)
+@pytest.mark.parametrize('prop', OK_PROPS)
+@pytest.mark.parametrize('v1,v2', zip(OK_VALUES, REVERSED_OK))
+def test_list_ok(operator, prop, v1, v2):
+    for v in (v1, v2):
+        assert list_transform(operator, prop, (v,)) == (operator, prop, (v,))
+    assert list_transform(operator, prop, (v1, v2)) == (operator, prop, (v1, v2))
+
+
+@pytest.mark.parametrize('operator', list_operators)
+@pytest.mark.parametrize('prop', FAIL_PROPS)
+def test_list_value_fail(operator, prop):
+    with pytest.raises(LarkError):
+        list_transform(operator, prop, ('value',))
+
+
+@pytest.mark.parametrize('operator', list_operators)
+@pytest.mark.parametrize('v1,v2', zip(OK_VALUES, FAIL_VALUES))
+def test_list_property_fail(operator, v1, v2):
+    with pytest.raises(LarkError):
+        list_transform(operator, 'prop', (v1, v2))

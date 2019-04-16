@@ -104,6 +104,11 @@ class ComparisonOperators(object):
     LE = 'le'
 
 
+class ListOperators(object):
+    IN = 'in'
+    OUT = 'out'
+
+
 class LogicalOperators(object):
     AND = 'and'
     OR = 'or'
@@ -120,3 +125,5 @@ class DjangoLookups(object):
     GTE = 'gte'
     LT = 'lt'
     LTE = 'lte'
+
+    IN = 'in'

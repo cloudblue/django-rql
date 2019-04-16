@@ -15,6 +15,7 @@ start: term?
 
 term: expr_term
     | logical
+    | listing
     
 expr_term: comp
     
@@ -29,11 +30,12 @@ _and: _AND _logical_exp
     | term "&" term
     | term _COMA term
 
-or_op: _L_BRACE _or _R_BRACE
+or_op: _or
+    | _L_BRACE _or _R_BRACE
 
 _or: _OR _logical_exp
-    | term "|" term
-    | term ";" term
+    | _L_BRACE term "|" term _R_BRACE
+    | _L_BRACE term ";" term _R_BRACE
 
 _logical_exp: _L_BRACE expr_term (_COMA expr_term)+ _R_BRACE
 
@@ -43,16 +45,20 @@ comp: comp_term _L_BRACE prop _COMA val _R_BRACE
     | prop _EQUALITY comp_term _EQUALITY val
     | prop _EQUALITY val
     
+listing: list_term _L_BRACE prop _COMA _L_BRACE val (_COMA val)* _R_BRACE _R_BRACE
+    
 val: prop
     | QUOTED_VAL
     | UNQUOTED_VAL
     
 prop: comp_term
     | logical_term
+    | list_term
     | PROP
     
 !comp_term: "eq" | "ne" | "gt" | "ge" | "lt" | "le"
 !logical_term: _AND | _OR | _NOT
+!list_term: "in" | "out"
 
     
 PROP: /[a-zA-Z]/ /[\w\-\.]/*

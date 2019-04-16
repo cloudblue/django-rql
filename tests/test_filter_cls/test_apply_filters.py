@@ -62,7 +62,7 @@ def test_or(operator):
 
     expected = books
     assert apply_filters(query) == expected
-    assert apply_filters('(or({comp1},{comp2}))'.format(comp1=comp1, comp2=comp2)) == expected
+    assert apply_filters('or({comp1},{comp2})'.format(comp1=comp1, comp2=comp2)) == expected
 
 
 @pytest.mark.django_db

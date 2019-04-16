@@ -31,7 +31,7 @@ def check_expression(logical_operator, expression_str, logical_result):
 
 base_and_logical_transform = partial(logical_transform, '{operator}({exp1},{exp2})')
 alias_and_logical_transform = partial(logical_transform, '{exp1}{operator}{exp2}')
-base_or_logical_transform = partial(logical_transform, '({operator}({exp1},{exp2}))')
+base_or_logical_transform = partial(logical_transform, '{operator}({exp1},{exp2})')
 alias_or_logical_transform = partial(logical_transform, '({exp1}{operator}{exp2})')
 not_logical_transform = partial(logical_transform, '{operator}({exp1})', LogicalOperators.NOT)
 
