@@ -5,7 +5,7 @@ from functools import partial
 
 import pytest
 
-from dj_rql.constants import ComparisonOperators as CO
+from dj_rql.constants import ComparisonOperators as CO, RQL_NULL
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
@@ -14,7 +14,7 @@ from tests.test_filter_cls.utils import book_qs, create_books
 
 def filter_field(filter_name, operator, value):
     filter_cls = BooksFilterClass(book_qs)
-    q = filter_cls.get_django_q_for_filter_expression(filter_name, operator, str(value))
+    q = filter_cls.build_q_for_filter(filter_name, operator, str(value))
     return list(book_qs.filter(q))
 
 
@@ -48,12 +48,16 @@ def test_title():
     books = [
         Book.objects.create(title='G'),
         Book.objects.create(title='R'),
+        Book.objects.create(),
     ]
     assert filter_field(filter_name, CO.EQ, books[0].title) == [books[0]]
     assert filter_field(filter_name, CO.EQ, '"{}"'.format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, "'{}'".format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, 'N') == []
-    assert filter_field(filter_name, CO.NE, books[0].title) == [books[1]]
+    assert filter_field(filter_name, CO.NE, books[0].title) == [books[1], books[2]]
+    assert filter_field(filter_name, CO.EQ, RQL_NULL) == [books[2]]
+    assert filter_field(filter_name, CO.EQ, 'NULL_ID') == [books[2]]
+    assert filter_field(filter_name, CO.NE, 'NULL_ID') == [books[0], books[1]]
 
 
 @pytest.mark.django_db
@@ -293,6 +297,11 @@ def test_field_lookup_fail(filter_name, value, bad_operator):
 ])
 def test_bad_choice_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
+
+
+@pytest.mark.parametrize('bad_operator', [CO.LT, CO.GT, CO.LE, CO.LT])
+def test_null_value_lookup_fail(bad_operator):
+    assert_filter_field_lookup_error('title', bad_operator, RQL_NULL)
 
 
 @pytest.mark.django_db

@@ -38,7 +38,7 @@ class RQLToDjangoORMTransformer(Transformer):
             operation = self._get_value(args[1])
             prop_index = 0
 
-        return self._filter_cls_instance.get_django_q_for_filter_expression(
+        return self._filter_cls_instance.build_q_for_filter(
             self._get_value(args[prop_index]), operation, self._get_value(args[value_index])
         )
 
@@ -62,7 +62,7 @@ class RQLToDjangoORMTransformer(Transformer):
 
         q = Q()
         for value_tree in args[2:]:
-            field_q = self._filter_cls_instance.get_django_q_for_filter_expression(
+            field_q = self._filter_cls_instance.build_q_for_filter(
                 prop, f_op, self._get_value(value_tree),
             )
             q = q | field_q if operation == ListOperators.IN else q & field_q

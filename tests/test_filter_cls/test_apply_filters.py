@@ -4,7 +4,7 @@ from functools import partial
 
 import pytest
 
-from dj_rql.constants import ListOperators
+from dj_rql.constants import ListOperators, RQL_NULL
 from dj_rql.exceptions import RQLFilterParsingError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
@@ -130,3 +130,22 @@ def test_out():
     assert apply_out_listing_filters(str(books[1].pk), '23') == [books[0]]
     assert apply_out_listing_filters(str(books[1].pk), str(books[0].pk)) == []
     assert apply_out_listing_filters('23') == books
+
+
+@pytest.mark.django_db
+def test_null():
+    books = create_books()
+    assert apply_filters('title={}'.format(RQL_NULL)) == books
+    assert apply_filters('title=ne={}'.format(RQL_NULL)) == []
+
+
+@pytest.mark.django_db
+def test_null_with_in_or():
+    books = create_books()
+
+    title = 'null'
+    books[0].title = title
+    books[0].save(update_fields=['title'])
+
+    assert apply_filters('in(title,({},{}))'.format(title, RQL_NULL)) == books
+    assert apply_filters('or(title=eq={},eq(title,{}))'.format(title, RQL_NULL)) == books

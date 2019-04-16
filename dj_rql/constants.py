@@ -37,17 +37,19 @@ class FilterLookups(object):
     IN = 'in'
     OUT = 'out'
 
+    NULL = 'null'
+
     @classmethod
     def numeric(cls):
-        return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE, cls.IN, cls.OUT}
+        return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE, cls.IN, cls.OUT, cls.NULL}
 
     @classmethod
     def string(cls):
-        return {cls.EQ, cls.NE, cls.IN, cls.OUT}
+        return {cls.EQ, cls.NE, cls.IN, cls.OUT, cls.NULL}
 
     @classmethod
     def boolean(cls):
-        return {cls.EQ, cls.NE}
+        return {cls.EQ, cls.NE, cls.NULL}
 
 
 class FilterTypes(object):
@@ -129,4 +131,7 @@ class DjangoLookups(object):
     LT = 'lt'
     LTE = 'lte'
 
-    IN = 'in'
+    NULL = 'isnull'
+
+
+RQL_NULL = 'null()'

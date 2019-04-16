@@ -1,7 +1,7 @@
 from __future__ import unicode_literals
 
 from dj_rql.filter_cls import RQLFilterClass
-from dj_rql.constants import FilterLookups
+from dj_rql.constants import FilterLookups, RQL_NULL
 from tests.dj_rf.models import Book
 
 
@@ -24,7 +24,10 @@ PAGE_FILTERS = [{
 
 class BooksFilterClass(RQLFilterClass):
     MODEL = Book
-    FILTERS = ['id', 'title', 'current_price', 'written', {
+    FILTERS = ['id', {
+        'filter': 'title',
+        'null_values': {RQL_NULL, 'NULL_ID'},
+    }, 'current_price', 'written', {
         'filter': 'status',
     }, {
         'filter': 'author__email',

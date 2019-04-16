@@ -25,10 +25,15 @@ Currently supported operators
 0. Comparison (eq, ne, gt, ge, lt, le)
 0. Logical (and, or, not)
 0. List (in, out)
+0. Constants (null(), empty()) 
 
 Example
 =======
 ```python
+from dj_rql.constants import FilterLookups
+from dj_rql.filter_cls import RQLFilterClass, RQL_NULL
+
+
 class ModelFilterClass(RQLFilterClass):
     """
     MODEL - Django ORM model
@@ -54,6 +59,11 @@ class ModelFilterClass(RQLFilterClass):
     """
     MODEL = Model
     FILTERS = ['id', {
+        # `null_values` can be set to override ORM is_null behaviour
+        # RQL_NULL is the default value if NULL lookup is supported by field
+        'filter': 'title',
+        'null_values': {RQL_NULL, 'NULL_ID'},
+    }, {
         'filter': 'status',
     }, {
         'filter': 'author__email',
