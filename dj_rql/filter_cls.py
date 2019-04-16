@@ -10,7 +10,10 @@ from dj_rql.constants import (
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.parser import RQLParser
-from dj_rql.transformer import RQLtoDjangoORMTransformer
+from dj_rql.transformer import RQLToDjangoORMTransformer
+
+
+iterable_types = (list, tuple)
 
 
 class RQLFilterClass(object):
@@ -19,11 +22,11 @@ class RQLFilterClass(object):
 
     def __init__(self, queryset):
         assert self.MODEL, 'Model must be set for Filter Class.'
-        assert isinstance(self.FILTERS, (list, tuple)) and self.FILTERS, \
+        assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, \
             'List of filters must be set for Filter Class.'
 
         self.mapper = {}
-        self._fill_mapper(self.FILTERS)
+        self._build_mapper(self.FILTERS)
 
         self.queryset = queryset
 
@@ -33,7 +36,7 @@ class RQLFilterClass(object):
             return self.queryset
 
         try:
-            self.queryset = RQLtoDjangoORMTransformer(self).transform(RQLParser.parse(query))
+            self.queryset = RQLToDjangoORMTransformer(self).transform(RQLParser.parse(query))
             return self.queryset
         except LarkError as e:
             raise RQLFilterParsingError(details={
@@ -47,29 +50,23 @@ class RQLFilterClass(object):
 
         filter_item = self.mapper[filter_name]
 
-        base_item = filter_item[0] if isinstance(filter_item, list) else filter_item
+        base_item = filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
         django_field = base_item['field']
         available_lookups = base_item['lookups']
         use_repr = base_item.get('use_repr', False)
 
         filter_lookup = self._get_filter_lookup_by_operator(operator)
         if filter_lookup not in available_lookups:
-            raise RQLFilterLookupError(details={
-                'lookup': filter_lookup,
-                'value': str_value,
-            })
+            raise RQLFilterLookupError(**self._get_error_details(filter_lookup, str_value))
 
         django_lookup = self._get_django_lookup_by_filter_lookup(filter_lookup)
         try:
             typed_value = self._convert_value(django_field, str_value, use_repr=use_repr)
         except (ValueError, TypeError):
-            raise RQLFilterValueError(details={
-                'lookup': filter_lookup,
-                'value': str_value,
-            })
+            raise RQLFilterValueError(**self._get_error_details(filter_lookup, str_value))
         django_lookup = self._change_django_lookup_by_value(django_lookup, typed_value)
 
-        if not isinstance(filter_item, list):
+        if not isinstance(filter_item, iterable_types):
             return self._get_django_q_for_filter_expression(
                 filter_item, django_lookup, filter_lookup, typed_value,
             )
@@ -79,7 +76,10 @@ class RQLFilterClass(object):
             item_q = self._get_django_q_for_filter_expression(
                 item, django_lookup, filter_lookup, typed_value,
             )
-            q = q & item_q if filter_lookup == FilterLookups.NE else q | item_q
+            if filter_lookup == FilterLookups.NE:
+                q &= item_q
+            else:
+                q |= item_q
         return q
 
     @staticmethod
@@ -133,7 +133,7 @@ class RQLFilterClass(object):
         except StopIteration:
             raise ValueError
 
-    def _fill_mapper(self, filters, filter_route='', orm_route='', orm_model=None):
+    def _build_mapper(self, filters, filter_route='', orm_route='', orm_model=None):
         """ Converter of provided nested filter configuration to linear inner representation. """
         model = orm_model or self.MODEL
 
@@ -145,11 +145,7 @@ class RQLFilterClass(object):
                 field_filter_route = '{}{}'.format(filter_route, item)
                 field_orm_route = '{}{}'.format(orm_route, item)
                 field = self._get_field(model, item)
-                self.mapper[field_filter_route] = {
-                    'field': field,
-                    'orm_route': field_orm_route,
-                    'lookups': FilterTypes.default_field_filter_lookups(field),
-                }
+                self.mapper[field_filter_route] = self._build_mapped_item(field, field_orm_route)
 
             elif 'namespace' in item:
                 related_filter_route = '{}{}.'.format(filter_route, item['namespace'])
@@ -157,7 +153,7 @@ class RQLFilterClass(object):
                 related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
 
                 related_model = self._get_model_field(model, orm_field_name).related_model
-                self._fill_mapper(
+                self._build_mapper(
                     item.get('filters', []), related_filter_route,
                     related_orm_route, related_model,
                 )
@@ -171,27 +167,19 @@ class RQLFilterClass(object):
                         full_orm_route = '{}{}'.format(orm_route, source)
                         field = self._get_field(model, source)
 
-                        mapping.append({
-                            'field': field,
-                            'orm_route': full_orm_route,
-                            'use_repr': item.get('use_repr', False),
-                            'lookups': item.get(
-                                'lookups', FilterTypes.default_field_filter_lookups(field),
-                            ),
-                        })
+                        mapping.append(self._build_mapped_item(
+                            field, full_orm_route,
+                            lookups=item.get('lookups'), use_repr=item.get('use_repr'),
+                        ))
                 else:
                     orm_field_name = item.get('source', item['filter'])
                     full_orm_route = '{}{}'.format(orm_route, orm_field_name)
 
                     field = self._get_field(model, orm_field_name)
-                    mapping = {
-                        'field': field,
-                        'orm_route': full_orm_route,
-                        'use_repr': item.get('use_repr', False),
-                        'lookups': item.get(
-                            'lookups', FilterTypes.default_field_filter_lookups(field),
-                        ),
-                    }
+                    mapping = self._build_mapped_item(
+                        field, full_orm_route,
+                        lookups=item.get('lookups'), use_repr=item.get('use_repr'),
+                    )
                 self.mapper[field_filter_route] = mapping
 
     @classmethod
@@ -212,6 +200,29 @@ class RQLFilterClass(object):
                     'Unsupported field type: {}.'.format(field_name)
                 return current_field
             current_model = current_field.related_model
+
+    @staticmethod
+    def _build_mapped_item(field, field_orm_route, lookups=None, use_repr=None):
+        possible_lookups = FilterTypes.default_field_filter_lookups(field) \
+            if lookups is None else lookups
+        result = {
+            'field': field,
+            'orm_route': field_orm_route,
+            'lookups': possible_lookups,
+        }
+
+        if use_repr is not None:
+            result['use_repr'] = use_repr
+        return result
+
+    @staticmethod
+    def _get_error_details(filter_lookup, str_value):
+        return {
+            'details': {
+                'lookup': filter_lookup,
+                'value': str_value,
+            },
+        }
 
     @staticmethod
     def _get_model_field(model, field_name):

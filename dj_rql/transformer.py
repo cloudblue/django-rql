@@ -9,7 +9,7 @@ from lark import Transformer, Tree
 from dj_rql.constants import ComparisonOperators, LogicalOperators
 
 
-class RQLtoDjangoORMTransformer(Transformer):
+class RQLToDjangoORMTransformer(Transformer):
     """ Parsed RQL AST tree transformer to Django ORM Query.
 
     Notes:
