@@ -65,7 +65,10 @@ class RQLToDjangoORMTransformer(Transformer):
             field_q = self._filter_cls_instance.build_q_for_filter(
                 prop, f_op, self._get_value(value_tree),
             )
-            q = q | field_q if operation == ListOperators.IN else q & field_q
+            if operation == ListOperators.IN:
+                q |= field_q
+            else:
+                q &= field_q
         return q
 
     def term(self, args):
