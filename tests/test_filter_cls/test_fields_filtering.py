@@ -5,17 +5,16 @@ from functools import partial
 
 import pytest
 
-from dj_rql.constants import ComparisonOperators as CO
+from dj_rql.constants import ComparisonOperators as CO, RQL_EMPTY, RQL_NULL
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
-
-book_qs = Book.objects.order_by('id')
+from tests.test_filter_cls.utils import book_qs, create_books
 
 
 def filter_field(filter_name, operator, value):
     filter_cls = BooksFilterClass(book_qs)
-    q = filter_cls.get_django_q_for_filter_expression(filter_name, operator, value)
+    q = filter_cls.build_q_for_filter(filter_name, operator, str(value))
     return list(book_qs.filter(q))
 
 
@@ -35,13 +34,12 @@ assert_filter_field_lookup_error = partial(assert_filter_field_error, RQLFilterL
 @pytest.mark.django_db
 def test_id():
     filter_name = 'id'
-    Book.objects.bulk_create([Book() for _ in range(2)])
-    books = list(book_qs)
-    assert filter_field(filter_name, CO.EQ, str(books[0].pk)) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, '3') == []
-    assert filter_field(filter_name, CO.NE, str(books[1].pk)) == [books[0]]
-    assert filter_field(filter_name, CO.LT, str(books[1].pk)) == [books[0]]
-    assert filter_field(filter_name, CO.GE, str(books[0].pk)) == books
+    books = create_books()
+    assert filter_field(filter_name, CO.EQ, books[0].pk) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, 3) == []
+    assert filter_field(filter_name, CO.NE, books[1].pk) == [books[0]]
+    assert filter_field(filter_name, CO.LT, books[1].pk) == [books[0]]
+    assert filter_field(filter_name, CO.GE, books[0].pk) == books
 
 
 @pytest.mark.django_db
@@ -50,12 +48,19 @@ def test_title():
     books = [
         Book.objects.create(title='G'),
         Book.objects.create(title='R'),
+        Book.objects.create(),
+        Book.objects.create(title=''),
     ]
     assert filter_field(filter_name, CO.EQ, books[0].title) == [books[0]]
     assert filter_field(filter_name, CO.EQ, '"{}"'.format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, "'{}'".format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, 'N') == []
-    assert filter_field(filter_name, CO.NE, books[0].title) == [books[1]]
+    assert filter_field(filter_name, CO.NE, books[0].title) == [books[1], books[2], books[3]]
+    assert filter_field(filter_name, CO.EQ, RQL_NULL) == [books[2]]
+    assert filter_field(filter_name, CO.EQ, 'NULL_ID') == [books[2]]
+    assert filter_field(filter_name, CO.NE, 'NULL_ID') == [books[0], books[1], books[3]]
+    assert filter_field(filter_name, CO.EQ, RQL_EMPTY) == [books[3]]
+    assert filter_field(filter_name, CO.NE, RQL_EMPTY) == [books[0], books[1], books[2]]
 
 
 @pytest.mark.django_db
@@ -65,12 +70,12 @@ def test_current_price():
         Book.objects.create(current_price=5.23),
         Book.objects.create(current_price=0.0121),
     ]
-    assert filter_field(filter_name, CO.EQ, str(books[0].current_price)) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, str(5.2300123)) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, '2') == []
-    assert filter_field(filter_name, CO.NE, str(books[1].current_price)) == [books[0]]
-    assert filter_field(filter_name, CO.LE, str(books[0].current_price)) == books
-    assert filter_field(filter_name, CO.GT, str(books[1].current_price)) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, books[0].current_price) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, 5.2300123) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, 2) == []
+    assert filter_field(filter_name, CO.NE, books[1].current_price) == [books[0]]
+    assert filter_field(filter_name, CO.LE, books[0].current_price) == books
+    assert filter_field(filter_name, CO.GT, books[1].current_price) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -141,11 +146,11 @@ def test_author__publisher__id():
     publishers = [Publisher.objects.create() for _ in range(2)]
     authors = [Author.objects.create(publisher=publishers[index]) for index in range(2)]
     books = [Book.objects.create(author=authors[index]) for index in range(2)]
-    assert filter_field(filter_name, CO.EQ, str(publishers[0].pk)) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, '3') == []
-    assert filter_field(filter_name, CO.NE, str(publishers[1].pk)) == [books[0]]
-    assert filter_field(filter_name, CO.LT, str(publishers[1].pk)) == [books[0]]
-    assert filter_field(filter_name, CO.GE, str(publishers[0].pk)) == books
+    assert filter_field(filter_name, CO.EQ, publishers[0].pk) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, 3) == []
+    assert filter_field(filter_name, CO.NE, publishers[1].pk) == [books[0]]
+    assert filter_field(filter_name, CO.LT, publishers[1].pk) == [books[0]]
+    assert filter_field(filter_name, CO.GE, publishers[0].pk) == books
 
 
 @pytest.mark.django_db
@@ -153,9 +158,9 @@ def test_page__number():
     filter_name = 'page.number'
     books = [Book.objects.create() for _ in range(2)]
     pages = [Page.objects.create(book=books[index], number=index) for index in range(2)]
-    assert filter_field(filter_name, CO.EQ, str(pages[1].number)) == [books[1]]
-    assert filter_field(filter_name, CO.EQ, '22') == []
-    assert filter_field(filter_name, CO.NE, str(pages[1].number)) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, pages[1].number) == [books[1]]
+    assert filter_field(filter_name, CO.EQ, 22) == []
+    assert filter_field(filter_name, CO.NE, pages[1].number) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -163,9 +168,9 @@ def test_page__id():
     filter_name = 'page.id'
     books = [Book.objects.create() for _ in range(2)]
     pages = [Page.objects.create(book=books[index]) for index in range(2)]
-    assert filter_field(filter_name, CO.EQ, str(pages[1].pk)) == [books[1]]
+    assert filter_field(filter_name, CO.EQ, pages[1].pk) == [books[1]]
     assert filter_field(filter_name, CO.EQ, '5fde36e2-3442-4d2e-b221-a6758663dd72') == []
-    assert filter_field(filter_name, CO.NE, str(pages[1].pk)) == [books[0]]
+    assert filter_field(filter_name, CO.NE, pages[1].pk) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -190,9 +195,9 @@ def test_rating_blog():
         Book.objects.create(blog_rating=Book.LOW_RATING),
         Book.objects.create(blog_rating=Book.HIGH_RATING),
     ]
-    assert filter_field(filter_name, CO.EQ, 'low') == [books[0]]
-    assert filter_field(filter_name, CO.EQ, 'high') == [books[1]]
-    assert filter_field(filter_name, CO.NE, 'high') == [books[0]]
+    assert filter_field(filter_name, CO.EQ, Book.BLOG_RATING_CHOICES[0][1]) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, Book.BLOG_RATING_CHOICES[1][1]) == [books[1]]
+    assert filter_field(filter_name, CO.NE, Book.BLOG_RATING_CHOICES[1][1]) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -202,9 +207,9 @@ def test_rating_blog_int():
         Book.objects.create(blog_rating=Book.LOW_RATING),
         Book.objects.create(blog_rating=Book.HIGH_RATING),
     ]
-    assert filter_field(filter_name, CO.EQ, str(Book.LOW_RATING)) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, str(Book.HIGH_RATING)) == [books[1]]
-    assert filter_field(filter_name, CO.NE, str(Book.HIGH_RATING)) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, Book.LOW_RATING) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, Book.HIGH_RATING) == [books[1]]
+    assert filter_field(filter_name, CO.NE, Book.HIGH_RATING) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -214,9 +219,9 @@ def test_amazon_rating():
         Book.objects.create(amazon_rating=3.02),
         Book.objects.create(amazon_rating=2),
     ]
-    assert filter_field(filter_name, CO.GE, '3.0200000') == [books[0]]
-    assert filter_field(filter_name, CO.GE, '2.01') == [books[0]]
-    assert filter_field(filter_name, CO.LT, '3.02') == [books[1]]
+    assert filter_field(filter_name, CO.GE, 3.0200000) == [books[0]]
+    assert filter_field(filter_name, CO.GE, 2.01) == [books[0]]
+    assert filter_field(filter_name, CO.LT, 3.02) == [books[1]]
 
 
 @pytest.mark.django_db
@@ -240,12 +245,12 @@ def test_d_id():
         Book.objects.create(author=authors[0]),
         Book.objects.create(author=authors[1]),
     ]
-    assert filter_field(filter_name, CO.EQ, '3') == [books[2]]
-    assert filter_field(filter_name, CO.EQ, '2') == [books[1], books[2]]
-    assert filter_field(filter_name, CO.NE, '2') == [books[0]]
-    assert filter_field(filter_name, CO.EQ, '1') == [books[0], books[1]]
-    assert filter_field(filter_name, CO.NE, '1') == [books[2]]
-    assert filter_field(filter_name, CO.EQ, '0') == []
+    assert filter_field(filter_name, CO.EQ, 3) == [books[2]]
+    assert filter_field(filter_name, CO.EQ, 2) == [books[1], books[2]]
+    assert filter_field(filter_name, CO.NE, 2) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, 1) == [books[0], books[1]]
+    assert filter_field(filter_name, CO.NE, 1) == [books[2]]
+    assert filter_field(filter_name, CO.EQ, 0) == []
 
 
 @pytest.mark.parametrize('bad_value', ['str', '2012-01-01', '2.18'])
@@ -297,10 +302,20 @@ def test_bad_choice_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
 
+@pytest.mark.parametrize('bad_operator', [CO.LT, CO.GT, CO.LE, CO.LT])
+@pytest.mark.parametrize('value', [RQL_NULL, RQL_EMPTY])
+def test_null_empty_value_lookup_fail(bad_operator, value):
+    assert_filter_field_lookup_error('title', bad_operator, value)
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize('operator', [CO.EQ, CO.NE, CO.GT])
-@pytest.mark.parametrize('filter_name', ['invalid', 'search', 'ordering'])
+@pytest.mark.parametrize('filter_name', ['invalid'])
 def test_ignored_filters(filter_name, operator):
-    Book.objects.bulk_create([Book() for _ in range(2)])
-    books = list(book_qs)
+    books = create_books()
     assert filter_field(filter_name, operator, 'value') == books
+
+
+@pytest.mark.parametrize('filter_name', ['id', 'page.number', 'author.is_male', 'name'])
+def test_empty_value_fail(filter_name):
+    assert_filter_field_value_error(filter_name, CO.EQ, RQL_EMPTY)

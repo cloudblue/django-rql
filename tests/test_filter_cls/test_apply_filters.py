@@ -1,18 +1,27 @@
 from __future__ import unicode_literals
 
+from functools import partial
+
 import pytest
 
+from dj_rql.constants import ListOperators, RQL_NULL
 from dj_rql.exceptions import RQLFilterParsingError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
-
-book_qs = Book.objects.order_by('id')
+from tests.test_filter_cls.utils import book_qs, create_books
 
 
 def apply_filters(query):
     filter_cls = BooksFilterClass(book_qs)
     q = filter_cls.apply_filters(query)
     return list(q)
+
+
+def test_parsing_error():
+    bad_query = 'q='
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters(bad_query)
+    assert e.value.details['error'].startswith('Unexpected token')
 
 
 @pytest.mark.django_db
@@ -62,7 +71,7 @@ def test_or(operator):
 
     expected = books
     assert apply_filters(query) == expected
-    assert apply_filters('(or({comp1},{comp2}))'.format(comp1=comp1, comp2=comp2)) == expected
+    assert apply_filters('or({comp1},{comp2})'.format(comp1=comp1, comp2=comp2)) == expected
 
 
 @pytest.mark.django_db
@@ -95,8 +104,48 @@ def test_nested_logic():
     ) == [other_book]
 
 
-def test_parsing_error():
-    bad_query = 'q='
-    with pytest.raises(RQLFilterParsingError) as e:
-        apply_filters(bad_query)
-    assert e.value.details['error'].startswith('Unexpected token')
+def apply_listing_filters(operator, *values):
+    return apply_filters('{operator}(id,({values}))'.format(
+        operator=operator, values=','.join(tuple(values)),
+    ))
+
+
+apply_in_listing_filters = partial(apply_listing_filters, ListOperators.IN)
+apply_out_listing_filters = partial(apply_listing_filters, ListOperators.OUT)
+
+
+@pytest.mark.django_db
+def test_in():
+    books = create_books()
+    assert apply_in_listing_filters(str(books[0].pk)) == [books[0]]
+    assert apply_in_listing_filters(str(books[1].pk), '23') == [books[1]]
+    assert apply_in_listing_filters(str(books[1].pk), str(books[0].pk)) == books
+    assert apply_in_listing_filters('23') == []
+
+
+@pytest.mark.django_db
+def test_out():
+    books = create_books()
+    assert apply_out_listing_filters(str(books[0].pk)) == [books[1]]
+    assert apply_out_listing_filters(str(books[1].pk), '23') == [books[0]]
+    assert apply_out_listing_filters(str(books[1].pk), str(books[0].pk)) == []
+    assert apply_out_listing_filters('23') == books
+
+
+@pytest.mark.django_db
+def test_null():
+    books = create_books()
+    assert apply_filters('title={}'.format(RQL_NULL)) == books
+    assert apply_filters('title=ne={}'.format(RQL_NULL)) == []
+
+
+@pytest.mark.django_db
+def test_null_with_in_or():
+    books = create_books()
+
+    title = 'null'
+    books[0].title = title
+    books[0].save(update_fields=['title'])
+
+    assert apply_filters('in(title,({},{}))'.format(title, RQL_NULL)) == books
+    assert apply_filters('or(title=eq={},eq(title,{}))'.format(title, RQL_NULL)) == books

@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 from django.db.models import Q
 from lark import Transformer, Tree
 
-from dj_rql.constants import ComparisonOperators, LogicalOperators
+from dj_rql.constants import ComparisonOperators, ListOperators, LogicalOperators
 
 
 class RQLToDjangoORMTransformer(Transformer):
@@ -22,9 +22,6 @@ class RQLToDjangoORMTransformer(Transformer):
         return self._filter_cls_instance.queryset.filter(args[0]).distinct()
 
     def comp(self, args):
-        prop_index = 1
-        value_index = 2
-
         if len(args) == 2:
             # id=1
             operation = ComparisonOperators.EQ
@@ -33,12 +30,15 @@ class RQLToDjangoORMTransformer(Transformer):
         elif args[0].data == 'comp_term':
             # eq(id,1)
             operation = self._get_value(args[0])
+            prop_index = 1
+            value_index = 2
         else:
             # id=eq=1
             operation = self._get_value(args[1])
             prop_index = 0
+            value_index = 2
 
-        return self._filter_cls_instance.get_django_q_for_filter_expression(
+        return self._filter_cls_instance.build_q_for_filter(
             self._get_value(args[prop_index]), operation, self._get_value(args[value_index])
         )
 
@@ -53,6 +53,22 @@ class RQLToDjangoORMTransformer(Transformer):
         q = Q()
         for child in children:
             q |= child
+        return q
+
+    def listing(self, args):
+        # Django __in lookup is not used, because of null() values
+        operation, prop = self._get_value(args[0]), self._get_value(args[1])
+        f_op = ComparisonOperators.EQ if operation == ListOperators.IN else ComparisonOperators.NE
+
+        q = Q()
+        for value_tree in args[2:]:
+            field_q = self._filter_cls_instance.build_q_for_filter(
+                prop, f_op, self._get_value(value_tree),
+            )
+            if operation == ListOperators.IN:
+                q |= field_q
+            else:
+                q &= field_q
         return q
 
     def term(self, args):

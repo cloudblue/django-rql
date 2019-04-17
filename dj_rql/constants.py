@@ -34,17 +34,22 @@ class FilterLookups(object):
     LE = 'le'
     LT = 'lt'
 
+    IN = 'in'
+    OUT = 'out'
+
+    NULL = 'null'
+
     @classmethod
     def numeric(cls):
-        return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE}
+        return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE, cls.IN, cls.OUT, cls.NULL}
 
     @classmethod
     def string(cls):
-        return {cls.EQ, cls.NE}
+        return {cls.EQ, cls.NE, cls.IN, cls.OUT, cls.NULL}
 
     @classmethod
     def boolean(cls):
-        return {cls.EQ, cls.NE}
+        return {cls.EQ, cls.NE, cls.NULL}
 
 
 class FilterTypes(object):
@@ -104,6 +109,11 @@ class ComparisonOperators(object):
     LE = 'le'
 
 
+class ListOperators(object):
+    IN = 'in'
+    OUT = 'out'
+
+
 class LogicalOperators(object):
     AND = 'and'
     OR = 'or'
@@ -120,3 +130,9 @@ class DjangoLookups(object):
     GTE = 'gte'
     LT = 'lt'
     LTE = 'lte'
+
+    NULL = 'isnull'
+
+
+RQL_EMPTY = 'empty()'
+RQL_NULL = 'null()'

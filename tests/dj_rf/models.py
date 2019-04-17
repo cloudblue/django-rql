@@ -10,7 +10,7 @@ class Publisher(models.Model):
 
 
 class Author(models.Model):
-    name = models.CharField(max_length=20, null=True)
+    name = models.CharField(max_length=20, null=True, blank=False)
     email = models.EmailField(null=True)
 
     is_male = models.NullBooleanField()
@@ -24,7 +24,7 @@ class Book(models.Model):
     PLANNING, WRITING, PUBLISHED = 'planning', 'writing', 'publishing'
     STATUS_CHOICES = (PLANNING, WRITING, PUBLISHED)
 
-    title = models.CharField(max_length=20, null=True)
+    title = models.CharField(max_length=20, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PLANNING)
     publishing_url = models.URLField(null=True)
 
