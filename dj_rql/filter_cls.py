@@ -66,11 +66,12 @@ class RQLFilterClass(object):
         )
 
         if not isinstance(filter_item, iterable_types):
-            return self._build_q_for_filter(filter_item, django_lookup, filter_lookup, typed_value)
+            return self._build_django_q(filter_item, django_lookup, filter_lookup, typed_value)
 
+        # filter has different DB field 'sources'
         q = Q()
         for item in filter_item:
-            item_q = self._build_q_for_filter(item, django_lookup, filter_lookup, typed_value)
+            item_q = self._build_django_q(item, django_lookup, filter_lookup, typed_value)
             if filter_lookup == FilterLookups.NE:
                 q &= item_q
             else:
@@ -214,7 +215,7 @@ class RQLFilterClass(object):
             raise RQLFilterValueError(**cls._get_error_details(filter_lookup, str_value))
 
     @staticmethod
-    def _build_q_for_filter(filter_item, django_lookup, filter_lookup, typed_value):
+    def _build_django_q(filter_item, django_lookup, filter_lookup, typed_value):
         kwargs = {'{}__{}'.format(filter_item['orm_route'], django_lookup): typed_value}
         return ~Q(**kwargs) if filter_lookup == FilterLookups.NE else Q(**kwargs)
 
