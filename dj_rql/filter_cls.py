@@ -196,9 +196,6 @@ class RQLFilterClass(object):
 
         # TODO: Move to a separate method
         if filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE):
-            if '{}{}'.format(LIKE_SEPARATOR, LIKE_SEPARATOR) in str_value:
-                raise ValueError
-
             # TODO: Move to a separate method
             val = str_value
             if str_value[0] in ('"', "'"):
@@ -208,18 +205,18 @@ class RQLFilterClass(object):
 
             if LIKE_SEPARATOR not in val:
                 # TODO: Move to a separate method
-                return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.EXACT))
+                return getattr(DjangoLookups, '{}{}'.format(prefix, 'EXACT'))
 
             sep_count = val.count(LIKE_SEPARATOR)
             if sep_count == 1:
                 if val[0] == LIKE_SEPARATOR:
-                    return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.STARTSWITH))
+                    return getattr(DjangoLookups, '{}{}'.format(prefix, 'STARTSWITH'))
                 elif val[-1] == LIKE_SEPARATOR:
-                    return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.ENDSWITH))
+                    return getattr(DjangoLookups, '{}{}'.format(prefix, 'ENDSWITH'))
             elif sep_count == 2 and val[0] == LIKE_SEPARATOR == val[-1]:
-                return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.CONTAINS))
+                return getattr(DjangoLookups, '{}{}'.format(prefix, 'CONTAINS'))
 
-            return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.REGEX))
+            return getattr(DjangoLookups, '{}{}'.format(prefix, 'REGEX'))
 
         mapper = {
             FilterLookups.EQ: DjangoLookups.EXACT,
@@ -240,13 +237,17 @@ class RQLFilterClass(object):
         try:
             # TODO: Move to a separate method
             if filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE):
-                if FilterTypes.field_filter_type(django_field) != FilterTypes.STRING:
+                if '{}{}'.format(LIKE_SEPARATOR, LIKE_SEPARATOR) in str_value:
                     raise ValueError
 
-                if django_lookup != DjangoLookups.REGEX:
-                    return str_value.replace(LIKE_SEPARATOR, '')
+                val = str_value
+                if str_value[0] in ('"', "'"):
+                    val = str_value[1:-1]
+
+                if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
+                    return val.replace(LIKE_SEPARATOR, '')
                 # TODO: Fix regex behaviour
-                return str_value
+                return val
 
             typed_value = cls._convert_value(django_field, str_value, use_repr=use_repr)
             return typed_value
