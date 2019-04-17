@@ -22,9 +22,6 @@ class RQLToDjangoORMTransformer(Transformer):
         return self._filter_cls_instance.queryset.filter(args[0]).distinct()
 
     def comp(self, args):
-        prop_index = 1
-        value_index = 2
-
         if len(args) == 2:
             # id=1
             operation = ComparisonOperators.EQ
@@ -33,10 +30,13 @@ class RQLToDjangoORMTransformer(Transformer):
         elif args[0].data == 'comp_term':
             # eq(id,1)
             operation = self._get_value(args[0])
+            prop_index = 1
+            value_index = 2
         else:
             # id=eq=1
             operation = self._get_value(args[1])
             prop_index = 0
+            value_index = 2
 
         return self._filter_cls_instance.build_q_for_filter(
             self._get_value(args[prop_index]), operation, self._get_value(args[value_index])
