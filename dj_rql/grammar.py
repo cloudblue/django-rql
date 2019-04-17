@@ -2,6 +2,13 @@
 
 from __future__ import unicode_literals
 
+"""
+RQL EBNF LALR(1) compatible grammar for standard Lark lexer.
+
+Notes:
+    - rules are lowercase. They only consist of values, other rules and terminals.
+    - TERMINALS are uppercase. They only consist of values and other terminals.
+"""
 
 RQL_GRAMMAR = r"""
 start: term?
@@ -51,7 +58,7 @@ prop: comp_term
 PROP: /[a-zA-Z]/ /[\w\-\.]/*
 QUOTED_VAL: /"[^"]*"/
     | /'[^']*'/
-UNQUOTED_VAL: /[\w\-]/ /[\w\.\-\:\+]/*
+UNQUOTED_VAL: /[\w\-]/ /[\w\.\-\:\+\@]/*
 
 _AND: "and"
 _OR: "or"
