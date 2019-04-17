@@ -6,8 +6,8 @@ from django.utils.dateparse import parse_date, parse_datetime
 from lark.exceptions import LarkError
 
 from dj_rql.constants import (
-    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes,
-    RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
+    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SearchOperators,
+    LIKE_SEPARATOR, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.parser import RQLParser
@@ -59,10 +59,11 @@ class RQLFilterClass(object):
         use_repr = base_item.get('use_repr', False)
         null_values = base_item.get('null_values', set())
 
+        # TODO: Think over refactoring for inner ifs (null, filter)
         filter_lookup = self._get_filter_lookup(operator, str_value, available_lookups, null_values)
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
         typed_value = self._get_typed_value(
-            filter_lookup, str_value, django_field, use_repr, null_values,
+            filter_lookup, str_value, django_field, use_repr, null_values, django_lookup,
         )
 
         if not isinstance(filter_item, iterable_types):
@@ -193,6 +194,33 @@ class RQLFilterClass(object):
         if str_value in null_values:
             return DjangoLookups.NULL
 
+        # TODO: Move to a separate method
+        if filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE):
+            if '{}{}'.format(LIKE_SEPARATOR, LIKE_SEPARATOR) in str_value:
+                raise ValueError
+
+            # TODO: Move to a separate method
+            val = str_value
+            if str_value[0] in ('"', "'"):
+                val = str_value[1:-1]
+
+            prefix = 'I_' if filter_lookup == FilterLookups.I_LIKE else ''
+
+            if LIKE_SEPARATOR not in val:
+                # TODO: Move to a separate method
+                return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.EXACT))
+
+            sep_count = val.count(LIKE_SEPARATOR)
+            if sep_count == 1:
+                if val[0] == LIKE_SEPARATOR:
+                    return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.STARTSWITH))
+                elif val[-1] == LIKE_SEPARATOR:
+                    return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.ENDSWITH))
+            elif sep_count == 2 and val[0] == LIKE_SEPARATOR == val[-1]:
+                return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.CONTAINS))
+
+            return getattr(DjangoLookups, '{}{}'.format(prefix, DjangoLookups.REGEX))
+
         mapper = {
             FilterLookups.EQ: DjangoLookups.EXACT,
             FilterLookups.NE: DjangoLookups.EXACT,
@@ -204,11 +232,22 @@ class RQLFilterClass(object):
         return mapper[filter_lookup]
 
     @classmethod
-    def _get_typed_value(cls, filter_lookup, str_value, django_field, use_repr, null_values):
+    def _get_typed_value(cls, filter_lookup, str_value, django_field,
+                         use_repr, null_values, django_lookup):
         if str_value in null_values:
             return True
 
         try:
+            # TODO: Move to a separate method
+            if filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE):
+                if FilterTypes.field_filter_type(django_field) != FilterTypes.STRING:
+                    raise ValueError
+
+                if django_lookup != DjangoLookups.REGEX:
+                    return str_value.replace(LIKE_SEPARATOR, '')
+                # TODO: Fix regex behaviour
+                return str_value
+
             typed_value = cls._convert_value(django_field, str_value, use_repr=use_repr)
             return typed_value
         except (ValueError, TypeError):
@@ -228,6 +267,8 @@ class RQLFilterClass(object):
             ComparisonOperators.LE: FilterLookups.LE,
             ComparisonOperators.GT: FilterLookups.GT,
             ComparisonOperators.GE: FilterLookups.GE,
+            SearchOperators.LIKE: FilterLookups.LIKE,
+            SearchOperators.I_LIKE: FilterLookups.I_LIKE,
         }
         return mapper[grammar_operator]
 

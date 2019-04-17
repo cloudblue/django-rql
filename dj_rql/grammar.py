@@ -15,9 +15,10 @@ start: term?
 
 term: expr_term
     | logical
-    | listing
     
 expr_term: comp
+    | listing
+    | searching
     
 logical: and_op
     | or_op
@@ -46,6 +47,7 @@ comp: comp_term _L_BRACE prop _COMA val _R_BRACE
     | prop _EQUALITY val
     
 listing: list_term _L_BRACE prop _COMA _L_BRACE val (_COMA val)* _R_BRACE _R_BRACE
+searching: search_term _L_BRACE prop _COMA val _R_BRACE
     
 val: prop
     | QUOTED_VAL
@@ -54,11 +56,13 @@ val: prop
 prop: comp_term
     | logical_term
     | list_term
+    | search_term
     | PROP
     
 !comp_term: "eq" | "ne" | "gt" | "ge" | "lt" | "le"
 !logical_term: _AND | _OR | _NOT
 !list_term: "in" | "out"
+!search_term: "like" | "ilike"
 
     
 PROP: /[a-zA-Z]/ /[\w\-\.]/*
@@ -66,7 +70,7 @@ QUOTED_VAL: /"[^"]*"/
     | /'[^']*'/
 UNQUOTED_VAL: NULL
     | EMPTY
-    | /[\w\-]/ /[\w\.\-\:\+\@]/*
+    | /[\w\-\*\+]/ /[\w\.\-\:\+\@\*]/*
 
 EMPTY: "empty()"
 NULL: "null()"

@@ -49,3 +49,8 @@ class ListTransformer(BaseTransformer):
     def listing(self, args):
         return (self._get_value(args[0]), self._get_value(args[1]),
                 tuple(self._get_value(arg) for arg in args[2:]))
+
+
+class SearchTransformer(BaseTransformer):
+    def searching(self, args):
+        return tuple(self._get_value(args[index]) for index in range(3))
