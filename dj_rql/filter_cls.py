@@ -237,27 +237,31 @@ class RQLFilterClass(object):
 
         try:
             if cls._is_searching_lookup(filter_lookup):
-                if '{}{}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in str_value:
-                    raise ValueError
-
-                val = cls._remove_quotes(str_value)
-
-                if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
-                    return val.replace(RQL_ANY_SYMBOL, '')
-
-                any_symbol_regex = '(.*?)'
-                if val == RQL_ANY_SYMBOL:
-                    return any_symbol_regex
-
-                new_val = val
-                new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{}'.format(new_val)
-                new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{}$'.format(new_val)
-                return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex)
+                return cls._get_searching_typed_value(django_lookup, str_value)
 
             typed_value = cls._convert_value(django_field, str_value, use_repr=use_repr)
             return typed_value
         except (ValueError, TypeError):
             raise RQLFilterValueError(**cls._get_error_details(filter_lookup, str_value))
+
+    @classmethod
+    def _get_searching_typed_value(cls, django_lookup, str_value):
+        if '{}{}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in str_value:
+            raise ValueError
+
+        val = cls._remove_quotes(str_value)
+
+        if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
+            return val.replace(RQL_ANY_SYMBOL, '')
+
+        any_symbol_regex = '(.*?)'
+        if val == RQL_ANY_SYMBOL:
+            return any_symbol_regex
+
+        new_val = val
+        new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{}'.format(new_val)
+        new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{}$'.format(new_val)
+        return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex)
 
     @classmethod
     def _convert_value(cls, django_field, str_value, use_repr=False):
