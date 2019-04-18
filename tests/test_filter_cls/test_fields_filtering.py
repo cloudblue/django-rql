@@ -326,14 +326,16 @@ def test_empty_value_fail(filter_name):
 
 @pytest.mark.parametrize('value,db_lookup,db_value', [
     ('value', DjangoLookups.EXACT, 'value'),
-    ('*value', DjangoLookups.STARTSWITH, 'value'),
-    ('value*', DjangoLookups.ENDSWITH, 'value'),
+    ('*value', DjangoLookups.ENDSWITH, 'value'),
+    ('value*', DjangoLookups.STARTSWITH, 'value'),
     ('*value*', DjangoLookups.CONTAINS, 'value'),
-    ('val*ue', DjangoLookups.REGEX, 'val*ue'),
-    ('val*ue*', DjangoLookups.REGEX, 'val*ue*'),
-    ('*val*ue*', DjangoLookups.REGEX, '*val*ue*'),
+    ('val*ue', DjangoLookups.REGEX, '^val(.*?)ue$'),
+    ('val*ue*', DjangoLookups.REGEX, '^val(.*?)ue'),
+    ('*val*ue', DjangoLookups.REGEX, 'val(.*?)ue$'),
+    ('*val*ue*', DjangoLookups.REGEX, 'val(.*?)ue'),
+    ('*', DjangoLookups.REGEX, '(.*?)'),
 ])
-def test_searching_ok(value, db_lookup, db_value):
+def test_searching_q_ok(value, db_lookup, db_value):
     cls = BooksFilterClass(book_qs)
 
     for v in (value, '"{}"'.format(value)):
@@ -342,6 +344,24 @@ def test_searching_ok(value, db_lookup, db_value):
 
     i_like_q = cls.build_q_for_filter('title', SearchOperators.I_LIKE, value)
     assert i_like_q.children[0] == ('title__i{}'.format(db_lookup), db_value)
+
+
+@pytest.mark.django_db
+def test_searching_db_ok():
+    filter_name = 'title'
+    title = 'Long title'
+    book = Book.objects.create(title=title)
+    assert filter_field(filter_name, SearchOperators.I_LIKE, title.upper()) == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, 'title') == []
+    assert filter_field(filter_name, SearchOperators.LIKE, 'L*') == [book]
+    assert filter_field(filter_name, SearchOperators.I_LIKE, '*E') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*ng*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*ng*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*t*t*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*t*le') == [book]
+    assert filter_field(filter_name, SearchOperators.I_LIKE, 'lo*g*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, 't*le') == []
+    assert filter_field(filter_name, SearchOperators.LIKE, '*') == [book]
 
 
 @pytest.mark.parametrize('bad_value', ['value**value', '**v'])

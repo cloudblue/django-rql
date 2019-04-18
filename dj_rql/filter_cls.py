@@ -7,7 +7,7 @@ from lark.exceptions import LarkError
 
 from dj_rql.constants import (
     ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SearchOperators,
-    LIKE_SEPARATOR, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
+    RQL_ANY_SYMBOL, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.parser import RQLParser
@@ -59,7 +59,6 @@ class RQLFilterClass(object):
         use_repr = base_item.get('use_repr', False)
         null_values = base_item.get('null_values', set())
 
-        # TODO: Think over refactoring for inner ifs (null, filter)
         filter_lookup = self._get_filter_lookup(operator, str_value, available_lookups, null_values)
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
         typed_value = self._get_typed_value(
@@ -194,29 +193,8 @@ class RQLFilterClass(object):
         if str_value in null_values:
             return DjangoLookups.NULL
 
-        # TODO: Move to a separate method
-        if filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE):
-            # TODO: Move to a separate method
-            val = str_value
-            if str_value[0] in ('"', "'"):
-                val = str_value[1:-1]
-
-            prefix = 'I_' if filter_lookup == FilterLookups.I_LIKE else ''
-
-            if LIKE_SEPARATOR not in val:
-                # TODO: Move to a separate method
-                return getattr(DjangoLookups, '{}{}'.format(prefix, 'EXACT'))
-
-            sep_count = val.count(LIKE_SEPARATOR)
-            if sep_count == 1:
-                if val[0] == LIKE_SEPARATOR:
-                    return getattr(DjangoLookups, '{}{}'.format(prefix, 'STARTSWITH'))
-                elif val[-1] == LIKE_SEPARATOR:
-                    return getattr(DjangoLookups, '{}{}'.format(prefix, 'ENDSWITH'))
-            elif sep_count == 2 and val[0] == LIKE_SEPARATOR == val[-1]:
-                return getattr(DjangoLookups, '{}{}'.format(prefix, 'CONTAINS'))
-
-            return getattr(DjangoLookups, '{}{}'.format(prefix, 'REGEX'))
+        if cls._is_searching_lookup(filter_lookup):
+            return cls._get_searching_django_lookup(filter_lookup, str_value)
 
         mapper = {
             FilterLookups.EQ: DjangoLookups.EXACT,
@@ -229,30 +207,111 @@ class RQLFilterClass(object):
         return mapper[filter_lookup]
 
     @classmethod
+    def _get_searching_django_lookup(cls, filter_lookup, str_value):
+        val = cls._remove_quotes(str_value)
+
+        prefix = 'I_' if filter_lookup == FilterLookups.I_LIKE else ''
+
+        pattern = 'REGEX'
+        if RQL_ANY_SYMBOL not in val:
+            pattern = 'EXACT'
+        elif val == RQL_ANY_SYMBOL:
+            pattern = 'REGEX'
+        else:
+            sep_count = val.count(RQL_ANY_SYMBOL)
+            if sep_count == 1:
+                if val[0] == RQL_ANY_SYMBOL:
+                    pattern = 'ENDSWITH'
+                elif val[-1] == RQL_ANY_SYMBOL:
+                    pattern = 'STARTSWITH'
+            elif sep_count == 2 and val[0] == RQL_ANY_SYMBOL == val[-1]:
+                pattern = 'CONTAINS'
+
+        return getattr(DjangoLookups, '{}{}'.format(prefix, pattern))
+
+    @classmethod
     def _get_typed_value(cls, filter_lookup, str_value, django_field,
                          use_repr, null_values, django_lookup):
         if str_value in null_values:
             return True
 
         try:
-            # TODO: Move to a separate method
-            if filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE):
-                if '{}{}'.format(LIKE_SEPARATOR, LIKE_SEPARATOR) in str_value:
+            if cls._is_searching_lookup(filter_lookup):
+                if '{}{}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in str_value:
                     raise ValueError
 
-                val = str_value
-                if str_value[0] in ('"', "'"):
-                    val = str_value[1:-1]
+                val = cls._remove_quotes(str_value)
 
                 if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
-                    return val.replace(LIKE_SEPARATOR, '')
-                # TODO: Fix regex behaviour
-                return val
+                    return val.replace(RQL_ANY_SYMBOL, '')
+
+                any_symbol_regex = '(.*?)'
+                if val == RQL_ANY_SYMBOL:
+                    return any_symbol_regex
+
+                new_val = val
+                new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{}'.format(new_val)
+                new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{}$'.format(new_val)
+                return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex)
 
             typed_value = cls._convert_value(django_field, str_value, use_repr=use_repr)
             return typed_value
         except (ValueError, TypeError):
             raise RQLFilterValueError(**cls._get_error_details(filter_lookup, str_value))
+
+    @classmethod
+    def _convert_value(cls, django_field, str_value, use_repr=False):
+        val = cls._remove_quotes(str_value)
+        filter_type = FilterTypes.field_filter_type(django_field)
+
+        if filter_type == FilterTypes.FLOAT:
+            return float(val)
+
+        elif filter_type == FilterTypes.DECIMAL:
+            value = float(val)
+            if django_field.decimal_places is not None:
+                value = round(value, django_field.decimal_places)
+            return value
+
+        elif filter_type == FilterTypes.DATE:
+            dt = parse_date(val)
+            if dt is None:
+                raise ValueError
+        elif filter_type == FilterTypes.DATETIME:
+            dt = parse_datetime(val)
+            if dt is None:
+                raise ValueError
+
+        elif filter_type == FilterTypes.BOOLEAN:
+            if val not in ('false', 'true'):
+                raise ValueError
+            return val == 'true'
+
+        if val == RQL_EMPTY:
+            if (filter_type == FilterTypes.INT) or (not django_field.blank):
+                raise ValueError
+            return ''
+
+        choices = getattr(django_field, 'choices', None)
+        if not choices:
+            if filter_type == FilterTypes.INT:
+                return int(val)
+            return val
+
+        # `use_repr=True` makes it possible to map choice representations to real db values
+        # F.e.: `choices=((0, 'v0'), (1, 'v1'))` can be filtered by 'v1' if `use_repr=True` or
+        # by '1' if `use_repr=False`
+        if isinstance(choices[0], tuple):
+            iterator = iter(
+                choice[0] for choice in choices if str(choice[int(use_repr)]) == val
+            )
+        else:
+            iterator = iter(choice for choice in choices if choice == val)
+        try:
+            db_value = next(iterator)
+            return db_value
+        except StopIteration:
+            raise ValueError
 
     @staticmethod
     def _build_django_q(filter_item, django_lookup, filter_lookup, typed_value):
@@ -274,62 +333,6 @@ class RQLFilterClass(object):
         return mapper[grammar_operator]
 
     @staticmethod
-    def _convert_value(django_field, str_value, use_repr=False):
-        # Values can start with single or double quotes, if they have special chars inside them
-        if str_value[0] in ('"', "'"):
-            str_value = str_value[1:-1]
-        filter_type = FilterTypes.field_filter_type(django_field)
-
-        if filter_type == FilterTypes.FLOAT:
-            return float(str_value)
-
-        elif filter_type == FilterTypes.DECIMAL:
-            value = float(str_value)
-            if django_field.decimal_places is not None:
-                value = round(value, django_field.decimal_places)
-            return value
-
-        elif filter_type == FilterTypes.DATE:
-            dt = parse_date(str_value)
-            if dt is None:
-                raise ValueError
-        elif filter_type == FilterTypes.DATETIME:
-            dt = parse_datetime(str_value)
-            if dt is None:
-                raise ValueError
-
-        elif filter_type == FilterTypes.BOOLEAN:
-            if str_value not in ('false', 'true'):
-                raise ValueError
-            return str_value == 'true'
-
-        if str_value == RQL_EMPTY:
-            if (filter_type == FilterTypes.INT) or (not django_field.blank):
-                raise ValueError
-            return ''
-
-        choices = getattr(django_field, 'choices', None)
-        if not choices:
-            if filter_type == FilterTypes.INT:
-                return int(str_value)
-            return str_value
-
-        # `use_repr=True` makes it possible to map choice representations to real db values
-        # F.e.: `choices=((0, 'v0'), (1, 'v1'))` can be filtered by 'v1' if `use_repr=True` or
-        # by '1' if `use_repr=False`
-        if isinstance(choices[0], tuple):
-            iterator = iter(
-                choice[0] for choice in choices if str(choice[int(use_repr)]) == str_value
-            )
-        else:
-            iterator = iter(choice for choice in choices if choice == str_value)
-        try:
-            db_value = next(iterator)
-            return db_value
-        except StopIteration:
-            raise ValueError
-
-    @staticmethod
     def _get_error_details(filter_lookup, str_value):
         return {
             'details': {
@@ -337,3 +340,12 @@ class RQLFilterClass(object):
                 'value': str_value,
             },
         }
+
+    @staticmethod
+    def _remove_quotes(str_value):
+        # Values can start with single or double quotes, if they have special chars inside them
+        return str_value[1:-1] if str_value[0] in ('"', "'") else str_value
+
+    @staticmethod
+    def _is_searching_lookup(filter_lookup):
+        return filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE)

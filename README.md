@@ -22,9 +22,9 @@ The current parsing algorithm is [LALR(1)](https://www.wikiwand.com/en/LALR_pars
 
 Currently supported operators
 =============================
-0. Comparison (eq, ne, gt, ge, lt, le)
-0. Logical (and, or, not)
+0. Comparison (eq, ne, gt, ge, lt, le, like, ilike)
 0. List (in, out)
+0. Logical (and, or, not)
 0. Constants (null(), empty()) 
 
 Example

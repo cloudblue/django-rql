@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 from django.db import models
 
 
+RQL_ANY_SYMBOL = '*'
+RQL_EMPTY = 'empty()'
+RQL_NULL = 'null()'
+
+
 SUPPORTED_FIELD_TYPES = (
     models.AutoField,
     models.BigAutoField,
@@ -150,8 +155,3 @@ class DjangoLookups(object):
     I_ENDSWITH = 'iendswith'
     REGEX = 'regex'
     I_REGEX = 'iregex'
-
-
-RQL_EMPTY = 'empty()'
-RQL_NULL = 'null()'
-LIKE_SEPARATOR = '*'
