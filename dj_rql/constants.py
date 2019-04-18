@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 from django.db import models
 
 
+RQL_ANY_SYMBOL = '*'
+RQL_EMPTY = 'empty()'
+RQL_NULL = 'null()'
+
+
 SUPPORTED_FIELD_TYPES = (
     models.AutoField,
     models.BigAutoField,
@@ -39,13 +44,16 @@ class FilterLookups(object):
 
     NULL = 'null'
 
+    LIKE = 'like'
+    I_LIKE = 'ilike'
+
     @classmethod
     def numeric(cls):
         return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE, cls.IN, cls.OUT, cls.NULL}
 
     @classmethod
     def string(cls):
-        return {cls.EQ, cls.NE, cls.IN, cls.OUT, cls.NULL}
+        return {cls.EQ, cls.NE, cls.IN, cls.OUT, cls.NULL, cls.LIKE, cls.I_LIKE}
 
     @classmethod
     def boolean(cls):
@@ -124,6 +132,11 @@ class LogicalOperators(object):
         return '{}_op'.format(key)
 
 
+class SearchOperators(object):
+    LIKE = 'like'
+    I_LIKE = 'ilike'
+
+
 class DjangoLookups(object):
     EXACT = 'exact'
     GT = 'gt'
@@ -133,6 +146,12 @@ class DjangoLookups(object):
 
     NULL = 'isnull'
 
-
-RQL_EMPTY = 'empty()'
-RQL_NULL = 'null()'
+    I_EXACT = 'iexact'
+    CONTAINS = 'contains'
+    I_CONTAINS = 'icontains'
+    STARTSWITH = 'startswith'
+    I_STARTSWITH = 'istartswith'
+    ENDSWITH = 'endswith'
+    I_ENDSWITH = 'iendswith'
+    REGEX = 'regex'
+    I_REGEX = 'iregex'

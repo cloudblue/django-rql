@@ -5,7 +5,10 @@ from functools import partial
 
 import pytest
 
-from dj_rql.constants import ComparisonOperators as CO, RQL_EMPTY, RQL_NULL
+from dj_rql.constants import (
+    ComparisonOperators as CO, DjangoLookups, SearchOperators,
+    RQL_EMPTY, RQL_NULL,
+)
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
@@ -319,3 +322,49 @@ def test_ignored_filters(filter_name, operator):
 @pytest.mark.parametrize('filter_name', ['id', 'page.number', 'author.is_male', 'name'])
 def test_empty_value_fail(filter_name):
     assert_filter_field_value_error(filter_name, CO.EQ, RQL_EMPTY)
+
+
+@pytest.mark.parametrize('value,db_lookup,db_value', [
+    ('value', DjangoLookups.EXACT, 'value'),
+    ('*value', DjangoLookups.ENDSWITH, 'value'),
+    ('value*', DjangoLookups.STARTSWITH, 'value'),
+    ('*value*', DjangoLookups.CONTAINS, 'value'),
+    ('val*ue', DjangoLookups.REGEX, '^val(.*?)ue$'),
+    ('val*ue*', DjangoLookups.REGEX, '^val(.*?)ue'),
+    ('*val*ue', DjangoLookups.REGEX, 'val(.*?)ue$'),
+    ('*val*ue*', DjangoLookups.REGEX, 'val(.*?)ue'),
+    ('*', DjangoLookups.REGEX, '(.*?)'),
+])
+def test_searching_q_ok(value, db_lookup, db_value):
+    cls = BooksFilterClass(book_qs)
+
+    for v in (value, '"{}"'.format(value)):
+        like_q = cls.build_q_for_filter('title', SearchOperators.LIKE, v)
+        assert like_q.children[0] == ('title__{}'.format(db_lookup), db_value)
+
+    i_like_q = cls.build_q_for_filter('title', SearchOperators.I_LIKE, value)
+    assert i_like_q.children[0] == ('title__i{}'.format(db_lookup), db_value)
+
+
+@pytest.mark.django_db
+def test_searching_db_ok():
+    filter_name = 'title'
+    title = 'Long title'
+    book = Book.objects.create(title=title)
+    assert filter_field(filter_name, SearchOperators.I_LIKE, title.upper()) == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, 'title') == []
+    assert filter_field(filter_name, SearchOperators.LIKE, 'L*') == [book]
+    assert filter_field(filter_name, SearchOperators.I_LIKE, '*E') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*ng*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*ng*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*t*t*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, '*t*le') == [book]
+    assert filter_field(filter_name, SearchOperators.I_LIKE, 'lo*g*') == [book]
+    assert filter_field(filter_name, SearchOperators.LIKE, 't*le') == []
+    assert filter_field(filter_name, SearchOperators.LIKE, '*') == [book]
+
+
+@pytest.mark.parametrize('bad_value', ['value**value', '**v'])
+@pytest.mark.parametrize('operator', [SearchOperators.LIKE, SearchOperators.I_LIKE])
+def test_searching_value_fail(bad_value, operator):
+    assert_filter_field_value_error('title', operator, bad_value)
