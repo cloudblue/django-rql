@@ -36,6 +36,17 @@ def test_comparison(comparison_tpl):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize('searching_tpl', ['like(title,*{}*)', 'ilike(title,*{})'])
+def test_searching(searching_tpl):
+    title = 'book'
+    books = [
+        Book.objects.create(title=title),
+        Book.objects.create(title='another'),
+    ]
+    assert apply_filters(searching_tpl.format(title)) == [books[0]]
+
+
+@pytest.mark.django_db
 @pytest.mark.parametrize('operator', ['&', ','])
 def test_and(operator):
     email, title = 'george@martin.com', 'book'

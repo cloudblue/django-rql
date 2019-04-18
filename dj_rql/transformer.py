@@ -71,6 +71,10 @@ class RQLToDjangoORMTransformer(Transformer):
                 q &= field_q
         return q
 
+    def searching(self, args):
+        operation, prop, val = tuple(self._get_value(args[index]) for index in range(3))
+        return self._filter_cls_instance.build_q_for_filter(prop, operation, val)
+
     def term(self, args):
         return args[0]
 
