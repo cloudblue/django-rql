@@ -6,6 +6,11 @@ from django.db import models
 RQL_ANY_SYMBOL = '*'
 RQL_EMPTY = 'empty()'
 RQL_NULL = 'null()'
+RQL_LIMIT_PARAM = 'limit'
+RQL_OFFSET_PARAM = 'offset'
+
+
+RESERVED_FILTER_NAMES = {RQL_LIMIT_PARAM, RQL_OFFSET_PARAM}
 
 
 SUPPORTED_FIELD_TYPES = (

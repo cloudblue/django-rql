@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 import pytest
 from django.core.exceptions import FieldDoesNotExist
 
-from dj_rql.constants import FilterLookups as FL, RQL_NULL
+from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
 from dj_rql.filter_cls import RQLFilterClass
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author
@@ -105,3 +105,17 @@ def test_orm_field_type_is_unsupported():
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
     assert str(e.value) == 'Unsupported field type: publisher.'
+
+
+@pytest.mark.parametrize('filter_name', RESERVED_FILTER_NAMES)
+def test_reserved_filter_name_is_used(filter_name):
+    class Cls(RQLFilterClass):
+        MODEL = Author
+        FILTERS = [{
+            'filter': filter_name,
+            'source': 'id',
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "'{}' is a reserved filter name.".format(filter_name)
