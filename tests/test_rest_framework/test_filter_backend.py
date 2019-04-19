@@ -5,7 +5,7 @@ from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
 
-from dj_rql.rest_framework import RQLFilterBackend
+from dj_rql.drf import RQLFilterBackend
 from tests.dj_rf.models import Book
 
 

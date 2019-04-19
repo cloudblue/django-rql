@@ -4,7 +4,7 @@ from rest_framework import mixins
 from rest_framework import serializers
 from rest_framework.viewsets import GenericViewSet
 
-from dj_rql.rest_framework import RQLContentRangeLimitOffsetPagination, RQLFilterBackend
+from dj_rql.drf import RQLContentRangeLimitOffsetPagination, RQLFilterBackend
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Book
 
