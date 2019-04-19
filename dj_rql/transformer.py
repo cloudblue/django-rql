@@ -13,7 +13,8 @@ from dj_rql.constants import (
 
 
 class BaseRQLTransformer(Transformer):
-    def comp(self, args):
+    @classmethod
+    def _extract_comparison(cls, args):
         if len(args) == 2:
             # id=1
             operation = ComparisonOperators.EQ
@@ -21,16 +22,16 @@ class BaseRQLTransformer(Transformer):
             value_index = 1
         elif args[0].data == 'comp_term':
             # eq(id,1)
-            operation = self._get_value(args[0])
+            operation = cls._get_value(args[0])
             prop_index = 1
             value_index = 2
         else:
             # id=eq=1
-            operation = self._get_value(args[1])
+            operation = cls._get_value(args[1])
             prop_index = 0
             value_index = 2
 
-        return self._get_value(args[prop_index]), operation, self._get_value(args[value_index])
+        return cls._get_value(args[prop_index]), operation, cls._get_value(args[value_index])
 
     @staticmethod
     def _get_value(obj):
@@ -52,9 +53,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._filter_cls_instance.queryset.filter(args[0]).distinct()
 
     def comp(self, args):
-        return self._filter_cls_instance.build_q_for_filter(
-            *super(RQLToDjangoORMTransformer, self).comp(args),
-        )
+        return self._filter_cls_instance.build_q_for_filter(*self._extract_comparison(args))
 
     def logical(self, args):
         operation = args[0].data
@@ -97,6 +96,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
 
 class RQLLimitOffsetTransformer(BaseRQLTransformer):
+    """ Parsed RQL AST tree transformer to (limit, offset) tuple for limit offset pagination. """
     def __init__(self):
         self.limit = None
         self.offset = None
@@ -105,11 +105,13 @@ class RQLLimitOffsetTransformer(BaseRQLTransformer):
         return self.limit, self.offset
 
     def comp(self, args):
-        prop, operation, val = super(RQLLimitOffsetTransformer, self).comp(args)
+        prop, operation, val = self._extract_comparison(args)
         if prop in (RQL_LIMIT_PARAM, RQL_OFFSET_PARAM):
+            # Only equation operator can be used for limit and offset
             if operation != ComparisonOperators.EQ:
                 raise ValueError
 
+            # There can be only one limit (offset) parameter in the whole query
             if prop == RQL_LIMIT_PARAM:
                 if self.limit is not None:
                     raise ValueError

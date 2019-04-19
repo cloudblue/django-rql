@@ -12,6 +12,13 @@ from dj_rql.transformer import RQLLimitOffsetTransformer
 
 
 class RQLFilterBackend(BaseFilterBackend):
+    """ RQL filter backend for DRF GenericAPIViews.
+
+    Examples:
+        class ViewSet(mixins.ListModelMixin, GenericViewSet):
+            filter_backends = (RQLFilterBackend,)
+            rql_filter_class = ModelFilterClass
+    """
     def filter_queryset(self, request, queryset, view):
         rql_filter_class = self.get_filter_class(view)
         return rql_filter_class(queryset).apply_filters(_get_query(request))
@@ -28,6 +35,7 @@ class RQLFilterBackend(BaseFilterBackend):
 
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
+    """ RQL limit offset pagination. """
     def __init__(self, *args, **kwargs):
         super(RQLLimitOffsetPagination, self).__init__(*args, **kwargs)
 
@@ -62,8 +70,7 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
 
 
 class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
-    """
-    RQL RFC2616 Resource limit offset pagination.
+    """ RQL RFC2616 limit offset pagination.
 
     Examples:
         Response

@@ -99,6 +99,10 @@ class ModelFilterClass(RQLFilterClass):
     }]
 ```
 
+Django Rest Framework Extensions
+================================
+0. Pagination (limit, offset)
+
 Development
 ===========
 
