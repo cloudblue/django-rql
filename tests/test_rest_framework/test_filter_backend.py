@@ -40,6 +40,16 @@ def test_list_filtering(api_client):
     assert response.data == [{'id': books[0].pk}]
 
 
+@pytest.mark.django_db
+def test_list_pagination(api_client):
+    books = [Book.objects.create() for _ in range(5)]
+    query = 'limit=2,eq(offset,1)'
+    response = api_client.get('{}?{}'.format(reverse('book-list'), query))
+    assert response.status_code == HTTP_200_OK
+    assert response.data == [{'id': books[1].pk}, {'id': books[2].pk}]
+    assert response._headers['content-range'][1] == 'items 1-2/5'
+
+
 def test_rql_filter_cls_is_not_set():
     class View(object):
         pass

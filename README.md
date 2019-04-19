@@ -110,6 +110,7 @@ Testing
 
 0. Python 2.7+
 0. Install dependencies `requirements/test.txt`
+0. `export PYTHONPATH=/your/path/to/django-rql/`
 
 Check code style: `flake8`
 Run tests: `pytest`

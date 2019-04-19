@@ -4,7 +4,7 @@ from rest_framework import mixins
 from rest_framework import serializers
 from rest_framework.viewsets import GenericViewSet
 
-from dj_rql.rest_framework import RQLFilterBackend
+from dj_rql.rest_framework import RQLFilterBackend, RQLContentRangeLimitOffsetPagination
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Book
 
@@ -20,3 +20,4 @@ class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
     serializer_class = BookSerializer
     filter_backends = (RQLFilterBackend,)
     rql_filter_class = BooksFilterClass
+    pagination_class = RQLContentRangeLimitOffsetPagination

@@ -3,13 +3,12 @@ from __future__ import unicode_literals
 import six
 from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
-from lark.exceptions import LarkError
 
 from dj_rql.constants import (
     ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SearchOperators,
-    RQL_ANY_SYMBOL, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
+    RESERVED_FILTER_NAMES, RQL_ANY_SYMBOL, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
@@ -36,13 +35,7 @@ class RQLFilterClass(object):
         if not query:
             return self.queryset
 
-        try:
-            rql_ast = RQLParser.parse(query)
-        except LarkError as e:
-            raise RQLFilterParsingError(details={
-                'error': str(e),
-            })
-
+        rql_ast = RQLParser.parse_query(query)
         self.queryset = RQLToDjangoORMTransformer(self).transform(rql_ast)
         return self.queryset
 
@@ -90,7 +83,9 @@ class RQLFilterClass(object):
                 field_filter_route = '{}{}'.format(filter_route, item)
                 field_orm_route = '{}{}'.format(orm_route, item)
                 field = self._get_field(model, item)
-                self.mapper[field_filter_route] = self._build_mapped_item(field, field_orm_route)
+                self._add_mapped_item(
+                    field_filter_route, self._build_mapped_item(field, field_orm_route),
+                )
 
             elif 'namespace' in item:
                 related_filter_route = '{}{}.'.format(filter_route, item['namespace'])
@@ -107,12 +102,12 @@ class RQLFilterClass(object):
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
 
                 if 'sources' in item:
-                    mapping = []
+                    items = []
                     for source in item['sources']:
                         full_orm_route = '{}{}'.format(orm_route, source)
                         field = self._get_field(model, source)
 
-                        mapping.append(self._build_mapped_item(
+                        items.append(self._build_mapped_item(
                             field, full_orm_route,
                             lookups=item.get('lookups'), use_repr=item.get('use_repr'),
                             null_values=item.get('null_values'),
@@ -122,12 +117,18 @@ class RQLFilterClass(object):
                     full_orm_route = '{}{}'.format(orm_route, orm_field_name)
 
                     field = self._get_field(model, orm_field_name)
-                    mapping = self._build_mapped_item(
+                    items = self._build_mapped_item(
                         field, full_orm_route,
                         lookups=item.get('lookups'), use_repr=item.get('use_repr'),
                         null_values=item.get('null_values'),
                     )
-                self.mapper[field_filter_route] = mapping
+
+                self._add_mapped_item(field_filter_route, items)
+
+    def _add_mapped_item(self, filter_name, item):
+        assert filter_name not in RESERVED_FILTER_NAMES, \
+            "'{}' is a reserved filter name.".format(filter_name)
+        self.mapper[filter_name] = item
 
     @classmethod
     def _get_field(cls, base_model, field_name):

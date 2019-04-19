@@ -6,21 +6,13 @@ from __future__ import unicode_literals
 from django.db.models import Q
 from lark import Transformer, Tree
 
-from dj_rql.constants import ComparisonOperators, ListOperators, LogicalOperators
+from dj_rql.constants import (
+    ComparisonOperators, ListOperators, LogicalOperators,
+    RQL_LIMIT_PARAM, RQL_OFFSET_PARAM,
+)
 
 
-class RQLToDjangoORMTransformer(Transformer):
-    """ Parsed RQL AST tree transformer to Django ORM Query.
-
-    Notes:
-        Grammar-Function name mapping is made automatically by Lark.
-    """
-    def __init__(self, filter_cls_instance):
-        self._filter_cls_instance = filter_cls_instance
-
-    def start(self, args):
-        return self._filter_cls_instance.queryset.filter(args[0]).distinct()
-
+class BaseRQLTransformer(Transformer):
     def comp(self, args):
         if len(args) == 2:
             # id=1
@@ -38,8 +30,30 @@ class RQLToDjangoORMTransformer(Transformer):
             prop_index = 0
             value_index = 2
 
+        return self._get_value(args[prop_index]), operation, self._get_value(args[value_index])
+
+    @staticmethod
+    def _get_value(obj):
+        while isinstance(obj, Tree):
+            obj = obj.children[0]
+        return obj.value
+
+
+class RQLToDjangoORMTransformer(BaseRQLTransformer):
+    """ Parsed RQL AST tree transformer to Django ORM Query.
+
+    Notes:
+        Grammar-Function name mapping is made automatically by Lark.
+    """
+    def __init__(self, filter_cls_instance):
+        self._filter_cls_instance = filter_cls_instance
+
+    def start(self, args):
+        return self._filter_cls_instance.queryset.filter(args[0]).distinct()
+
+    def comp(self, args):
         return self._filter_cls_instance.build_q_for_filter(
-            self._get_value(args[prop_index]), operation, self._get_value(args[value_index])
+            *super(RQLToDjangoORMTransformer, self).comp(args),
         )
 
     def logical(self, args):
@@ -81,8 +95,26 @@ class RQLToDjangoORMTransformer(Transformer):
     def expr_term(self, args):
         return args[0]
 
-    @staticmethod
-    def _get_value(obj):
-        while isinstance(obj, Tree):
-            obj = obj.children[0]
-        return obj.value
+
+class RQLLimitOffsetTransformer(BaseRQLTransformer):
+    def __init__(self):
+        self.limit = None
+        self.offset = None
+
+    def start(self, args):
+        return self.limit, self.offset
+
+    def comp(self, args):
+        prop, operation, val = super(RQLLimitOffsetTransformer, self).comp(args)
+        if prop in (RQL_LIMIT_PARAM, RQL_OFFSET_PARAM):
+            if operation != ComparisonOperators.EQ:
+                raise ValueError
+
+            if prop == RQL_LIMIT_PARAM:
+                if self.limit is not None:
+                    raise ValueError
+                self.limit = val
+            elif prop == RQL_OFFSET_PARAM:
+                if self.offset is not None:
+                    raise ValueError
+                self.offset = val

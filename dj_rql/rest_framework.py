@@ -1,16 +1,23 @@
 from __future__ import unicode_literals
 
+from lark.exceptions import LarkError
+from rest_framework.filters import BaseFilterBackend
+from rest_framework.pagination import LimitOffsetPagination, _positive_int
+from rest_framework.response import Response
+
+from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
+from dj_rql.parser import RQLParser
+from dj_rql.transformer import RQLLimitOffsetTransformer
 
 
-class RQLFilterBackend(object):
+class RQLFilterBackend(BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        rql_filter_class = self._get_filter_class(view)
-        query = self._get_query(request)
-        return rql_filter_class(queryset).apply_filters(query)
+        rql_filter_class = self.get_filter_class(view)
+        return rql_filter_class(queryset).apply_filters(_get_query(request))
 
     @staticmethod
-    def _get_filter_class(view):
+    def get_filter_class(view):
         rql_filter_class = getattr(view, 'rql_filter_class', None)
 
         assert rql_filter_class is not None, 'RQL Filter Class must be set in view.'
@@ -19,6 +26,59 @@ class RQLFilterBackend(object):
 
         return rql_filter_class
 
-    @staticmethod
-    def _get_query(drf_request):
-        return drf_request._request.META['QUERY_STRING']
+
+class RQLLimitOffsetPagination(LimitOffsetPagination):
+    def __init__(self, *args, **kwargs):
+        super(RQLLimitOffsetPagination, self).__init__(*args, **kwargs)
+
+        self._rql_limit = None
+        self._rql_offset = None
+
+    def paginate_queryset(self, queryset, request, view=None):
+        rql_ast = RQLParser.parse_query(_get_query(request))
+        try:
+            self._rql_limit, self._rql_offset = RQLLimitOffsetTransformer().transform(rql_ast)
+        except LarkError:
+            raise RQLFilterParsingError(details={
+                'error': 'Limit and offset are set incorrectly.',
+            })
+        return super(RQLLimitOffsetPagination, self).paginate_queryset(queryset, request, view)
+
+    def get_limit(self, *args):
+        if self._rql_limit is not None:
+            try:
+                return _positive_int(self._rql_limit, strict=True, cutoff=self.max_limit)
+            except ValueError:
+                pass
+        return self.default_limit
+
+    def get_offset(self, *args):
+        if self._rql_offset is not None:
+            try:
+                return _positive_int(self._rql_offset)
+            except ValueError:
+                pass
+        return 0
+
+
+class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
+    """
+    RQL RFC2616 Resource limit offset pagination.
+
+    Examples:
+        Response
+
+        200 OK
+        Content-Range: items <FIRST>-<LAST>/<TOTAL>
+    """
+
+    def get_paginated_response(self, data):
+        length = len(data) - 1 if data else 0
+        content_range = "items {}-{}/{}".format(
+            self.offset, self.offset + length, self.count,
+        )
+        return Response(data, headers={"Content-Range": content_range})
+
+
+def _get_query(drf_request):
+    return drf_request._request.META['QUERY_STRING']
