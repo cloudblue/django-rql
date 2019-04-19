@@ -5,15 +5,14 @@ from django.core.exceptions import FieldDoesNotExist
 
 from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
 from dj_rql.filter_cls import RQLFilterClass
+from dj_rql.utils import assert_filter_cls
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author
 
 empty_qs = Author.objects.none()
 
 
-def test_collecting_mapper():
-    mapper = BooksFilterClass(empty_qs).mapper
-
+def test_building_filters():
     non_null_numeric_lookups = FL.numeric()
     non_null_numeric_lookups.discard(FL.NULL)
     non_null_string_lookups = FL.string()
@@ -53,22 +52,19 @@ def test_collecting_mapper():
         'd_id': [
             {'orm_route': 'id', 'lookups': non_null_numeric_lookups},
             {'orm_route': 'author__id', 'lookups': non_null_numeric_lookups},
-        ]
+        ],
     }
-    assert set(mapper.keys()) == set(expected_sub_dct.keys())
-    for filter_name, filter_struct in expected_sub_dct.items():
-        if isinstance(filter_struct, dict):
-            for key, value in filter_struct.items():
-                assert key in mapper[filter_name]
-                assert mapper[filter_name][key] == value
-        else:
-            expected_orm_routes = {dct['orm_route'] for dct in filter_struct}
-            expected_lookups = filter_struct[0]['lookups']
-            real_orm_routes = {dct['orm_route'] for dct in mapper[filter_name]}
-            real_lookups = mapper[filter_name][1]['lookups']
 
-            assert expected_orm_routes == real_orm_routes
-            assert expected_lookups == real_lookups
+    assert_filter_cls(
+        BooksFilterClass, expected_sub_dct,
+        {'author.email', 'published.at', 'd_id'},
+        {'title', 'author.email', 'author__email'},
+    )
+
+
+def test_bad_filter_configuration():
+    with pytest.raises(AssertionError):
+        assert_filter_cls(BooksFilterClass, {'prop': {}}, set(), set())
 
 
 def test_model_is_not_set():

@@ -22,7 +22,7 @@ OK_VALUES = [
     SearchOperators.I_LIKE,
     RQL_NULL, RQL_EMPTY,
 ]
-FAIL_PROPS = ['', '=', 't t', '"p"', '23', '1p', 'v*']
+FAIL_PROPS = ['', '=', 't t', '"p"', '23', '1p', 'v*', '+v']
 
 LIST_FAIL_VALUES = ('', '"sdsd')
 FAIL_VALUES = LIST_FAIL_VALUES + ('v1,v2',)

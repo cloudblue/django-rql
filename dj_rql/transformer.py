@@ -8,8 +8,8 @@ from lark import Transformer, Tree
 
 from dj_rql.constants import (
     ComparisonOperators, ListOperators, LogicalOperators,
-    RQL_LIMIT_PARAM, RQL_OFFSET_PARAM,
-)
+    RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_ORDERING_OPERATOR, RQL_SEARCH_PARAM,
+    SearchOperators)
 
 
 class BaseRQLTransformer(Transformer):
@@ -39,6 +39,22 @@ class BaseRQLTransformer(Transformer):
             obj = obj.children[0]
         return obj.value
 
+    def sign_prop(self, args):
+        if len(args) == 2:
+            # has sign
+            return '{}{}'.format(self._get_value(args[0]), self._get_value(args[1])) \
+                .lstrip('+')  # Plus is not needed in ordering
+        return self._get_value(args[0])
+
+    def term(self, args):
+        return args[0]
+
+    def expr_term(self, args):
+        return args[0]
+
+    def start(self, args):
+        return args[0]
+
 
 class RQLToDjangoORMTransformer(BaseRQLTransformer):
     """ Parsed RQL AST tree transformer to Django ORM Query.
@@ -49,11 +65,29 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
     def __init__(self, filter_cls_instance):
         self._filter_cls_instance = filter_cls_instance
 
+        self._ordering = []
+
+    @property
+    def ordering_filters(self):
+        return self._ordering
+
     def start(self, args):
         return self._filter_cls_instance.queryset.filter(args[0]).distinct()
 
     def comp(self, args):
-        return self._filter_cls_instance.build_q_for_filter(*self._extract_comparison(args))
+        prop, operation, value = self._extract_comparison(args)
+
+        if prop == RQL_SEARCH_PARAM:
+            assert operation == ComparisonOperators.EQ
+
+            q = Q()
+            for filter_name in self._filter_cls_instance.search_filters:
+                q |= self._filter_cls_instance.build_q_for_filter(
+                    filter_name, SearchOperators.I_LIKE, value,
+                )
+            return q
+
+        return self._filter_cls_instance.build_q_for_filter(prop, operation, value)
 
     def logical(self, args):
         operation = args[0].data
@@ -85,14 +119,12 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return q
 
     def searching(self, args):
+        # like, ilike
         operation, prop, val = tuple(self._get_value(args[index]) for index in range(3))
         return self._filter_cls_instance.build_q_for_filter(prop, operation, val)
 
-    def term(self, args):
-        return args[0]
-
-    def expr_term(self, args):
-        return args[0]
+    def ordering(self, args):
+        self._ordering.append(tuple(args[1:]))
 
 
 class RQLLimitOffsetTransformer(BaseRQLTransformer):
@@ -108,15 +140,12 @@ class RQLLimitOffsetTransformer(BaseRQLTransformer):
         prop, operation, val = self._extract_comparison(args)
         if prop in (RQL_LIMIT_PARAM, RQL_OFFSET_PARAM):
             # Only equation operator can be used for limit and offset
-            if operation != ComparisonOperators.EQ:
-                raise ValueError
+            assert operation == ComparisonOperators.EQ
 
             # There can be only one limit (offset) parameter in the whole query
             if prop == RQL_LIMIT_PARAM:
-                if self.limit is not None:
-                    raise ValueError
+                assert self.limit is None
                 self.limit = val
-            elif prop == RQL_OFFSET_PARAM:
-                if self.offset is not None:
-                    raise ValueError
+            else:
+                assert self.offset is None
                 self.offset = val

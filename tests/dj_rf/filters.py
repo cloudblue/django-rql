@@ -7,6 +7,8 @@ from tests.dj_rf.models import Book
 
 AUTHOR_FILTERS = ['is_male', {
     'filter': 'email',
+    'ordering': True,
+    'search': True,
 }, {
     'namespace': 'publisher',
     'filters': ['id']
@@ -27,10 +29,12 @@ class BooksFilterClass(RQLFilterClass):
     FILTERS = ['id', {
         'filter': 'title',
         'null_values': {RQL_NULL, 'NULL_ID'},
+        'search': True,
     }, 'current_price', 'written', {
         'filter': 'status',
     }, {
         'filter': 'author__email',
+        'search': True,
     }, {
         'filter': 'name',
         'source': 'author__name',
@@ -44,6 +48,7 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 'published.at',
         'source': 'published_at',
+        'ordering': True,
     }, {
         'filter': 'rating.blog',
         'source': 'blog_rating',
@@ -59,8 +64,7 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'url',
         'source': 'publishing_url',
     }, {
-        # Sometimes it's needed to filter by several sources at once (distinct is always True).
-        # F.e. this could be helpful for searching.
         'filter': 'd_id',
-        'sources': {'id', 'author__id'},
+        'sources': ['id', 'author__id'],
+        'ordering': True,
     }]

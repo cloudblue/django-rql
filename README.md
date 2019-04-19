@@ -22,10 +22,11 @@ The current parsing algorithm is [LALR(1)](https://www.wikiwand.com/en/LALR_pars
 
 Currently supported operators
 =============================
-0. Comparison (eq, ne, gt, ge, lt, le, like, ilike)
+0. Comparison (eq, ne, gt, ge, lt, le, like, ilike, search)
 0. List (in, out)
 0. Logical (and, or, not)
 0. Constants (null(), empty()) 
+0. Ordering (ordering)
 
 Example
 =======
@@ -54,6 +55,8 @@ class ModelFilterClass(RQLFilterClass):
         'sources': iterable
         
         'use_repr': bool  # can't be used in namespaces
+        'ordering': bool  # can't be true if 'use_repr=True'
+        'search': bool
     }
     
     """
@@ -63,10 +66,17 @@ class ModelFilterClass(RQLFilterClass):
         # RQL_NULL is the default value if NULL lookup is supported by field
         'filter': 'title',
         'null_values': {RQL_NULL, 'NULL_ID'},
+        'ordering': False,
     }, {
+        # `ordering` can be set to True, if filter must support ordering (sorting)
+        # `ordering` must can't be applied to non-db fields
         'filter': 'status',
+        'ordering': True,
     }, {
+        # `search` must be set to True for filter to be used in searching
+        # `search` must be applied only to text fields, which have ilike lookup
         'filter': 'author__email',
+        'search': True,
     }, {
         # `source` must be set when filter name doesn't match ORM path
         'filter': 'name',
@@ -83,10 +93,12 @@ class ModelFilterClass(RQLFilterClass):
         'filter': 'rating.blog',
         'source': 'blog_rating',
         'use_repr': True,
+        'ordering': True,
     }, {
         'filter': 'rating.blog_int',
         'source': 'blog_rating',
         'use_repr': False,
+        'ordering': True,
     }, {
         # We can change default lookups for a certain filter
         'filter': 'amazon_rating',
@@ -96,6 +108,7 @@ class ModelFilterClass(RQLFilterClass):
         # F.e. this could be helpful for searching.
         'filter': 'd_id',
         'sources': {'id', 'author__id'},
+        'ordering': True,
     }]
 ```
 
