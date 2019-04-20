@@ -5,7 +5,7 @@ from functools import partial
 import pytest
 
 from dj_rql.constants import ListOperators, RQL_NULL
-from dj_rql.exceptions import RQLFilterParsingError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
 from tests.test_filter_cls.utils import book_qs, create_books
@@ -22,6 +22,12 @@ def test_parsing_error():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(bad_query)
     assert e.value.details['error'].startswith('Unexpected token')
+
+
+def test_lookup_error():
+    bad_lookup = 'like(id,1)'
+    with pytest.raises(RQLFilterLookupError):
+        apply_filters(bad_lookup)
 
 
 @pytest.mark.django_db

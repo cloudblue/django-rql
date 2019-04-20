@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 import six
 from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
+from lark.exceptions import LarkError
 
 from dj_rql.constants import (
     ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SearchOperators,
@@ -41,7 +42,11 @@ class RQLFilterClass(object):
         rql_ast = RQLParser.parse_query(query)
 
         rql_transformer = RQLToDjangoORMTransformer(self)
-        qs = rql_transformer.transform(rql_ast)
+        try:
+            qs = rql_transformer.transform(rql_ast)
+        except LarkError as e:
+            # Lark reraises it's errors, but the original ones are needed
+            raise e.orig_exc
         self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
         return self.queryset
 

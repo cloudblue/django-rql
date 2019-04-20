@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from django.utils.http import urlunquote
 from lark.exceptions import LarkError
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.pagination import LimitOffsetPagination, _positive_int
@@ -88,4 +89,4 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
 
 
 def _get_query(drf_request):
-    return drf_request._request.META['QUERY_STRING']
+    return urlunquote(drf_request._request.META['QUERY_STRING'])
