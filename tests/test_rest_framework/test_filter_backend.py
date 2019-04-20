@@ -5,7 +5,7 @@ from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 from rest_framework.test import APIClient
 
-from dj_rql.drf import RQLFilterBackend
+from dj_rql.drf import RQLFilterBackend, FilterCache
 from tests.dj_rf.models import Book
 
 
@@ -69,3 +69,28 @@ def test_rql_filter_cls_wrong_base_cls():
     with pytest.raises(AssertionError) as e:
         RQLFilterBackend().filter_queryset(None, None, View())
     assert str(e.value) == 'Filtering class must subclass RQLFilterClass.'
+
+
+@pytest.mark.django_db
+def test_cache(api_client):
+    books = [
+        Book.objects.create(title='F'),
+        Book.objects.create(title='G'),
+    ]
+
+    assert FilterCache.CACHE == {}
+    response = api_client.get('{}?{}'.format(reverse('book-list'), 'title=F'))
+    assert response.data == [{'id': books[0].pk}]
+
+    expected_cache_key = 'book.BooksFilterClass'
+    assert expected_cache_key in FilterCache.CACHE
+    cache_item_id = id(FilterCache.CACHE[expected_cache_key])
+
+    response = api_client.get('{}?{}'.format(reverse('book-list'), 'title=F'))
+    assert response.data == [{'id': books[0].pk}]
+
+    assert expected_cache_key in FilterCache.CACHE
+    assert id(FilterCache.CACHE[expected_cache_key]) == cache_item_id
+
+    FilterCache.clear()
+    assert FilterCache.CACHE == {}
