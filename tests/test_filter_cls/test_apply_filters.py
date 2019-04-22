@@ -3,9 +3,10 @@ from __future__ import unicode_literals
 from functools import partial
 
 import pytest
+from django.utils.timezone import now
 
 from dj_rql.constants import ListOperators, RQL_NULL
-from dj_rql.exceptions import RQLFilterParsingError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
 from tests.test_filter_cls.utils import book_qs, create_books
@@ -22,6 +23,12 @@ def test_parsing_error():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(bad_query)
     assert e.value.details['error'].startswith('Unexpected token')
+
+
+def test_lookup_error():
+    bad_lookup = 'like(id,1)'
+    with pytest.raises(RQLFilterLookupError):
+        apply_filters(bad_lookup)
 
 
 @pytest.mark.django_db
@@ -160,3 +167,67 @@ def test_null_with_in_or():
 
     assert apply_filters('in(title,({},{}))'.format(title, RQL_NULL)) == books
     assert apply_filters('or(title=eq={},eq(title,{}))'.format(title, RQL_NULL)) == books
+
+
+@pytest.mark.django_db
+def test_ordering_source():
+    authors = [
+        Author.objects.create(email='a@m.com'),
+        Author.objects.create(email='z@m.com'),
+    ]
+    books = [Book.objects.create(author=author) for author in authors]
+    assert apply_filters('ordering(-author.email)') == [books[1], books[0]]
+    assert apply_filters('ordering(author.email)') == [books[0], books[1]]
+    assert apply_filters('ordering(author.email,-author.email)') == [books[0], books[1]]
+
+
+@pytest.mark.django_db
+def test_ordering_sources():
+    books = create_books()
+    assert apply_filters('ordering(d_id)') == [books[0], books[1]]
+    assert apply_filters('ordering(-d_id)') == [books[1], books[0]]
+
+
+@pytest.mark.django_db
+def test_ordering_by_several_filters():
+    same_email = 'a@m.com'
+    authors = [
+        Author.objects.create(email=same_email),
+        Author.objects.create(email=same_email),
+    ]
+    books = [Book.objects.create(author=author, published_at=now()) for author in authors]
+    books.append(Book.objects.create(published_at=now()))
+
+    assert apply_filters('ordering(author.email,-published.at)') == \
+        list(book_qs.order_by('author__email', '-published_at'))
+
+
+def test_several_ordering_operations():
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters('ordering(d_id)&ordering(author.email)')
+    assert e.value.details['error'] == 'Query can contain only one ordering operation.'
+
+
+def test_bad_ordering_filter():
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters('ordering(id)')
+    assert e.value.details['error'] == 'Bad ordering filter: id.'
+
+
+@pytest.mark.django_db
+def test_search():
+    title = 'book'
+    books = [
+        Book.objects.create(title=title),
+        Book.objects.create(title='another'),
+    ]
+
+    assert apply_filters('(search=*aN*r;search=b*k)') == books
+    assert apply_filters('(search="*aN*";search="*book")') == books
+    assert apply_filters('(search="*aN";search="*b*")') == [books[0]]
+
+
+def test_search_bad_lookup():
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters('search=ge=*a*')
+    assert e.value.details['error'] == 'Bad search operation: ge.'

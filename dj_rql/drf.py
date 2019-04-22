@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from django.utils.http import urlunquote
 from lark.exceptions import LarkError
 from rest_framework.filters import BaseFilterBackend
 from rest_framework.pagination import LimitOffsetPagination, _positive_int
@@ -11,6 +12,14 @@ from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLLimitOffsetTransformer
 
 
+class FilterCache(object):
+    CACHE = {}
+
+    @classmethod
+    def clear(cls):
+        cls.CACHE = {}
+
+
 class RQLFilterBackend(BaseFilterBackend):
     """ RQL filter backend for DRF GenericAPIViews.
 
@@ -20,8 +29,9 @@ class RQLFilterBackend(BaseFilterBackend):
             rql_filter_class = ModelFilterClass
     """
     def filter_queryset(self, request, queryset, view):
-        rql_filter_class = self.get_filter_class(view)
-        return rql_filter_class(queryset).apply_filters(_get_query(request))
+        filter_class = self.get_filter_class(view)
+        filter_instance = self._get_filter_instance(filter_class, queryset, view)
+        return filter_instance.apply_filters(_get_query(request))
 
     @staticmethod
     def get_filter_class(view):
@@ -32,6 +42,17 @@ class RQLFilterBackend(BaseFilterBackend):
             'Filtering class must subclass RQLFilterClass.'
 
         return rql_filter_class
+
+    @staticmethod
+    def _get_filter_instance(filter_class, queryset, view):
+        qual_name = '{}.{}'.format(view.basename, filter_class.__name__)
+        filter_instance = FilterCache.CACHE.get(qual_name)
+        if filter_instance:
+            filter_instance.queryset = queryset
+        else:
+            filter_instance = filter_class(queryset)
+            FilterCache.CACHE[qual_name] = filter_instance
+        return filter_instance
 
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
@@ -88,4 +109,4 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
 
 
 def _get_query(drf_request):
-    return drf_request._request.META['QUERY_STRING']
+    return urlunquote(drf_request._request.META['QUERY_STRING'])

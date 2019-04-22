@@ -3,15 +3,15 @@ from __future__ import unicode_literals
 import six
 from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
+from lark.exceptions import LarkError
 
 from dj_rql.constants import (
     ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SearchOperators,
     RESERVED_FILTER_NAMES, RQL_ANY_SYMBOL, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLToDjangoORMTransformer
-
 
 iterable_types = (list, tuple)
 
@@ -25,8 +25,11 @@ class RQLFilterClass(object):
         assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, \
             'List of filters must be set for Filter Class.'
 
-        self.mapper = {}
-        self._build_mapper(self.FILTERS)
+        self.ordering_filters = set()
+        self.search_filters = set()
+
+        self.filters = {}
+        self._build_filters(self.FILTERS)
 
         self.queryset = queryset
 
@@ -36,15 +39,51 @@ class RQLFilterClass(object):
             return self.queryset
 
         rql_ast = RQLParser.parse_query(query)
-        self.queryset = RQLToDjangoORMTransformer(self).transform(rql_ast)
+
+        rql_transformer = RQLToDjangoORMTransformer(self)
+        try:
+            qs = rql_transformer.transform(rql_ast)
+        except LarkError as e:
+            # Lark reraises it's errors, but the original ones are needed
+            raise e.orig_exc
+        self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
         return self.queryset
+
+    def _apply_ordering(self, qs, properties):
+        if len(properties) == 0:
+            return qs
+        elif len(properties) > 1:
+            raise RQLFilterParsingError(details={
+                'error': 'Query can contain only one ordering operation.',
+            })
+
+        ordering_fields = []
+        for prop in properties[0]:
+            if '-' == prop[0]:
+                filter_name = prop[1:]
+                sign = '-'
+            else:
+                filter_name = prop
+                sign = ''
+            if filter_name not in self.ordering_filters:
+                raise RQLFilterParsingError(details={
+                    'error': 'Bad ordering filter: {}.'.format(filter_name),
+                })
+
+            filters = self.filters[filter_name]
+            if not isinstance(filters, list):
+                filters = [filters]
+            for f in filters:
+                ordering_fields.append('{}{}'.format(sign, f['orm_route']))
+
+        return qs.order_by(*ordering_fields)
 
     def build_q_for_filter(self, filter_name, operator, str_value):
         """ Django Q() builder for the given expression. """
-        if filter_name not in self.mapper:
+        if filter_name not in self.filters:
             return Q()
 
-        filter_item = self.mapper[filter_name]
+        filter_item = self.filters[filter_name]
 
         base_item = filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
         django_field = base_item['field']
@@ -71,19 +110,19 @@ class RQLFilterClass(object):
                 q |= item_q
         return q
 
-    def _build_mapper(self, filters, filter_route='', orm_route='', orm_model=None):
+    def _build_filters(self, filters, filter_route='', orm_route='', orm_model=None):
         """ Converter of provided nested filter configuration to linear inner representation. """
         model = orm_model or self.MODEL
 
         if not orm_route:
-            self.mapper = {}
+            self.filters = {}
 
         for item in filters:
             if isinstance(item, six.string_types):
                 field_filter_route = '{}{}'.format(filter_route, item)
                 field_orm_route = '{}{}'.format(orm_route, item)
                 field = self._get_field(model, item)
-                self._add_mapped_item(
+                self._add_filter_item(
                     field_filter_route, self._build_mapped_item(field, field_orm_route),
                 )
 
@@ -93,42 +132,48 @@ class RQLFilterClass(object):
                 related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
 
                 related_model = self._get_model_field(model, orm_field_name).related_model
-                self._build_mapper(
+                self._build_filters(
                     item.get('filters', []), related_filter_route,
                     related_orm_route, related_model,
                 )
 
             else:
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
+                self._check_ordering(item, field_filter_route)
+
+                kwargs = {
+                    'lookups': item.get('lookups'),
+                    'use_repr': item.get('use_repr'),
+                    'null_values': item.get('null_values'),
+                }
 
                 if 'sources' in item:
                     items = []
                     for source in item['sources']:
                         full_orm_route = '{}{}'.format(orm_route, source)
                         field = self._get_field(model, source)
+                        items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
+                        self._check_search(item, field_filter_route, field)
 
-                        items.append(self._build_mapped_item(
-                            field, full_orm_route,
-                            lookups=item.get('lookups'), use_repr=item.get('use_repr'),
-                            null_values=item.get('null_values'),
-                        ))
                 else:
                     orm_field_name = item.get('source', item['filter'])
                     full_orm_route = '{}{}'.format(orm_route, orm_field_name)
-
                     field = self._get_field(model, orm_field_name)
-                    items = self._build_mapped_item(
-                        field, full_orm_route,
-                        lookups=item.get('lookups'), use_repr=item.get('use_repr'),
-                        null_values=item.get('null_values'),
-                    )
+                    items = self._build_mapped_item(field, full_orm_route, **kwargs)
+                    self._check_search(item, field_filter_route, field)
 
-                self._add_mapped_item(field_filter_route, items)
+                self._add_filter_item(field_filter_route, items)
 
-    def _add_mapped_item(self, filter_name, item):
+                if item.get('ordering'):
+                    self.ordering_filters.add(field_filter_route)
+
+                if item.get('search'):
+                    self.search_filters.add(field_filter_route)
+
+    def _add_filter_item(self, filter_name, item):
         assert filter_name not in RESERVED_FILTER_NAMES, \
             "'{}' is a reserved filter name.".format(filter_name)
-        self.mapper[filter_name] = item
+        self.filters[filter_name] = item
 
     @classmethod
     def _get_field(cls, base_model, field_name):
@@ -354,3 +399,14 @@ class RQLFilterClass(object):
     @staticmethod
     def _is_searching_lookup(filter_lookup):
         return filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE)
+
+    @staticmethod
+    def _check_ordering(filter_item, filter_name):
+        assert not (filter_item.get('use_repr') and filter_item.get('ordering')), \
+            "{}: 'use_repr' and 'ordering' can't be used together.".format(filter_name)
+
+    @staticmethod
+    def _check_search(filter_item, filter_name, field):
+        assert not (filter_item.get('search') and
+                    FilterTypes.field_filter_type(field) != FilterTypes.STRING), \
+            "{}: 'search' can be applied only to text filters.".format(filter_name)

@@ -8,7 +8,7 @@ from dj_rql.parser import RQLParser
 from tests.test_parser.constants import FAIL_PROPS, LIST_FAIL_VALUES, OK_PROPS, OK_VALUES
 from tests.test_parser.utils import ListTransformer
 
-REVERSED_OK = reversed(OK_VALUES)
+REVERSED_OK_VALUES = reversed(OK_VALUES)
 list_operators = [ListOperators.IN, ListOperators.OUT]
 
 
@@ -21,7 +21,7 @@ def list_transform(operator, prop, values):
 
 @pytest.mark.parametrize('operator', list_operators)
 @pytest.mark.parametrize('prop', OK_PROPS)
-@pytest.mark.parametrize('v1,v2', zip(OK_VALUES, REVERSED_OK))
+@pytest.mark.parametrize('v1,v2', zip(OK_VALUES, REVERSED_OK_VALUES))
 def test_list_ok(operator, prop, v1, v2):
     for v in (v1, v2):
         assert list_transform(operator, prop, (v,)) == (operator, prop, (v,))
