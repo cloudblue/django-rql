@@ -7,7 +7,7 @@ from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NUL
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.utils import assert_filter_cls
 from tests.dj_rf.filters import BooksFilterClass
-from tests.dj_rf.models import Author
+from tests.dj_rf.models import Author, Book
 
 empty_qs = Author.objects.none()
 
@@ -115,3 +115,31 @@ def test_reserved_filter_name_is_used(filter_name):
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
     assert str(e.value) == "'{}' is a reserved filter name.".format(filter_name)
+
+
+def test_bad_ordering():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'rating.blog',
+            'source': 'blog_rating',
+            'use_repr': True,
+            'ordering': True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "rating.blog: 'use_repr' and 'ordering' can't be used together."
+
+
+def test_bad_search():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'id',
+            'search': True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "id: 'search' can be applied only to text filters."

@@ -7,9 +7,10 @@ from django.db.models import Q
 from lark import Transformer, Tree
 
 from dj_rql.constants import (
-    ComparisonOperators, ListOperators, LogicalOperators,
-    RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_ORDERING_OPERATOR, RQL_SEARCH_PARAM,
-    SearchOperators)
+    ComparisonOperators, ListOperators, LogicalOperators, SearchOperators,
+    RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_SEARCH_PARAM,
+)
+from dj_rql.exceptions import RQLFilterParsingError
 
 
 class BaseRQLTransformer(Transformer):
@@ -61,6 +62,10 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     Notes:
         Grammar-Function name mapping is made automatically by Lark.
+
+        Transform collects ordering filters, but doesn't apply them.
+        They are applied later in FilterCls. This is done on purpose, because transformer knows
+        nothing about the mappings between filter names and orm fields.
     """
     def __init__(self, filter_cls_instance):
         self._filter_cls_instance = filter_cls_instance
@@ -78,7 +83,10 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         prop, operation, value = self._extract_comparison(args)
 
         if prop == RQL_SEARCH_PARAM:
-            assert operation == ComparisonOperators.EQ
+            if operation != ComparisonOperators.EQ:
+                raise RQLFilterParsingError(details={
+                    'error': 'Bad search operation: {}.'.format(operation),
+                })
 
             q = Q()
             for filter_name in self._filter_cls_instance.search_filters:
@@ -125,6 +133,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     def ordering(self, args):
         self._ordering.append(tuple(args[1:]))
+        return Q()
 
 
 class RQLLimitOffsetTransformer(BaseRQLTransformer):

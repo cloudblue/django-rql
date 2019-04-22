@@ -20,6 +20,7 @@ expr_term: comp
     | listing
     | searching
     | ordering
+    | select
     
 logical: and_op
     | or_op
@@ -49,7 +50,10 @@ comp: comp_term _L_BRACE prop _COMA val _R_BRACE
     
 listing: list_term _L_BRACE prop _COMA _L_BRACE val (_COMA val)* _R_BRACE _R_BRACE
 searching: search_term _L_BRACE prop _COMA val _R_BRACE
-ordering: ordering_term _L_BRACE sign_prop (_COMA sign_prop)* _R_BRACE
+
+ordering: ordering_term _signed_props
+select: select_term _signed_props
+_signed_props: _L_BRACE sign_prop (_COMA sign_prop)* _R_BRACE
     
 val: prop
     | QUOTED_VAL
@@ -60,6 +64,7 @@ prop: comp_term
     | list_term
     | search_term
     | ordering_term
+    | select_term
     | PROP
     
 !sign_prop: ["+"|"-"] prop
@@ -69,6 +74,7 @@ prop: comp_term
 !list_term: "in" | "out"
 !search_term: "like" | "ilike"
 !ordering_term: "ordering"
+!select_term: "select"
 
     
 PROP: /[a-zA-Z]/ /[\w\-\.]/*

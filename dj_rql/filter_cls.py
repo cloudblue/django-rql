@@ -9,10 +9,9 @@ from dj_rql.constants import (
     ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SearchOperators,
     RESERVED_FILTER_NAMES, RQL_ANY_SYMBOL, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLToDjangoORMTransformer
-
 
 iterable_types = (list, tuple)
 
@@ -51,7 +50,33 @@ class RQLFilterClass(object):
         return self.queryset
 
     def _apply_ordering(self, qs, properties):
-        return qs.order_by(*properties)
+        if len(properties) == 0:
+            return qs
+        elif len(properties) > 1:
+            raise RQLFilterParsingError(details={
+                'error': 'Query can contain only one ordering operation.',
+            })
+
+        ordering_fields = []
+        for prop in properties[0]:
+            if '-' == prop[0]:
+                filter_name = prop[1:]
+                sign = '-'
+            else:
+                filter_name = prop
+                sign = ''
+            if filter_name not in self.ordering_filters:
+                raise RQLFilterParsingError(details={
+                    'error': 'Bad ordering filter: {}.'.format(filter_name),
+                })
+
+            filters = self.filters[filter_name]
+            if not isinstance(filters, list):
+                filters = [filters]
+            for f in filters:
+                ordering_fields.append('{}{}'.format(sign, f['orm_route']))
+
+        return qs.order_by(*ordering_fields)
 
     def build_q_for_filter(self, filter_name, operator, str_value):
         """ Django Q() builder for the given expression. """
@@ -113,15 +138,12 @@ class RQLFilterClass(object):
                 )
 
             else:
-                use_repr = item.get('use_repr')
-                ordering = item.get('ordering')
-                assert not (use_repr and ordering), \
-                    "{}: 'use_repr' and 'ordering' can't be used together.".format(item['filter'])
-
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
+                self._check_ordering(item, field_filter_route)
+
                 kwargs = {
                     'lookups': item.get('lookups'),
-                    'use_repr': use_repr,
+                    'use_repr': item.get('use_repr'),
                     'null_values': item.get('null_values'),
                 }
 
@@ -131,16 +153,18 @@ class RQLFilterClass(object):
                         full_orm_route = '{}{}'.format(orm_route, source)
                         field = self._get_field(model, source)
                         items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
+                        self._check_search(item, field_filter_route, field)
 
                 else:
                     orm_field_name = item.get('source', item['filter'])
                     full_orm_route = '{}{}'.format(orm_route, orm_field_name)
                     field = self._get_field(model, orm_field_name)
                     items = self._build_mapped_item(field, full_orm_route, **kwargs)
+                    self._check_search(item, field_filter_route, field)
 
                 self._add_filter_item(field_filter_route, items)
 
-                if ordering:
+                if item.get('ordering'):
                     self.ordering_filters.add(field_filter_route)
 
                 if item.get('search'):
@@ -375,3 +399,14 @@ class RQLFilterClass(object):
     @staticmethod
     def _is_searching_lookup(filter_lookup):
         return filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE)
+
+    @staticmethod
+    def _check_ordering(filter_item, filter_name):
+        assert not (filter_item.get('use_repr') and filter_item.get('ordering')), \
+            "{}: 'use_repr' and 'ordering' can't be used together.".format(filter_name)
+
+    @staticmethod
+    def _check_search(filter_item, filter_name, field):
+        assert not (filter_item.get('search') and
+                    FilterTypes.field_filter_type(field) != FilterTypes.STRING), \
+            "{}: 'search' can be applied only to text filters.".format(filter_name)

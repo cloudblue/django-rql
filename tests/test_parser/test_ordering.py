@@ -31,3 +31,8 @@ def test_ordering_ok(p1, p2):
 def test_ordering_property_fail(prop):
     with pytest.raises(LarkError):
         ordering_transform(prop)
+
+
+# Temporary is here
+def test_select_ok():
+    RQLParser.parse('select(prop)')
