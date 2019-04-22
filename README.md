@@ -116,6 +116,10 @@ Django Rest Framework Extensions
 ================================
 0. Pagination (limit, offset)
 
+Best Practices
+==============
+0. Use `dj_rql.utils.assert_filter_cls` to test your API view filters. If the mappings are correct and there is no custom filtering logic, then it's practically guaranteed, that filtering will work correctly.
+
 Development
 ===========
 
