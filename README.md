@@ -116,6 +116,8 @@ class ModelFilterClass(RQLFilterClass):
         # `custom` option must be set to True for such fields
         'filter': 'custom_filter',
         'custom': True,
+        
+        'custom_data': [1],
     }]
 ```
 
@@ -126,7 +128,7 @@ Django Rest Framework Extensions
 Best Practices
 ==============
 1. Use `dj_rql.utils.assert_filter_cls` to test your API view filters. If the mappings are correct and there is no custom filtering logic, then it's practically guaranteed, that filtering will work correctly.
-0. Prefer 
+0. Prefer using `custom=True` with `RQLFilterClass.build_q_for_custom_filter` overriding over overriding `RQLFilterClass.build_q_for_filter`.
 
 Development
 ===========
