@@ -17,17 +17,21 @@ def assert_filter_cls(filter_cls, filters, ordering_filters, search_filters):
 
 
 def _is_filter_subset(main_dct, subset_dct):
-    keys = set(subset_dct.keys())
+    main_keys = set(main_dct.keys())
+    subset_keys = set(subset_dct.keys())
+
     for key, value in subset_dct.items():
         assert key in main_dct
         main_dct_value = main_dct[key]
 
         if isinstance(value, dict):
-            _is_filter_subset(main_dct_value, value)
+            if 'custom' not in value:
+                _is_filter_subset(main_dct_value, value)
         elif isinstance(value, list):
             assert len(value) == len(main_dct_value)
             for m_dict, s_dict in zip(main_dct_value, value):
                 _is_filter_subset(m_dict, s_dict)
         else:
             assert main_dct[key] == value
-            assert {'orm_route', 'lookups'}.issubset(keys)
+            assert {'orm_route', 'lookups'}.issubset(subset_keys)
+            assert 'field' in main_keys

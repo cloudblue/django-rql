@@ -1,8 +1,5 @@
 from __future__ import unicode_literals
 
-
-from __future__ import unicode_literals
-
 from django.db.models import Q
 from lark import Transformer, Tree
 
@@ -85,7 +82,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         if prop == RQL_SEARCH_PARAM:
             if operation != ComparisonOperators.EQ:
                 raise RQLFilterParsingError(details={
-                    'error': 'Bad search operation: {}.'.format(operation),
+                    'error': 'Bad search filter: {}.'.format(operation),
                 })
 
             q = Q()

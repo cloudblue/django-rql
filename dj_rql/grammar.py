@@ -48,12 +48,12 @@ comp: comp_term _L_BRACE prop _COMMA val _R_BRACE
     | prop _EQUALITY comp_term _EQUALITY val
     | prop _EQUALITY val
     
-listing: list_term _L_BRACE prop _COMA _L_BRACE val (_COMA val)* _R_BRACE _R_BRACE
-searching: search_term _L_BRACE prop _COMA val _R_BRACE
+listing: list_term _L_BRACE prop _COMMA _L_BRACE val (_COMMA val)* _R_BRACE _R_BRACE
+searching: search_term _L_BRACE prop _COMMA val _R_BRACE
 
 ordering: ordering_term _signed_props
 select: select_term _signed_props
-_signed_props: _L_BRACE sign_prop (_COMA sign_prop)* _R_BRACE
+_signed_props: _L_BRACE sign_prop (_COMMA sign_prop)* _R_BRACE
     
 val: prop
     | QUOTED_VAL

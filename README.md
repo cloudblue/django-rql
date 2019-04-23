@@ -22,7 +22,7 @@ The current parsing algorithm is [LALR(1)](https://www.wikiwand.com/en/LALR_pars
 
 Currently supported operators
 =============================
-0. Comparison (eq, ne, gt, ge, lt, le, like, ilike, search)
+1. Comparison (eq, ne, gt, ge, lt, le, like, ilike, search)
 0. List (in, out)
 0. Logical (and, or, not)
 0. Constants (null(), empty()) 
@@ -53,6 +53,8 @@ class ModelFilterClass(RQLFilterClass):
         'source': str
         # or
         'sources': iterable
+        # or
+        'custom': bool
         
         'use_repr': bool  # can't be used in namespaces
         'ordering': bool  # can't be true if 'use_repr=True'
@@ -109,27 +111,35 @@ class ModelFilterClass(RQLFilterClass):
         'filter': 'd_id',
         'sources': {'id', 'author__id'},
         'ordering': True,
+    }, {
+        # Some fields may have no DB representation or non-typical ORM filtering
+        # `custom` option must be set to True for such fields
+        'filter': 'custom_filter',
+        'custom': True,
+        
+        'custom_data': [1],
     }]
 ```
 
 Django Rest Framework Extensions
 ================================
-0. Pagination (limit, offset)
+1. Pagination (limit, offset)
 
 Best Practices
 ==============
-0. Use `dj_rql.utils.assert_filter_cls` to test your API view filters. If the mappings are correct and there is no custom filtering logic, then it's practically guaranteed, that filtering will work correctly.
+1. Use `dj_rql.utils.assert_filter_cls` to test your API view filters. If the mappings are correct and there is no custom filtering logic, then it's practically guaranteed, that filtering will work correctly.
+0. Prefer using `custom=True` with `RQLFilterClass.build_q_for_custom_filter` overriding over overriding `RQLFilterClass.build_q_for_filter`.
 
 Development
 ===========
 
-0. Python 2.7+
+1. Python 2.7+
 0. Install dependencies `requirements/dev.txt`
 
 Testing
 =======
 
-0. Python 2.7+
+1. Python 2.7+
 0. Install dependencies `requirements/test.txt`
 0. `export PYTHONPATH=/your/path/to/django-rql/`
 
