@@ -31,7 +31,7 @@ and_op: _and
 
 _and: _AND _logical_exp
     | term "&" term
-    | term _COMA term
+    | term _COMMA term
 
 or_op: _or
     | _L_BRACE _or _R_BRACE
@@ -40,20 +40,20 @@ _or: _OR _logical_exp
     | _L_BRACE term "|" term _R_BRACE
     | _L_BRACE term ";" term _R_BRACE
 
-_logical_exp: _L_BRACE expr_term (_COMA expr_term)+ _R_BRACE
+_logical_exp: _L_BRACE expr_term (_COMMA expr_term)+ _R_BRACE
 
 not_op: _NOT _L_BRACE expr_term _R_BRACE
 
-comp: comp_term _L_BRACE prop _COMA val _R_BRACE
+comp: comp_term _L_BRACE prop _COMMA val _R_BRACE
     | prop _EQUALITY comp_term _EQUALITY val
     | prop _EQUALITY val
     
-listing: list_term _L_BRACE prop _COMA _L_BRACE val (_COMA val)* _R_BRACE _R_BRACE
-searching: search_term _L_BRACE prop _COMA val _R_BRACE
+listing: list_term _L_BRACE prop _COMMA _L_BRACE val (_COMMA val)* _R_BRACE _R_BRACE
+searching: search_term _L_BRACE prop _COMMA val _R_BRACE
 
 ordering: ordering_term _signed_props
 select: select_term _signed_props
-_signed_props: _L_BRACE sign_prop (_COMA sign_prop)* _R_BRACE
+_signed_props: _L_BRACE sign_prop (_COMMA sign_prop)* _R_BRACE
     
 val: prop
     | QUOTED_VAL
@@ -91,7 +91,7 @@ _AND: "and"
 _OR: "or"
 _NOT: "not"
 
-_COMA: ","
+_COMMA: ","
 _L_BRACE: "("
 _R_BRACE: ")"
 _EQUALITY: "="

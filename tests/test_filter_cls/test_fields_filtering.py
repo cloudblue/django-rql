@@ -25,6 +25,7 @@ def assert_filter_field_error(error_cls, filter_name, operator, value):
     with pytest.raises(error_cls) as e:
         filter_field(filter_name, operator, value)
     assert e.value.details == {
+        'filter': filter_name,
         'lookup': operator,
         'value': value,
     }

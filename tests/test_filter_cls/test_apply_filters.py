@@ -22,7 +22,8 @@ def test_parsing_error():
     bad_query = 'q='
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(bad_query)
-    assert e.value.details['error'].startswith('Unexpected token')
+    assert e.value.details['error'] == 'Bad filter query.'
+    assert e.value.details['original_error'].startswith('Unexpected token')
 
 
 def test_lookup_error():
@@ -205,7 +206,8 @@ def test_ordering_by_several_filters():
 def test_several_ordering_operations():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters('ordering(d_id)&ordering(author.email)')
-    assert e.value.details['error'] == 'Query can contain only one ordering operation.'
+    assert e.value.details['error'] == \
+        'Bad ordering filter: query can contain only one ordering operation.'
 
 
 def test_bad_ordering_filter():
@@ -230,4 +232,4 @@ def test_search():
 def test_search_bad_lookup():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters('search=ge=*a*')
-    assert e.value.details['error'] == 'Bad search operation: ge.'
+    assert e.value.details['error'] == 'Bad search filter: ge.'

@@ -54,7 +54,7 @@ class RQLFilterClass(object):
             return qs
         elif len(properties) > 1:
             raise RQLFilterParsingError(details={
-                'error': 'Query can contain only one ordering operation.',
+                'error': 'Bad ordering filter: query can contain only one ordering operation.',
             })
 
         ordering_fields = []
@@ -91,10 +91,13 @@ class RQLFilterClass(object):
         use_repr = base_item.get('use_repr', False)
         null_values = base_item.get('null_values', set())
 
-        filter_lookup = self._get_filter_lookup(operator, str_value, available_lookups, null_values)
+        filter_lookup = self._get_filter_lookup(
+            filter_name, operator, str_value, available_lookups, null_values,
+        )
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
         typed_value = self._get_typed_value(
-            filter_lookup, str_value, django_field, use_repr, null_values, django_lookup,
+            filter_name, filter_lookup, str_value, django_field,
+            use_repr, null_values, django_lookup,
         )
 
         if not isinstance(filter_item, iterable_types):
@@ -218,19 +221,23 @@ class RQLFilterClass(object):
         return model._meta.get_field(field_name)
 
     @classmethod
-    def _get_filter_lookup(cls, operator, str_value, available_lookups, null_values):
+    def _get_filter_lookup(cls, filter_name, operator, str_value, available_lookups, null_values):
         filter_lookup = cls._get_filter_lookup_by_operator(operator)
 
         if str_value in null_values:
             null_lookups = {FilterLookups.EQ, FilterLookups.NE}
             if (FilterLookups.NULL not in available_lookups) or (filter_lookup not in null_lookups):
-                raise RQLFilterLookupError(**cls._get_error_details(filter_lookup, str_value))
+                raise RQLFilterLookupError(**cls._get_error_details(
+                    filter_name, filter_lookup, str_value,
+                ))
 
         if str_value == RQL_EMPTY:
             available_lookups = {FilterLookups.EQ, FilterLookups.NE}
 
         if filter_lookup not in available_lookups:
-            raise RQLFilterLookupError(**cls._get_error_details(filter_lookup, str_value))
+            raise RQLFilterLookupError(**cls._get_error_details(
+                filter_name, filter_lookup, str_value,
+            ))
 
         return filter_lookup
 
@@ -276,7 +283,7 @@ class RQLFilterClass(object):
         return getattr(DjangoLookups, '{}{}'.format(prefix, pattern))
 
     @classmethod
-    def _get_typed_value(cls, filter_lookup, str_value, django_field,
+    def _get_typed_value(cls, filter_name, filter_lookup, str_value, django_field,
                          use_repr, null_values, django_lookup):
         if str_value in null_values:
             return True
@@ -288,7 +295,9 @@ class RQLFilterClass(object):
             typed_value = cls._convert_value(django_field, str_value, use_repr=use_repr)
             return typed_value
         except (ValueError, TypeError):
-            raise RQLFilterValueError(**cls._get_error_details(filter_lookup, str_value))
+            raise RQLFilterValueError(**cls._get_error_details(
+                filter_name, filter_lookup, str_value,
+            ))
 
     @classmethod
     def _get_searching_typed_value(cls, django_lookup, str_value):
@@ -383,9 +392,10 @@ class RQLFilterClass(object):
         return mapper[grammar_operator]
 
     @staticmethod
-    def _get_error_details(filter_lookup, str_value):
+    def _get_error_details(filter_name, filter_lookup, str_value):
         return {
             'details': {
+                'filter': filter_name,
                 'lookup': filter_lookup,
                 'value': str_value,
             },
