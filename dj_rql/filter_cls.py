@@ -33,6 +33,18 @@ class RQLFilterClass(object):
 
         self.queryset = queryset
 
+    def build_q_for_custom_filter(self, filter_name, operator, str_value):
+        """ Django Q() builder for custom filter.
+
+        Args:
+            filter_name (str): Name of the filter.
+            operator (str): RQL grammar operator, like `eq`.
+            str_value (str): String filter value.
+        """
+        raise RQLFilterParsingError(details={
+            'error': 'Filter logic is not implemented: {}.'.format(filter_name),
+        })
+
     def apply_filters(self, query):
         """ Entry point function for model queryset filtering. """
         if not query:
@@ -48,6 +60,44 @@ class RQLFilterClass(object):
             raise e.orig_exc
         self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
         return self.queryset
+
+    def build_q_for_filter(self, filter_name, operator, str_value):
+        """ Django Q() builder for the given expression. """
+        if filter_name not in self.filters:
+            return Q()
+
+        filter_item = self.filters[filter_name]
+        base_item = filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
+
+        if base_item.get('custom'):
+            return self.build_q_for_custom_filter(filter_name, operator, str_value)
+
+        django_field = base_item['field']
+        available_lookups = base_item['lookups']
+        use_repr = base_item.get('use_repr', False)
+        null_values = base_item.get('null_values', set())
+
+        filter_lookup = self._get_filter_lookup(
+            filter_name, operator, str_value, available_lookups, null_values,
+        )
+        django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
+        typed_value = self._get_typed_value(
+            filter_name, filter_lookup, str_value, django_field,
+            use_repr, null_values, django_lookup,
+        )
+
+        if not isinstance(filter_item, iterable_types):
+            return self._build_django_q(filter_item, django_lookup, filter_lookup, typed_value)
+
+        # filter has different DB field 'sources'
+        q = Q()
+        for item in filter_item:
+            item_q = self._build_django_q(item, django_lookup, filter_lookup, typed_value)
+            if filter_lookup == FilterLookups.NE:
+                q &= item_q
+            else:
+                q |= item_q
+        return q
 
     def _apply_ordering(self, qs, properties):
         if len(properties) == 0:
@@ -78,41 +128,6 @@ class RQLFilterClass(object):
 
         return qs.order_by(*ordering_fields)
 
-    def build_q_for_filter(self, filter_name, operator, str_value):
-        """ Django Q() builder for the given expression. """
-        if filter_name not in self.filters:
-            return Q()
-
-        filter_item = self.filters[filter_name]
-
-        base_item = filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
-        django_field = base_item['field']
-        available_lookups = base_item['lookups']
-        use_repr = base_item.get('use_repr', False)
-        null_values = base_item.get('null_values', set())
-
-        filter_lookup = self._get_filter_lookup(
-            filter_name, operator, str_value, available_lookups, null_values,
-        )
-        django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
-        typed_value = self._get_typed_value(
-            filter_name, filter_lookup, str_value, django_field,
-            use_repr, null_values, django_lookup,
-        )
-
-        if not isinstance(filter_item, iterable_types):
-            return self._build_django_q(filter_item, django_lookup, filter_lookup, typed_value)
-
-        # filter has different DB field 'sources'
-        q = Q()
-        for item in filter_item:
-            item_q = self._build_django_q(item, django_lookup, filter_lookup, typed_value)
-            if filter_lookup == FilterLookups.NE:
-                q &= item_q
-            else:
-                q |= item_q
-        return q
-
     def _build_filters(self, filters, filter_route='', orm_route='', orm_model=None):
         """ Converter of provided nested filter configuration to linear inner representation. """
         model = orm_model or self.MODEL
@@ -139,6 +154,10 @@ class RQLFilterClass(object):
                     item.get('filters', []), related_filter_route,
                     related_orm_route, related_model,
                 )
+
+            elif item.get('custom'):
+                field_filter_route = '{}{}'.format(filter_route, item['filter'])
+                self._add_filter_item(field_filter_route, item)
 
             else:
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])

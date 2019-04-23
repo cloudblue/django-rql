@@ -53,6 +53,7 @@ def test_building_filters():
             {'orm_route': 'id', 'lookups': non_null_numeric_lookups},
             {'orm_route': 'author__id', 'lookups': non_null_numeric_lookups},
         ],
+        'custom_filter': {'custom': True, 'custom_data': [1]}
     }
 
     assert_filter_cls(

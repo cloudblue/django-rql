@@ -4,12 +4,13 @@ from datetime import date, datetime
 from functools import partial
 
 import pytest
+from django.db.models import Q
 
 from dj_rql.constants import (
     ComparisonOperators as CO, DjangoLookups, SearchOperators,
     RQL_EMPTY, RQL_NULL,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
 from tests.test_filter_cls.utils import book_qs, create_books
@@ -369,3 +370,22 @@ def test_searching_db_ok():
 @pytest.mark.parametrize('operator', [SearchOperators.LIKE, SearchOperators.I_LIKE])
 def test_searching_value_fail(bad_value, operator):
     assert_filter_field_value_error('title', operator, bad_value)
+
+
+@pytest.mark.django_db
+def test_custom_filter_ok():
+    class CustomCls(BooksFilterClass):
+        def build_q_for_custom_filter(self, filter_name, operator, str_value):
+            return Q(id__gte=2)
+
+    filter_cls = CustomCls(book_qs)
+    q = filter_cls.build_q_for_filter('custom_filter', SearchOperators.I_LIKE, 'value')
+
+    books = [Book.objects.create() for _ in range(2)]
+    assert list(book_qs.filter(q)) == [books[1]]
+
+
+def test_custom_filter_fail():
+    with pytest.raises(RQLFilterParsingError) as e:
+        filter_field('custom_filter', SearchOperators.I_LIKE, 'value')
+    assert e.value.details['error'] == 'Filter logic is not implemented: custom_filter.'

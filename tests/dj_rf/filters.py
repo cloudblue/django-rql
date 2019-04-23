@@ -67,4 +67,9 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'd_id',
         'sources': ['id', 'author__id'],
         'ordering': True,
+    }, {
+        'filter': 'custom_filter',
+        'custom': True,
+
+        'custom_data': [1],
     }]
