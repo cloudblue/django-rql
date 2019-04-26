@@ -27,8 +27,8 @@ setup(
     zip_safe=True,
     packages=find_packages(),
     include_package_data=True,
-    install_requires=read_file('requirements/dev.txt').split('\n'),
-    tests_require=read_file('requirements/test.txt').replace('-r dev.txt', '').split('\n'),
+    install_requires=read_file('requirements/dev.txt').splitlines(),
+    tests_require=read_file('requirements/test.txt').splitlines(),
     setup_requires=['pytest-runner', 'odintools'],
     odintools=True,
 
