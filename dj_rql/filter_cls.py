@@ -219,7 +219,7 @@ class RQLFilterClass(object):
     @staticmethod
     def _build_mapped_item(field, field_orm_route, lookups=None, use_repr=None, null_values=None):
         possible_lookups = lookups or FilterTypes.default_field_filter_lookups(field)
-        if not field.null:
+        if not (field.null or field == field.model._meta.pk):
             possible_lookups.discard(FilterLookups.NULL)
 
         result = {
