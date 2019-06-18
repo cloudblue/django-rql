@@ -171,6 +171,19 @@ def test_null_with_in_or():
 
 
 @pytest.mark.django_db
+def test_null_on_foreign_key_pk():
+    publisher = Publisher.objects.create()
+    authors = [
+        Author.objects.create(email='a@m.com', publisher=publisher),
+        Author.objects.create(email='z@m.com'),
+    ]
+    books = [Book.objects.create(author=author) for author in authors]
+
+    assert apply_filters('author.publisher.id={}'.format(RQL_NULL)) == [books[1]]
+    assert apply_filters('ne(author.publisher.id,{})'.format(RQL_NULL)) == [books[0]]
+
+
+@pytest.mark.django_db
 def test_ordering_source():
     authors = [
         Author.objects.create(email='a@m.com'),

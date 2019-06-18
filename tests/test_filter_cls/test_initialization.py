@@ -13,13 +13,11 @@ empty_qs = Author.objects.none()
 
 
 def test_building_filters():
-    non_null_numeric_lookups = FL.numeric()
-    non_null_numeric_lookups.discard(FL.NULL)
     non_null_string_lookups = FL.string()
     non_null_string_lookups.discard(FL.NULL)
 
     expected_sub_dct = {
-        'id': {'orm_route': 'id', 'lookups': non_null_numeric_lookups},
+        'id': {'orm_route': 'id', 'lookups': FL.numeric()},
         'title': {
             'orm_route': 'title', 'lookups': FL.string(), 'null_values': {RQL_NULL, 'NULL_ID'},
         },
@@ -34,10 +32,10 @@ def test_building_filters():
         'author.email': {'orm_route': 'author__email', 'lookups': FL.string()},
         'author.publisher.id': {
             'orm_route': 'author__publisher__id',
-            'lookups': non_null_numeric_lookups,
+            'lookups': FL.numeric(),
         },
         'page.number': {'orm_route': 'pages__number', 'lookups': {FL.EQ, FL.NE}},
-        'page.id': {'orm_route': 'pages__uuid', 'lookups': non_null_string_lookups},
+        'page.id': {'orm_route': 'pages__uuid', 'lookups': FL.string()},
         'published.at': {'orm_route': 'published_at', 'lookups': FL.numeric()},
         'rating.blog': {
             'orm_route': 'blog_rating', 'lookups': FL.numeric(), 'use_repr': True,
@@ -50,8 +48,8 @@ def test_building_filters():
         },
         'url': {'orm_route': 'publishing_url', 'lookups': FL.string()},
         'd_id': [
-            {'orm_route': 'id', 'lookups': non_null_numeric_lookups},
-            {'orm_route': 'author__id', 'lookups': non_null_numeric_lookups},
+            {'orm_route': 'id', 'lookups': FL.numeric()},
+            {'orm_route': 'author__id', 'lookups': FL.numeric()},
         ],
         'custom_filter': {'custom': True, 'custom_data': [1]}
     }
