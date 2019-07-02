@@ -226,12 +226,11 @@ class RQLFilterClass(object):
             'field': field,
             'orm_route': field_orm_route,
             'lookups': possible_lookups,
+            'null_values': null_values or {RQL_NULL},
         }
 
         if use_repr is not None:
             result['use_repr'] = use_repr
-        if FilterLookups.NULL in possible_lookups:
-            result['null_values'] = null_values or {RQL_NULL}
 
         return result
 
