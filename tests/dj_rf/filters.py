@@ -60,6 +60,7 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 'amazon_rating',
         'lookups': {FilterLookups.GE, FilterLookups.LT},
+        'null_values': {'random'},
     }, {
         'filter': 'url',
         'source': 'publishing_url',
