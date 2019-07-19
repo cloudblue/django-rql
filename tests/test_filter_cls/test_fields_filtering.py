@@ -7,8 +7,11 @@ import pytest
 from django.db.models import Q
 
 from dj_rql.constants import (
-    ComparisonOperators as CO, DjangoLookups, SearchOperators,
-    RQL_EMPTY, RQL_NULL,
+    ComparisonOperators as CO,
+    DjangoLookups,
+    SearchOperators,
+    RQL_EMPTY,
+    RQL_NULL,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
@@ -28,7 +31,7 @@ def assert_filter_field_error(error_cls, filter_name, operator, value):
     assert e.value.details == {
         'filter': filter_name,
         'lookup': operator,
-        'value': value,
+        'value': str(value),
     }
 
 
@@ -258,6 +261,41 @@ def test_d_id():
     assert filter_field(filter_name, CO.EQ, 0) == []
 
 
+@pytest.mark.django_db
+def test_int_choice_field():
+    filter_name = 'int_choice_field'
+    books = [Book.objects.create(int_choice_field=choice) for choice, _ in Book.INT_CHOICES]
+    assert filter_field(filter_name, CO.EQ, Book.INT_CHOICES.one) == [books[0]]
+    assert filter_field(filter_name, CO.NE, Book.INT_CHOICES.two) == [books[0]]
+    assert filter_field(filter_name, CO.GE, Book.INT_CHOICES.one) == books
+    assert filter_field(filter_name, CO.GT, Book.INT_CHOICES.two) == []
+
+
+@pytest.mark.django_db
+def test_int_choice_field_repr():
+    filter_name = 'int_choice_field_repr'
+    books = [Book.objects.create(int_choice_field=choice) for choice, _ in Book.INT_CHOICES]
+    assert filter_field(filter_name, CO.EQ, 'I') == [books[0]]
+    assert filter_field(filter_name, CO.NE, 'II') == [books[0]]
+
+
+@pytest.mark.django_db
+def test_str_choice_field():
+    filter_name = 'str_choice_field'
+    books = [Book.objects.create(str_choice_field=choice) for choice, _ in Book.STR_CHOICES]
+    assert filter_field(filter_name, CO.EQ, Book.STR_CHOICES.one) == [books[0]]
+    assert filter_field(filter_name, CO.NE, Book.STR_CHOICES.two) == [books[0]]
+    assert filter_field(filter_name, SearchOperators.I_LIKE, '*o*') == books
+
+
+@pytest.mark.django_db
+def test_str_choice_field_repr():
+    filter_name = 'str_choice_field_repr'
+    books = [Book.objects.create(str_choice_field=choice) for choice, _ in Book.STR_CHOICES]
+    assert filter_field(filter_name, CO.EQ, 'I') == [books[0]]
+    assert filter_field(filter_name, CO.NE, 'II') == [books[0]]
+
+
 @pytest.mark.parametrize('bad_value', ['str', '2012-01-01', '2.18'])
 @pytest.mark.parametrize('filter_name', ['id', 'author.publisher.id', 'page.number', 'd_id'])
 def test_integer_field_fail(filter_name, bad_value):
@@ -295,6 +333,7 @@ def test_datetime_field_fail(filter_name, bad_value):
 @pytest.mark.parametrize('bad_operator', [CO.GT, CO.LE])
 @pytest.mark.parametrize('filter_name,value', [
     ('amazon_rating', '1.23'), ('page.number', '5'),
+    ('int_choice_field_repr', 'I'), ('str_choice_field_repr', 'I')
 ])
 def test_field_lookup_fail(filter_name, value, bad_operator):
     assert_filter_field_lookup_error(filter_name, bad_operator, value)
@@ -302,6 +341,9 @@ def test_field_lookup_fail(filter_name, value, bad_operator):
 
 @pytest.mark.parametrize('filter_name,bad_value', [
     ('status', 'invalid'), ('rating.blog', 'invalid'), ('rating.blog_int', '-1'),
+    ('int_choice_field', 0), ('int_choice_field', 'invalid'),
+    ('int_choice_field_repr', 0), ('int_choice_field_repr', 'invalid'),
+    ('str_choice_field', 'zero'), ('str_choice_field_repr', 'zero'),
 ])
 def test_bad_choice_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)

@@ -16,6 +16,9 @@ def test_building_filters():
     non_null_string_lookups = FL.string()
     non_null_string_lookups.discard(FL.NULL)
 
+    non_null_numeric_lookups = FL.numeric()
+    non_null_numeric_lookups.discard(FL.NULL)
+
     expected_sub_dct = {
         'id': {'orm_route': 'id', 'lookups': FL.numeric()},
         'title': {
@@ -51,13 +54,25 @@ def test_building_filters():
             {'orm_route': 'id', 'lookups': FL.numeric()},
             {'orm_route': 'author__id', 'lookups': FL.numeric()},
         ],
-        'custom_filter': {'custom': True, 'custom_data': [1]}
+        'custom_filter': {'custom': True, 'custom_data': [1]},
+        'int_choice_field': {
+            'orm_route': 'int_choice_field', 'lookups': non_null_numeric_lookups,
+        },
+        'int_choice_field_repr': {
+            'orm_route': 'int_choice_field', 'lookups': {FL.EQ, FL.NE}, 'use_repr': True,
+        },
+        'str_choice_field': {
+            'orm_route': 'str_choice_field', 'lookups': non_null_string_lookups,
+        },
+        'str_choice_field_repr': {
+            'orm_route': 'str_choice_field', 'lookups': {FL.EQ, FL.NE}, 'use_repr': True,
+        }
     }
 
     assert_filter_cls(
         BooksFilterClass, expected_sub_dct,
-        {'author.email', 'published.at', 'd_id'},
-        {'title', 'author.email', 'author__email'},
+        {'author.email', 'published.at', 'd_id', 'int_choice_field'},
+        {'title', 'author.email', 'author__email', 'str_choice_field'},
     )
 
 
@@ -116,7 +131,7 @@ def test_reserved_filter_name_is_used(filter_name):
     assert str(e.value) == "'{}' is a reserved filter name.".format(filter_name)
 
 
-def test_bad_ordering():
+def test_bad_use_repr_and_ordering():
     class Cls(RQLFilterClass):
         MODEL = Book
         FILTERS = [{
@@ -129,6 +144,20 @@ def test_bad_ordering():
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
     assert str(e.value) == "rating.blog: 'use_repr' and 'ordering' can't be used together."
+
+
+def test_bad_use_repr_and_search():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'str_choice_field',
+            'use_repr': True,
+            'search': True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "str_choice_field: 'use_repr' and 'search' can't be used together."
 
 
 def test_bad_search():

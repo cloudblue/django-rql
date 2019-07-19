@@ -124,6 +124,7 @@ class ModelFilterClass(RQLFilterClass):
 Django Rest Framework Extensions
 ================================
 1. Pagination (limit, offset)
+2. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices)
 
 Best Practices
 ==============
