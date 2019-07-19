@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from uuid import uuid4
 
 from django.db import models
+from model_utils import Choices
 
 
 class Publisher(models.Model):
@@ -37,6 +38,18 @@ class Book(models.Model):
     published_at = models.DateTimeField(null=True)
 
     author = models.ForeignKey(Author, related_name='books', on_delete=models.CASCADE, null=True)
+
+    INT_CHOICES = Choices(
+        (1, 'one', 'I'),
+        (2, 'two', 'II'),
+    )
+    int_choice_field = models.IntegerField(choices=INT_CHOICES, default=INT_CHOICES.one)
+
+    STR_CHOICES = Choices(
+        ('one', 'I'),
+        ('two', 'II'),
+    )
+    str_choice_field = models.CharField(max_length=5, choices=STR_CHOICES, default=STR_CHOICES.one)
 
 
 class Page(models.Model):

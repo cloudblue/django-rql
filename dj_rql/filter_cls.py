@@ -161,7 +161,7 @@ class RQLFilterClass(object):
 
             else:
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
-                self._check_ordering(item, field_filter_route)
+                self._check_use_repr(item, field_filter_route)
 
                 kwargs = {
                     'lookups': item.get('lookups'),
@@ -345,10 +345,7 @@ class RQLFilterClass(object):
             return float(val)
 
         elif filter_type == FilterTypes.DECIMAL:
-            value = float(val)
-            if django_field.decimal_places is not None:
-                value = round(value, django_field.decimal_places)
-            return value
+            return round(float(val), django_field.decimal_places)
 
         elif filter_type == FilterTypes.DATE:
             dt = parse_date(val)
@@ -375,20 +372,48 @@ class RQLFilterClass(object):
                 return int(val)
             return val
 
+        return cls._get_choices_field_db_value(str_value, choices, filter_type, use_repr)
+
+    @classmethod
+    def _get_choices_field_db_value(cls, value, choices, filter_type, use_repr):
+        if type(choices).__name__ == 'Choices':
+            return cls._get_choice_class_db_value(value, choices, filter_type, use_repr)
+
         # `use_repr=True` makes it possible to map choice representations to real db values
         # F.e.: `choices=((0, 'v0'), (1, 'v1'))` can be filtered by 'v1' if `use_repr=True` or
         # by '1' if `use_repr=False`
         if isinstance(choices[0], tuple):
             iterator = iter(
-                choice[0] for choice in choices if str(choice[int(use_repr)]) == val
+                choice[0] for choice in choices if str(choice[int(use_repr)]) == value
             )
         else:
-            iterator = iter(choice for choice in choices if choice == val)
+            iterator = iter(choice for choice in choices if choice == value)
         try:
             db_value = next(iterator)
             return db_value
         except StopIteration:
             raise ValueError
+
+    @staticmethod
+    def _get_choice_class_db_value(value, choices, filter_type, use_repr):
+        if use_repr:
+            try:
+                db_value = next(
+                    db_value for db_value, value_repr in choices if value_repr == value
+                )
+                return db_value
+            except StopIteration:
+                raise ValueError
+
+        if filter_type == FilterTypes.INT:
+            db_value = int(value)
+        else:
+            db_value = value
+
+        if db_value not in choices:
+            raise ValueError
+
+        return db_value
 
     @staticmethod
     def _build_django_q(filter_item, django_lookup, filter_lookup, typed_value):
@@ -429,9 +454,11 @@ class RQLFilterClass(object):
         return filter_lookup in (FilterLookups.LIKE, FilterLookups.I_LIKE)
 
     @staticmethod
-    def _check_ordering(filter_item, filter_name):
+    def _check_use_repr(filter_item, filter_name):
         assert not (filter_item.get('use_repr') and filter_item.get('ordering')), \
             "{}: 'use_repr' and 'ordering' can't be used together.".format(filter_name)
+        assert not (filter_item.get('use_repr') and filter_item.get('search')), \
+            "{}: 'use_repr' and 'search' can't be used together.".format(filter_name)
 
     @staticmethod
     def _check_search(filter_item, filter_name, field):

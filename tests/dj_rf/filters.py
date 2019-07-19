@@ -73,4 +73,20 @@ class BooksFilterClass(RQLFilterClass):
         'custom': True,
 
         'custom_data': [1],
+    }, {
+        'filter': 'int_choice_field',
+        'ordering': True,
+    }, {
+        'filter': 'int_choice_field_repr',
+        'source': 'int_choice_field',
+        'use_repr': True,
+        'lookups': {FilterLookups.EQ, FilterLookups.NE},
+    }, {
+        'filter': 'str_choice_field',
+        'search': True,
+    }, {
+        'filter': 'str_choice_field_repr',
+        'source': 'str_choice_field',
+        'use_repr': True,
+        'lookups': {FilterLookups.EQ, FilterLookups.NE},
     }]
