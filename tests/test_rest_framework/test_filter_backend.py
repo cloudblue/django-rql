@@ -67,21 +67,7 @@ def test_rql_filter_cls_is_not_set():
     class View(object):
         pass
 
-    with pytest.raises(AssertionError) as e:
-        RQLFilterBackend().filter_queryset(None, None, View())
-    assert str(e.value) == 'RQL Filter Class must be set in view.'
-
-
-def test_rql_filter_cls_wrong_base_cls():
-    class Filter(object):
-        pass
-
-    class View(object):
-        rql_filter_class = Filter
-
-    with pytest.raises(AssertionError) as e:
-        RQLFilterBackend().filter_queryset(None, None, View())
-    assert str(e.value) == 'Filtering class must subclass RQLFilterClass.'
+    assert RQLFilterBackend().filter_queryset(None, 'str', View()) == 'str'
 
 
 @pytest.mark.django_db
