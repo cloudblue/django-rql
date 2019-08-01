@@ -6,7 +6,7 @@ from lark import Transformer, Tree
 from dj_rql.constants import (
     ComparisonOperators, ListOperators, LogicalOperators, SearchOperators,
     RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_SEARCH_PARAM,
-)
+    FilterLookups)
 from dj_rql.exceptions import RQLFilterParsingError
 
 
@@ -116,6 +116,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         for value_tree in args[2:]:
             field_q = self._filter_cls_instance.build_q_for_filter(
                 prop, f_op, self._get_value(value_tree),
+                list_operator=operation,
             )
             if operation == ListOperators.IN:
                 q |= field_q

@@ -417,7 +417,7 @@ def test_searching_value_fail(bad_value, operator):
 @pytest.mark.django_db
 def test_custom_filter_ok():
     class CustomCls(BooksFilterClass):
-        def build_q_for_custom_filter(self, filter_name, operator, str_value):
+        def build_q_for_custom_filter(self, *args, **kwargs):
             return Q(id__gte=2)
 
     filter_cls = CustomCls(book_qs)

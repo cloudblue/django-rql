@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from functools import partial
 
 import pytest
+from django.db.models import Q
 from django.utils.timezone import now
 
 from dj_rql.constants import ListOperators, RQL_NULL
@@ -246,3 +247,26 @@ def test_search_bad_lookup():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters('search=ge=*a*')
     assert e.value.details['error'] == 'Bad search filter: ge.'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('operator', (ListOperators.IN, ListOperators.OUT))
+def test_custom_filter_list_lookup_ok(operator):
+    class CustomCls(BooksFilterClass):
+        def build_q_for_custom_filter(self, *args, **kwargs):
+            return Q(id__gte=2)
+
+    books = [Book.objects.create() for _ in range(2)]
+    assert list(CustomCls(book_qs).apply_filters('{}(has_list_lookup,(1,2))'.format(operator))) == \
+        [books[1]]
+
+
+@pytest.mark.parametrize('operator', (ListOperators.IN, ListOperators.OUT))
+def test_custom_filter_list_lookup_ok(operator):
+    class CustomCls(BooksFilterClass):
+        def build_q_for_custom_filter(self, *args, **kwargs):
+            return Q(id__gte=2)
+
+    with pytest.raises(RQLFilterLookupError) as e:
+        CustomCls(book_qs).apply_filters('{}(no_list_lookup,(1,2))'.format(operator))
+    assert e.value.details['lookup'] == operator

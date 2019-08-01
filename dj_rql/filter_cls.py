@@ -6,7 +6,7 @@ from django.utils.dateparse import parse_date, parse_datetime
 from lark.exceptions import LarkError
 
 from dj_rql.constants import (
-    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, SearchOperators,
+    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, ListOperators, SearchOperators,
     RESERVED_FILTER_NAMES, RQL_ANY_SYMBOL, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
@@ -33,13 +33,14 @@ class RQLFilterClass(object):
 
         self.queryset = queryset
 
-    def build_q_for_custom_filter(self, filter_name, operator, str_value):
+    def build_q_for_custom_filter(self, filter_name, operator, str_value, list_operator=None):
         """ Django Q() builder for custom filter.
 
         Args:
             filter_name (str): Name of the filter.
             operator (str): RQL grammar operator, like `eq`.
             str_value (str): String filter value.
+            list_operator (str): IN or OUT if this is a part of list operation
         """
         raise RQLFilterParsingError(details={
             'error': 'Filter logic is not implemented: {}.'.format(filter_name),
@@ -61,7 +62,7 @@ class RQLFilterClass(object):
         self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
         return self.queryset
 
-    def build_q_for_filter(self, filter_name, operator, str_value):
+    def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
         """ Django Q() builder for the given expression. """
         if filter_name not in self.filters:
             return Q()
@@ -69,11 +70,20 @@ class RQLFilterClass(object):
         filter_item = self.filters[filter_name]
         base_item = filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
 
+        available_lookups = base_item.get('lookups', set())
+        if list_operator:
+            list_filter_lookup = FilterLookups.IN \
+                if list_operator == ListOperators.IN \
+                else FilterLookups.OUT
+            if list_filter_lookup not in available_lookups:
+                raise RQLFilterLookupError(**self._get_error_details(
+                        filter_name, list_filter_lookup, str_value,
+                    ))
+
         if base_item.get('custom'):
-            return self.build_q_for_custom_filter(filter_name, operator, str_value)
+            return self.build_q_for_custom_filter(filter_name, operator, str_value, list_operator)
 
         django_field = base_item['field']
-        available_lookups = base_item['lookups']
         use_repr = base_item.get('use_repr', False)
         null_values = base_item.get('null_values', set())
 

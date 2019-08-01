@@ -89,4 +89,12 @@ class BooksFilterClass(RQLFilterClass):
         'source': 'str_choice_field',
         'use_repr': True,
         'lookups': {FilterLookups.EQ, FilterLookups.NE},
+    }, {
+        'filter': 'has_list_lookup',
+        'custom': True,
+        'lookups': {FilterLookups.EQ, FilterLookups.IN, FilterLookups.OUT},
+    }, {
+        'filter': 'no_list_lookup',
+        'custom': True,
+        'lookups': {FilterLookups.EQ},
     }]
