@@ -262,7 +262,7 @@ def test_custom_filter_list_lookup_ok(operator):
 
 
 @pytest.mark.parametrize('operator', (ListOperators.IN, ListOperators.OUT))
-def test_custom_filter_list_lookup_ok(operator):
+def test_custom_filter_list_lookup_fail(operator):
     class CustomCls(BooksFilterClass):
         def build_q_for_custom_filter(self, *args, **kwargs):
             return Q(id__gte=2)

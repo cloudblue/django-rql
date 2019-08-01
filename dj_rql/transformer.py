@@ -6,7 +6,7 @@ from lark import Transformer, Tree
 from dj_rql.constants import (
     ComparisonOperators, ListOperators, LogicalOperators, SearchOperators,
     RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_SEARCH_PARAM,
-    FilterLookups)
+)
 from dj_rql.exceptions import RQLFilterParsingError
 
 

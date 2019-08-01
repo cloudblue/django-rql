@@ -7,7 +7,6 @@ from rest_framework.pagination import LimitOffsetPagination, _positive_int
 from rest_framework.response import Response
 
 from dj_rql.exceptions import RQLFilterParsingError
-from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLLimitOffsetTransformer
 
