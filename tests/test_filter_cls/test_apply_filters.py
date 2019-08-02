@@ -239,8 +239,11 @@ def test_search():
     ]
 
     assert apply_filters('(search=*aN*r;search=b*k)') == books
+    assert apply_filters('(search=Ano*;search=oO)') == books
+    assert apply_filters('(search=*aN*r;search=b*k)') == books
     assert apply_filters('(search="*aN*";search="*book")') == books
-    assert apply_filters('(search="*aN";search="*b*")') == [books[0]]
+    assert apply_filters('(search="*aN";search="*b*")') == books
+    assert apply_filters('search=bo') == [books[0]]
 
 
 def test_search_bad_lookup():

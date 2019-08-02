@@ -5,7 +5,7 @@ from lark import Transformer, Tree
 
 from dj_rql.constants import (
     ComparisonOperators, ListOperators, LogicalOperators, SearchOperators,
-    RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_SEARCH_PARAM,
+    RQL_ANY_SYMBOL, RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_SEARCH_PARAM,
 )
 from dj_rql.exceptions import RQLFilterParsingError
 
@@ -85,10 +85,17 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
                     'error': 'Bad search filter: {}.'.format(operation),
                 })
 
+            unquoted_value = self._filter_cls_instance.remove_quotes(value)
+            if not unquoted_value.startswith(RQL_ANY_SYMBOL):
+                unquoted_value = '*' + unquoted_value
+
+            if not unquoted_value.endswith(RQL_ANY_SYMBOL):
+                unquoted_value += '*'
+
             q = Q()
             for filter_name in self._filter_cls_instance.search_filters:
                 q |= self._filter_cls_instance.build_q_for_filter(
-                    filter_name, SearchOperators.I_LIKE, value,
+                    filter_name, SearchOperators.I_LIKE, unquoted_value,
                 )
             return q
 

@@ -289,7 +289,7 @@ class RQLFilterClass(object):
 
     @classmethod
     def _get_searching_django_lookup(cls, filter_lookup, str_value):
-        val = cls._remove_quotes(str_value)
+        val = cls.remove_quotes(str_value)
 
         prefix = 'I_' if filter_lookup == FilterLookups.I_LIKE else ''
 
@@ -332,7 +332,7 @@ class RQLFilterClass(object):
         if '{}{}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in str_value:
             raise ValueError
 
-        val = cls._remove_quotes(str_value)
+        val = cls.remove_quotes(str_value)
 
         if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
             return val.replace(RQL_ANY_SYMBOL, '')
@@ -348,7 +348,7 @@ class RQLFilterClass(object):
 
     @classmethod
     def _convert_value(cls, django_field, str_value, use_repr=False):
-        val = cls._remove_quotes(str_value)
+        val = cls.remove_quotes(str_value)
         filter_type = FilterTypes.field_filter_type(django_field)
 
         if filter_type == FilterTypes.FLOAT:
@@ -455,7 +455,7 @@ class RQLFilterClass(object):
         }
 
     @staticmethod
-    def _remove_quotes(str_value):
+    def remove_quotes(str_value):
         # Values can start with single or double quotes, if they have special chars inside them
         return str_value[1:-1] if str_value[0] in ('"', "'") else str_value
 
