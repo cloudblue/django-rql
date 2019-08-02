@@ -7,7 +7,6 @@ from rest_framework.pagination import LimitOffsetPagination, _positive_int
 from rest_framework.response import Response
 
 from dj_rql.exceptions import RQLFilterParsingError
-from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLLimitOffsetTransformer
 
@@ -30,18 +29,15 @@ class RQLFilterBackend(BaseFilterBackend):
     """
     def filter_queryset(self, request, queryset, view):
         filter_class = self.get_filter_class(view)
+        if not filter_class:
+            return queryset
+
         filter_instance = self._get_filter_instance(filter_class, queryset, view)
         return filter_instance.apply_filters(_get_query(request))
 
     @staticmethod
     def get_filter_class(view):
-        rql_filter_class = getattr(view, 'rql_filter_class', None)
-
-        assert rql_filter_class is not None, 'RQL Filter Class must be set in view.'
-        assert issubclass(rql_filter_class, RQLFilterClass), \
-            'Filtering class must subclass RQLFilterClass.'
-
-        return rql_filter_class
+        return getattr(view, 'rql_filter_class', None)
 
     @staticmethod
     def _get_filter_instance(filter_class, queryset, view):
