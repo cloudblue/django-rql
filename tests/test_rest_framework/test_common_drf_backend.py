@@ -3,22 +3,9 @@ from __future__ import unicode_literals
 import pytest
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
-from rest_framework.test import APIClient
 
 from dj_rql.drf import RQLFilterBackend, FilterCache
 from tests.dj_rf.models import Book
-
-
-@pytest.fixture
-def api_client():
-    client = APIClient()
-    client.default_format = 'json'
-    return client
-
-
-@pytest.fixture
-def clear_cache():
-    FilterCache.clear()
 
 
 @pytest.mark.django_db

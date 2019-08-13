@@ -33,7 +33,7 @@ class RQLFilterBackend(BaseFilterBackend):
             return queryset
 
         filter_instance = self._get_filter_instance(filter_class, queryset, view)
-        return filter_instance.apply_filters(_get_query(request))
+        return filter_instance.apply_filters(self.get_query(filter_instance, request))
 
     @staticmethod
     def get_filter_class(view):
@@ -49,6 +49,52 @@ class RQLFilterBackend(BaseFilterBackend):
             filter_instance = filter_class(queryset)
             FilterCache.CACHE[qual_name] = filter_instance
         return filter_instance
+
+    @classmethod
+    def get_query(cls, filter_instance, request):
+        return _get_query(request)
+
+
+class CompatibilityRQLFilterBackend(RQLFilterBackend):
+    """
+    If there is necessity to apply RQL filters to a production API, which was working on other
+    filter backend (without raising API version number or losing compatibility), this base
+    compatibility DRF backend must be inherited from.
+    """
+    @classmethod
+    def get_query(cls, filter_instance, request):
+        query_string = _get_query(request)
+
+        if not cls.is_old_syntax(filter_instance, request, query_string):
+            return query_string
+
+        return cls.get_rql_query(filter_instance, request, query_string)
+
+    @classmethod
+    def is_old_syntax(cls, filter_instance, request, query_string):
+        raise NotImplementedError
+
+    @classmethod
+    def get_rql_query(cls, filter_instance, request, query_string):
+        raise NotImplementedError
+
+
+class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
+    """
+    DRF Backend, that automatically converts Django Filter specific queries to correct RQL queries.
+
+    Currently NOT SUPPORTED:
+        * range fields and filters;
+        * OrderingFilter;
+        * MultipleChoiceFilter.
+    """
+    @classmethod
+    def is_old_syntax(cls, filter_instance, request, query_string):
+        pass
+
+    @classmethod
+    def get_rql_query(cls, filter_instance, request, query_string):
+        pass
 
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
