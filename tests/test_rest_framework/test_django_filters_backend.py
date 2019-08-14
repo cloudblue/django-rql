@@ -3,11 +3,12 @@ from __future__ import unicode_literals
 import pytest
 from django.http import QueryDict
 from rest_framework.reverse import reverse
-from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from rest_framework.status import HTTP_200_OK
 
-from dj_rql.drf import CompatibilityRQLFilterBackend, DjangoFiltersRQLFilterBackend
+from dj_rql.compat import CompatibilityRQLFilterBackend, DjangoFiltersRQLFilterBackend
+from dj_rql.exceptions import RQLFilterParsingError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
-from tests.dj_rf.models import Book
+from tests.dj_rf.models import Author, Book
 
 
 def test_compatibility_is_old_syntax():
@@ -29,6 +30,8 @@ def test_compatibility_modify_initial_query(backend):
     ('', False),
     ('&', False),
     ('k=v&&', False),
+    ('k=True', True),
+    ('author.is_male=True', True),
     ('&k&', True),
     ('k=v', False),
     ('order_by=v', True),
@@ -119,20 +122,60 @@ def test_double__in_property(api_client, clear_cache):
     assert response.data[0]['id'] == books[0].id
 
 
-def test_boolean_value():
-    pass
+@pytest.mark.django_db
+def test_boolean_value_ok(api_client, clear_cache):
+    authors = [
+        Author.objects.create(name='n', is_male=True),
+        Author.objects.create(name='n', is_male=False),
+    ]
+    books = [Book.objects.create(author=author) for author in authors]
+
+    for value, index in (('True', 0), ('true', 0), ('False', 1), ('false', 1)):
+        response = filter_api(api_client, 'author.is_male={}'.format(value))
+        assert_ok_response(response, 1)
+        assert response.data[0]['id'] == books[index].id
 
 
-def test__isnull():
-    pass
+@pytest.mark.django_db
+def test_boolean_value_fail(api_client, clear_cache):
+    for value in ('0', '1', 'TRUE', 'other'):
+        with pytest.raises(RQLFilterValueError):
+            filter_api(api_client, 'author.is_male={}'.format(value))
 
 
-def test__exact():
-    pass
+@pytest.mark.django_db
+def test__isnull_ok(api_client, clear_cache):
+    books = [Book.objects.create(), Book.objects.create(title='G')]
+
+    for value, index in (('True', 0), ('true', 0), ('1', 0), ('False', 1), ('false', 1), ('0', 1)):
+        response = filter_api(api_client, 'title__isnull={}'.format(value))
+        assert_ok_response(response, 1)
+        assert response.data[0]['id'] == books[index].id
 
 
-def test_multiple_choice():
-    pass
+@pytest.mark.django_db
+def test__isnull_fail(api_client, clear_cache):
+    for value in ('2', 'TRUE', 'other'):
+        with pytest.raises(RQLFilterParsingError):
+            filter_api(api_client, 'title__isnull={}'.format(value))
+
+
+@pytest.mark.django_db
+def test__exact(api_client, clear_cache):
+    Book.objects.create(title='G')
+
+    for value, count in (('"G"', 1), ('g', 0), ('G', 1)):
+        response = filter_api(api_client, 'title__exact={}'.format(value))
+        assert_ok_response(response, count)
+
+
+@pytest.mark.django_db
+def test_multiple_choice(api_client, clear_cache):
+    Book.objects.create(title='G')
+
+    for (v1, v2), count in ((('G', 'G'), 1), (('G', 'H'), 0)):
+        response = filter_api(api_client, 'title__exact={}&title__exact={}'.format(v1, v2))
+        assert_ok_response(response, count)
 
 
 def test__contains():

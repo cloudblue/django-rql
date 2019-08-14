@@ -64,12 +64,11 @@ class RQLFilterClass(object):
 
     def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
         """ Django Q() builder for the given expression. """
-        if filter_name not in self.filters:
+        base_item = self.get_filter_base_item(filter_name)
+        if not base_item:
             return Q()
 
         filter_item = self.filters[filter_name]
-        base_item = filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
-
         available_lookups = base_item.get('lookups', set())
         if list_operator:
             list_filter_lookup = FilterLookups.IN \
@@ -108,6 +107,11 @@ class RQLFilterClass(object):
             else:
                 q |= item_q
         return q
+
+    def get_filter_base_item(self, filter_name):
+        filter_item = self.filters.get(filter_name)
+        if filter_item:
+            return filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
 
     def _apply_ordering(self, qs, properties):
         if len(properties) == 0:
