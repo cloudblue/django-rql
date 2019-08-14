@@ -1,8 +1,7 @@
 from __future__ import unicode_literals
 
-from collections import OrderedDict
-
 import pytest
+from django.http import QueryDict
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
@@ -26,31 +25,33 @@ def test_compatibility_modify_initial_query(backend):
     assert backend.modify_initial_query(None, None, 'q') == 'q'
 
 
-@pytest.mark.parametrize('query,query_params,expected', (
-    ('', {}, False),
-    ('&', {}, False),
-    ('k=v&&', {}, False),
-    ('&k&', OrderedDict((('k', ''),)), True),
-    ('k=v', OrderedDict((('k', 'v'),)), False),
-    ('order_by=v', OrderedDict((('order_by', 'v'),)), True),
-    ('k=v%20v', OrderedDict((('k', 'v v'),)), True),
-    ('k__in=v', OrderedDict((('k__in', 'v'),)), True),
-    ('l1__l2__in=v', OrderedDict((('l1__l2__in', 'v'),)), True),
-    ('k__random=v', OrderedDict((('k__random', 'v'),)), False),
-    ('k__in=v,v', OrderedDict((('k__in', 'v,v'),)), True),
-    ('k__in=ne', OrderedDict((('k__in', 'ne'),)), True),
-    ('k__in=ne=v', OrderedDict((('k__in', 'ne=v'),)), False),
-    ('t__in=v', OrderedDict((('t__in', 'v'),)), False),
-    # TODO: Check ('title__in=v,v', OrderedDict((('title__in', 'v,v'),)), True),
-    ('order_by=k&k__in=v', OrderedDict((('order_by', 'k'), ('k__in', 'v'))), True),
-    ('limit=10,offset=2', OrderedDict((('limit', '10,offset=2'),)), False),
-    ('limit=10,eq(offset,2)', OrderedDict((('limit', '10,offset=2'),)), False),
-    ('limit=10,eq(offset__in,2)', OrderedDict((('limit', '10,eq(offset__in,2)'),)), False),
-    ('limit=10,eq(t__in,b)', OrderedDict((('limit', 'eq(t__in,b)'),)), False),
-    ('limit=10;k__in=2', OrderedDict((('limit', '10;k__in=2'),)), False),
+@pytest.mark.parametrize('query,expected', (
+    ('', False),
+    ('&', False),
+    ('k=v&&', False),
+    ('&k&', True),
+    ('k=v', False),
+    ('order_by=v', True),
+    ('k=v%20v', True),
+    ('k__in=v', True),
+    ('l1__l2__in=v', True),
+    ('k__random=v', False),
+    ('k__in=v,v', True),
+    ('k__in=ne', True),
+    ('k__in=ne=v', False),
+    ('k__in=ne=v""', False),
+    ('t__in=v', False),
+    # TODO: Check ('title__in=v,v', True),
+    ('order_by=k&k__in=v', True),
+    ('limit=10,offset=2', False),
+    ('limit=10,eq(offset,2)', False),
+    ('limit=10,eq(offset__in,2)', False),
+    ('limit=10,eq(t__in,b)', False),
+    ('limit=10;k__in=2', True),
+    ('limit=10;eq(t__in,b)', False),
 ))
-def test_old_syntax(mocker, query, query_params, expected):
-    request = mocker.MagicMock(query_params=query_params)
+def test_old_syntax(mocker, query, expected):
+    request = mocker.MagicMock(query_params=QueryDict(query))
     filter_instance = BooksFilterClass(Book.objects.none())
     assert DjangoFiltersRQLFilterBackend.is_old_syntax(filter_instance, request, query) == expected
 
@@ -105,8 +106,17 @@ def test__in_with_several_values_one_empty_one_invalid(api_client, clear_cache):
         assert_ok_response(response, 1)
 
 
-def test_double__in_property():
-    pass
+@pytest.mark.django_db
+def test_double__in_property(api_client, clear_cache):
+    books = [
+        Book.objects.create(title='G'),
+        Book.objects.create(title='H'),
+        Book.objects.create(title=''),
+    ]
+
+    response = filter_api(api_client, 'title__in=G,H&title__in=,G')
+    assert_ok_response(response, 1)
+    assert response.data[0]['id'] == books[0].id
 
 
 def test_boolean_value():

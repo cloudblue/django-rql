@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from collections import Counter
+
 from django.utils.http import urlunquote
 from lark.exceptions import LarkError
 from rest_framework.filters import BaseFilterBackend
@@ -92,42 +94,55 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
     """
     DRF Backend, that automatically converts Django Filter specific queries to correct RQL queries.
 
+    IMPORTANT NOTES:
+        * `;` separation is context-based;
+        * MultipleChoiceFilter works by OR logic in RQL.
+
     Currently NOT SUPPORTED:
         * range fields and filters;
         * regex and iregex conversion;
         * OrderingFilter;
-        * MultipleChoiceFilter;
+
         * ?&& syntax in queries;
         * etc.
     """
     RESERVED_ORDERING_WORDS = {'order_by', 'ordering'}
-    POSSIBLE_DF_LOOKUPS = {
+
+    _POSSIBLE_DF_LOOKUPS = {
         'in', 'isnull', 'exact',
         'contains', 'icontains', 'startswith', 'endswith', 'istartswith', 'iendswith',
         'gt', 'gte', 'lt', 'lte',
         'regex', 'iregex',
     }
+    _RQL_COMPARISON_OPERATORS = {CO.EQ, CO.NE, CO.LE, CO.GE, CO.LT, CO.GT}
+    _IMPOSSIBLE_PROP_SYMBOLS = {'(', ',', ')', ' ', "'", '"'}
 
     @classmethod
     def is_old_syntax(cls, filter_instance, request, query_string):
         if not query_string.strip():
             return False
 
-        query_params = request.query_params
-        for v in query_params.values():
-            if not v or (' ' in v and (not (v.count('"') > 1 or v.count("'") > 1))):
-                return True
-
-            if len(v) > 2 and v[2] == '=' and v[:2] in {CO.EQ, CO.NE, CO.LE, CO.GE, CO.LT, CO.GT}:
-                return False
-
-        return cls._has_old_syntax_keys(filter_instance, query_params)
-
-    @classmethod
-    def _has_old_syntax_keys(cls, filter_instance, query_params):
         qp_all_filters = set()
         qp_old_filters = set()
-        for filter_name in query_params.keys():
+        for filter_name in request.query_params.keys():
+            if not set(Counter(filter_name)).isdisjoint(cls._IMPOSSIBLE_PROP_SYMBOLS):
+                return False
+
+            for v in request.query_params.getlist(filter_name):
+                if not v:
+                    return True
+
+                vc = Counter(v)
+                no_quotes = not (vc.get('"', 0) > 1 or vc.get("'", 0) > 1)
+                if vc.get(' ') and no_quotes:
+                    return True
+
+                if vc.get('=') and no_quotes:
+                    return False
+
+                if len(v) > 2 and v[2] == '=' and v[:2] in cls._RQL_COMPARISON_OPERATORS:
+                    return False
+
             qp_all_filters.add(filter_name)
             if cls._is_old_style_filter(filter_name):
                 qp_old_filters.add(filter_name)
@@ -145,18 +160,21 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
 
     @classmethod
     def get_rql_query(cls, filter_instance, request, query_string):
-        filter_value_str_pairs = []
+        filter_value_pairs = []
 
-        for filter_name, value in request.query_params.items():
-            if not cls._is_old_style_filter(filter_name):
-                filter_value_str_pairs.append(
-                    '{}={}'.format(filter_name, cls._add_quotes_to_value(value)),
-                )
+        for filter_name in request.query_params.keys():
+            one_filter_value_pairs = []
+            for value in request.query_params.getlist(filter_name):
+                if not cls._is_old_style_filter(filter_name):
+                    one_filter_value_pairs.append(
+                        '{}={}'.format(filter_name, cls._add_quotes_to_value(value)),
+                    )
 
-            else:
-                filter_value_str_pairs.append(cls._convert_filter_to_rql(filter_name, value))
+                else:
+                    one_filter_value_pairs.append(cls._convert_filter_to_rql(filter_name, value))
+            filter_value_pairs.append('&'.join(one_filter_value_pairs))
 
-        return '&'.join(filter_value_str_pairs)
+        return '&'.join(filter_value_pairs)
 
     @classmethod
     def _convert_filter_to_rql(cls, filter_name, value):
@@ -238,7 +256,7 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
 
     @classmethod
     def _is_old_style_filter(cls, filter_name):
-        return cls._get_filter_and_lookup(filter_name)[-1] in cls.POSSIBLE_DF_LOOKUPS
+        return cls._get_filter_and_lookup(filter_name)[-1] in cls._POSSIBLE_DF_LOOKUPS
 
     @classmethod
     def _get_filter_and_lookup(cls, filter_name):
