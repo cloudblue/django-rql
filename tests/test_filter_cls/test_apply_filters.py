@@ -15,7 +15,7 @@ from tests.test_filter_cls.utils import book_qs, create_books
 
 def apply_filters(query):
     filter_cls = BooksFilterClass(book_qs)
-    q = filter_cls.apply_filters(query)
+    _, q = filter_cls.apply_filters(query)
     return list(q)
 
 
@@ -260,8 +260,9 @@ def test_custom_filter_list_lookup_ok(operator):
             return Q(id__gte=2)
 
     books = [Book.objects.create() for _ in range(2)]
-    assert list(CustomCls(book_qs).apply_filters('{}(has_list_lookup,(1,2))'.format(operator))) == \
-        [books[1]]
+    assert list(
+        CustomCls(book_qs).apply_filters('{}(has_list_lookup,(1,2))'.format(operator))[1]
+    ) == [books[1]]
 
 
 @pytest.mark.parametrize('operator', (ListOperators.IN, ListOperators.OUT))

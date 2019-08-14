@@ -49,7 +49,7 @@ class RQLFilterClass(object):
     def apply_filters(self, query):
         """ Entry point function for model queryset filtering. """
         if not query:
-            return self.queryset
+            return None, self.queryset
 
         rql_ast = RQLParser.parse_query(query)
 
@@ -60,7 +60,7 @@ class RQLFilterClass(object):
             # Lark reraises it's errors, but the original ones are needed
             raise e.orig_exc
         self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
-        return self.queryset
+        return rql_ast, self.queryset
 
     def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
         """ Django Q() builder for the given expression. """
