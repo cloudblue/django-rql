@@ -100,4 +100,4 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 't__in',
         'source': 'title',
-    }]
+    }, 'github_stars']

@@ -54,7 +54,7 @@ class RQLFilterBackend(BaseFilterBackend):
 
     @classmethod
     def get_query(cls, filter_instance, request):
-        return _get_query(request)
+        return get_query(request)
 
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
@@ -69,7 +69,7 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
         try:
             rql_ast = getattr(request, 'rql_ast')
         except AttributeError:
-            rql_ast = RQLParser.parse_query(_get_query(request))
+            rql_ast = RQLParser.parse_query(get_query(request))
 
         if rql_ast is not None:
             try:
@@ -115,5 +115,5 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
         return Response(data, headers={"Content-Range": content_range})
 
 
-def _get_query(drf_request):
+def get_query(drf_request):
     return urlunquote(drf_request._request.META['QUERY_STRING'])

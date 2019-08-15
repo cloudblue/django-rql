@@ -2,9 +2,11 @@ from __future__ import unicode_literals
 
 import pytest
 from django.http import QueryDict
+from django.utils.timezone import now
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 
+from dj_rql.constants import DjangoLookups
 from dj_rql.compat import CompatibilityRQLFilterBackend, DjangoFiltersRQLFilterBackend
 from dj_rql.exceptions import RQLFilterParsingError, RQLFilterValueError
 from tests.dj_rf.filters import BooksFilterClass
@@ -18,7 +20,7 @@ def test_compatibility_is_old_syntax():
 
 def test_compatibility_get_rql_query():
     with pytest.raises(NotImplementedError):
-        CompatibilityRQLFilterBackend.is_old_syntax(None, None, None)
+        CompatibilityRQLFilterBackend.get_rql_query(None, None, None)
 
 
 @pytest.mark.parametrize('backend', (CompatibilityRQLFilterBackend, DjangoFiltersRQLFilterBackend))
@@ -59,6 +61,16 @@ def test_old_syntax(mocker, query, expected):
     assert DjangoFiltersRQLFilterBackend.is_old_syntax(filter_instance, request, query) == expected
 
 
+def test_old_syntax_filters(mocker):
+    query = 'k__in=v'
+    request = mocker.MagicMock(query_params=QueryDict(query))
+    filter_instance = BooksFilterClass(Book.objects.none())
+
+    for _ in range(2):
+        assert DjangoFiltersRQLFilterBackend.is_old_syntax(filter_instance, request, query) is True
+        assert filter_instance.old_syntax_filters == {'t__in'}
+
+
 def filter_api(api_client, query):
     return api_client.get('{}?{}'.format(reverse('old_book-list'), query))
 
@@ -71,20 +83,23 @@ def assert_ok_response(response, count):
 @pytest.mark.django_db
 def test_common_comparison(api_client, clear_cache):
     books = [Book.objects.create(title='G'), Book.objects.create(title='H')]
-    response = filter_api(api_client, 'order_by=title&title=G')
 
+    response = filter_api(api_client, 'order_by=published.at&title=G')
     assert_ok_response(response, 1)
     assert response.data[0]['id'] == books[0].id
 
 
 @pytest.mark.django_db
-def test__in_with_one_value(api_client, clear_cache):
-    books = [Book.objects.create(title='G'), Book.objects.create(title='')]
+@pytest.mark.parametrize('title,count', (
+    ('G', 1),
+    ('', 2),
+))
+def test__in_with_one_value(api_client, clear_cache, title, count):
+    Book.objects.create(title='G')
+    Book.objects.create(title='')
 
-    for title, index in (('G', 0), ('', 1)):
-        response = filter_api(api_client, 'title__in={}'.format(title))
-        assert_ok_response(response, 1)
-        assert response.data[0]['id'] == books[index].id
+    response = filter_api(api_client, 'title__in={}'.format(title))
+    assert_ok_response(response, count)
 
 
 @pytest.mark.django_db
@@ -101,12 +116,16 @@ def test__in_with_several_values(api_client, clear_cache):
 
 
 @pytest.mark.django_db
-def test__in_with_several_values_one_empty_one_invalid(api_client, clear_cache):
+@pytest.mark.parametrize('query', (
+    'G,',
+    ',G',
+))
+def test__in_with_several_values_one_empty_one_invalid(api_client, clear_cache, query):
+    Book.objects.create(title='G')
     Book.objects.create(title='')
 
-    for f in ('other,', ',other'):
-        response = filter_api(api_client, 'title__in={}'.format(f))
-        assert_ok_response(response, 1)
+    response = filter_api(api_client, 'title__in={}'.format(query))
+    assert_ok_response(response, 1)
 
 
 @pytest.mark.django_db
@@ -123,148 +142,287 @@ def test_double__in_property(api_client, clear_cache):
 
 
 @pytest.mark.django_db
-def test_boolean_value_ok(api_client, clear_cache):
+@pytest.mark.parametrize('value,index', (
+    ('True', 0),
+    ('true', 0),
+    ('False', 1),
+    ('false', 1),
+))
+def test_boolean_value_ok(api_client, clear_cache, value, index):
     authors = [
         Author.objects.create(name='n', is_male=True),
         Author.objects.create(name='n', is_male=False),
     ]
     books = [Book.objects.create(author=author) for author in authors]
 
-    for value, index in (('True', 0), ('true', 0), ('False', 1), ('false', 1)):
-        response = filter_api(api_client, 'author.is_male={}'.format(value))
-        assert_ok_response(response, 1)
-        assert response.data[0]['id'] == books[index].id
+    response = filter_api(api_client, 'author.is_male={}'.format(value))
+    assert_ok_response(response, 1)
+    assert response.data[0]['id'] == books[index].id
 
 
 @pytest.mark.django_db
-def test_boolean_value_fail(api_client, clear_cache):
-    for value in ('0', '1', 'TRUE', 'other'):
-        with pytest.raises(RQLFilterValueError):
-            filter_api(api_client, 'author.is_male={}'.format(value))
+@pytest.mark.parametrize('value', (
+    '0',
+    '1',
+    'TRUE',
+    'other',
+))
+def test_boolean_value_fail(api_client, clear_cache, value):
+    with pytest.raises(RQLFilterValueError):
+        filter_api(api_client, 'author.is_male={}'.format(value))
 
 
 @pytest.mark.django_db
-def test__isnull_ok(api_client, clear_cache):
+@pytest.mark.parametrize('value,index', (
+    ('True', 0),
+    ('true', 0),
+    ('1', 0),
+    ('False', 1),
+    ('false', 1),
+    ('0', 1),
+))
+def test__isnull_ok(api_client, clear_cache, value, index):
     books = [Book.objects.create(), Book.objects.create(title='G')]
 
-    for value, index in (('True', 0), ('true', 0), ('1', 0), ('False', 1), ('false', 1), ('0', 1)):
-        response = filter_api(api_client, 'title__isnull={}'.format(value))
-        assert_ok_response(response, 1)
-        assert response.data[0]['id'] == books[index].id
+    response = filter_api(api_client, 'title__isnull={}'.format(value))
+    assert_ok_response(response, 1)
+    assert response.data[0]['id'] == books[index].id
 
 
 @pytest.mark.django_db
-def test__isnull_fail(api_client, clear_cache):
-    for value in ('2', 'TRUE', 'other'):
-        with pytest.raises(RQLFilterParsingError):
-            filter_api(api_client, 'title__isnull={}'.format(value))
+@pytest.mark.parametrize('value', (
+    '2',
+    'TRUE',
+    'other',
+))
+def test__isnull_fail(api_client, clear_cache, value):
+    with pytest.raises(RQLFilterParsingError):
+        filter_api(api_client, 'title__isnull={}'.format(value))
 
 
 @pytest.mark.django_db
-def test__exact(api_client, clear_cache):
+@pytest.mark.parametrize('value,count', (
+    ('"G"', 0),
+    ('g', 0),
+    ('G', 1),
+))
+def test__exact(api_client, clear_cache, value, count):
     Book.objects.create(title='G')
 
-    for value, count in (('"G"', 1), ('g', 0), ('G', 1)):
-        response = filter_api(api_client, 'title__exact={}'.format(value))
-        assert_ok_response(response, count)
+    response = filter_api(api_client, 'title__exact={}'.format(value))
+    assert_ok_response(response, count)
 
 
 @pytest.mark.django_db
-def test_multiple_choice(api_client, clear_cache):
+@pytest.mark.parametrize('values,count', (
+    (('G', 'G'), 1),
+    (('G', 'H'), 0),
+))
+def test_multiple_choice(api_client, clear_cache, values, count):
     Book.objects.create(title='G')
 
-    for (v1, v2), count in ((('G', 'G'), 1), (('G', 'H'), 0)):
-        response = filter_api(api_client, 'title__exact={}&title__exact={}'.format(v1, v2))
-        assert_ok_response(response, count)
+    response = filter_api(
+        api_client, 'title__exact={}&title__exact={}'.format(values[0], values[1]),
+    )
+    assert_ok_response(response, count)
 
 
-def test__contains():
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('operator', (
+    DjangoLookups.CONTAINS,
+    DjangoLookups.I_CONTAINS,
+))
+@pytest.mark.parametrize('value,count', (
+    ('Title', 1),
+    ('Ti', 1),
+    ('it', 1),
+    ('le', 1),
+    ('"Title"', 0),
+    ('other', 0),
+    ('iT', 1),
+    ('titlE', 1),
+))
+def test__contains(api_client, clear_cache, value, count, operator):
+    Book.objects.create(title='Title')
+
+    response = filter_api(api_client, 'title__{}={}'.format(operator, value))
+    assert_ok_response(response, count)
 
 
-def test__startswith():
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('operator', (
+    DjangoLookups.STARTSWITH,
+    DjangoLookups.I_STARTSWITH,
+))
+@pytest.mark.parametrize('value,count', (
+    ('Title', 1),
+    ('Ti', 1),
+    ('it', 0),
+    ('le', 0),
+    ('"Title"', 0),
+    ('other', 0),
+    ('iT', 0),
+    ('titlE', 1),
+))
+def test__startswith(api_client, clear_cache, value, count, operator):
+    Book.objects.create(title='Title')
+
+    response = filter_api(api_client, 'title__{}={}'.format(operator, value))
+    assert_ok_response(response, count)
 
 
-def test__endswith():
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('operator', (
+    DjangoLookups.ENDSWITH,
+    DjangoLookups.I_ENDSWITH,
+))
+@pytest.mark.parametrize('value,count', (
+    ('Title', 1),
+    ('Ti', 0),
+    ('it', 0),
+    ('le', 1),
+    ('"Title"', 0),
+    ('other', 0),
+    ('iT', 0),
+    ('titlE', 1),
+))
+def test__endswith(api_client, clear_cache, value, count, operator):
+    Book.objects.create(title='Title')
+
+    response = filter_api(api_client, 'title__{}={}'.format(operator, value))
+    assert_ok_response(response, count)
 
 
-def test__regex():
-    # Not supported
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('lookup', (
+    DjangoLookups.REGEX,
+    DjangoLookups.I_REGEX,
+))
+def test__regex(api_client, clear_cache, lookup):
+    with pytest.raises(RQLFilterParsingError):
+        filter_api(api_client, 'title__{}=true'.format(lookup))
 
 
-def test__day_week_etc():
-    # Not affecting
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('lookup', (
+    'day',
+    'week',
+    'month',
+    'time',
+    'hour',
+    'minute',
+    'second',
+    'day__gt',
+))
+def test__day_week_etc(api_client, clear_cache, lookup):
+    response = filter_api(api_client, 'title__{}=2020'.format(lookup))
+    assert_ok_response(response, 0)
 
 
-def test__gt_ge_lt_le():
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('lookup,p_value,n_value', (
+    (DjangoLookups.GT, 1, 5),
+    (DjangoLookups.GTE, 5, 10),
+    (DjangoLookups.LT, 10, 5),
+    (DjangoLookups.LTE, 10, 1),
+))
+def test__gt_ge_lt_le(api_client, clear_cache, lookup, p_value, n_value):
+    Book.objects.create(github_stars=5)
+
+    response = filter_api(api_client, 'github_stars__{}={}'.format(lookup, p_value))
+    assert_ok_response(response, 1)
+
+    response = filter_api(api_client, 'github_stars__{}={}'.format(lookup, n_value))
+    assert_ok_response(response, 0)
 
 
-def test_order_by():
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('ordering_term', (
+    'order_by',
+    'ordering',
+))
+def test_order_ok(api_client, clear_cache, ordering_term):
+    same_email = 'a@m.com'
+    authors = [
+        Author.objects.create(email=same_email),
+        Author.objects.create(email=same_email),
+    ]
+    books = [Book.objects.create(author=author, published_at=now()) for author in authors]
+    books.append(Book.objects.create(published_at=now()))
+
+    response = filter_api(api_client, '{}=author.email,-published.at'.format(ordering_term))
+    assert [d['id'] for d in response.data] == \
+        list(b.id for b in Book.objects.all().order_by('author__email', '-published_at'))
 
 
-def test_ordering():
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('ordering_term', (
+    'order_by',
+    'ordering',
+))
+def test_order_fail(api_client, clear_cache, ordering_term):
+    with pytest.raises(RQLFilterParsingError):
+        filter_api(api_client, '{}=invalid'.format(ordering_term))
 
 
-def test_search():
-    pass
+@pytest.mark.django_db
+def test_quoted_value_with_special_symbols(api_client, clear_cache):
+    title = "'|(), '"
+    Book.objects.create(title=title)
+
+    response = filter_api(api_client, 'title={}'.format(title))
+    assert_ok_response(response, 0)
 
 
-def test_is_field_part():
-    # For all
-    pass
+@pytest.mark.django_db
+def test_unquoted_value_with_special_symbols(api_client, clear_cache):
+    title = '|(),"'
+    with pytest.raises(RQLFilterParsingError):
+        filter_api(api_client, 'title={}'.format(title))
 
 
-def test_quoted_value_with_special_symbols():
-    pass
+@pytest.mark.django_db
+def test_value_with_quotes_fail(api_client, clear_cache):
+    title = '|\'(),"'
+    with pytest.raises(RQLFilterParsingError):
+        filter_api(api_client, 'title__exact={}'.format(title))
 
 
-def test_unquoted_value_with_special_symbols():
-    # Whitespaces, commas, |, ;, braces
-    pass
+@pytest.mark.django_db
+def test_empty_property(api_client, clear_cache):
+    Book.objects.create()
+
+    response = filter_api(api_client, '=')
+    assert_ok_response(response, 1)
 
 
-def test_empty_property():
-    pass
+@pytest.mark.django_db
+@pytest.mark.parametrize('prop', (
+    'title',
+    'title__exact',
+))
+def test_empty_value(api_client, clear_cache, prop):
+    Book.objects.create()
+
+    response = filter_api(api_client, '{}='.format(prop))
+    assert_ok_response(response, 1)
 
 
-def test_empty_value():
-    pass
+@pytest.mark.django_db
+def test_no_query(api_client, clear_cache):
+    Book.objects.create()
+
+    response = filter_api(api_client, '')
+    assert_ok_response(response, 1)
 
 
-def test_no_query():
-    pass
+@pytest.mark.django_db
+def test_pagination(api_client, clear_cache):
+    [
+        Book.objects.create(title='G'),
+        Book.objects.create(title='G'),
+        Book.objects.create(title='H'),
+    ]
 
-
-def test_parsing_error_after_conversion():
-    pass
-
-
-def test_lookup_error_after_conversion():
-    pass
-
-
-def test_value_error_after_conversion():
-    pass
-
-
-def test_no_conversion():
-    pass
-
-
-def test_placing_after_conversion():
-    pass
-
-
-def test_pagination():
-    pass
-
-
-def test_pagination_without_conversion():
-    pass
+    response = filter_api(api_client, 'limit=1&offset=1&title__exact=G')
+    assert response['Content-Range'] == 'items 1-1/2'

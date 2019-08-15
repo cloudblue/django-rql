@@ -4,11 +4,17 @@ from collections import Counter
 
 from dj_rql.constants import (
     ComparisonOperators as CO,
+    DjangoLookups as DJL,
     FilterTypes, RQL_NULL,
     SearchOperators as SO,
     RQL_ANY_SYMBOL,
+    RQL_FALSE,
+    RQL_LIMIT_PARAM,
+    RQL_OFFSET_PARAM,
+    RQL_ORDERING_OPERATOR,
+    RQL_TRUE,
 )
-from dj_rql.drf import RQLFilterBackend, _get_query
+from dj_rql.drf import RQLFilterBackend, get_query
 from dj_rql.exceptions import RQLFilterParsingError
 
 
@@ -20,7 +26,7 @@ class CompatibilityRQLFilterBackend(RQLFilterBackend):
     """
     @classmethod
     def get_query(cls, filter_instance, request):
-        query_string = cls.modify_initial_query(filter_instance, request, _get_query(request))
+        query_string = cls.modify_initial_query(filter_instance, request, get_query(request))
 
         if not cls.is_old_syntax(filter_instance, request, query_string):
             return query_string
@@ -58,12 +64,7 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
     """
     RESERVED_ORDERING_WORDS = {'order_by', 'ordering'}
 
-    _POSSIBLE_DF_LOOKUPS = {
-        'in', 'isnull', 'exact',
-        'contains', 'icontains', 'startswith', 'endswith', 'istartswith', 'iendswith',
-        'gt', 'gte', 'lt', 'lte',
-        'regex', 'iregex',
-    }
+    _POSSIBLE_DF_LOOKUPS = DJL.all()
     _RQL_COMPARISON_OPERATORS = {CO.EQ, CO.NE, CO.LE, CO.GE, CO.LT, CO.GT}
     _IMPOSSIBLE_PROP_SYMBOLS = {'(', ',', ')', ' ', "'", '"'}
 
@@ -98,6 +99,10 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
 
             qp_all_filters.add(filter_name)
             if cls._is_old_style_filter(filter_name):
+                lookup = cls._get_filter_and_lookup(filter_name)[-1]
+                if lookup in (DJL.REGEX, DJL.I_REGEX):
+                    cls._conversion_error()
+
                 qp_old_filters.add(filter_name)
 
         if not qp_all_filters.isdisjoint(cls.RESERVED_ORDERING_WORDS):
@@ -118,6 +123,17 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         for filter_name in request.query_params.keys():
             one_filter_value_pairs = []
             for value in request.query_params.getlist(filter_name):
+                if not value:
+                    continue
+
+                if filter_name in (RQL_LIMIT_PARAM, RQL_OFFSET_PARAM):
+                    one_filter_value_pairs.append('{}={}'.format(filter_name, value))
+                    continue
+
+                if filter_name in cls.RESERVED_ORDERING_WORDS:
+                    one_filter_value_pairs.append('{}({})'.format(RQL_ORDERING_OPERATOR, value))
+                    continue
+
                 f_item = filter_instance.get_filter_base_item(filter_name)
                 if f_item and (not f_item.get('custom', False)):
                     if FilterTypes.field_filter_type(f_item['field']) == FilterTypes.BOOLEAN:
@@ -132,68 +148,56 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
                     one_filter_value_pairs.append(
                         cls._convert_filter_to_rql(filter_name, value),
                     )
-            filter_value_pairs.append('&'.join(one_filter_value_pairs))
 
-        return '&'.join(filter_value_pairs)
+            if one_filter_value_pairs:
+                filter_value_pairs.append('&'.join(one_filter_value_pairs))
+
+        return '&'.join(filter_value_pairs) if filter_value_pairs else ''
 
     @classmethod
     def _convert_filter_to_rql(cls, filter_name, value):
         filter_base, lookup = cls._get_filter_and_lookup(filter_name)
 
-        if lookup in ('regex', 'iregex'):
-            cls._conversion_error()
-
-        if lookup == 'in':
+        if lookup == DJL.IN:
             return 'in({},({}))'.format(
-                filter_base, ','.join(cls._add_quotes_to_value(v) for v in value.split(',')),
+                filter_base, ','.join(cls._add_quotes_to_value(v) for v in value.split(',') if v),
             )
 
-        if lookup == 'isnull':
+        if lookup == DJL.NULL:
             operator = CO.EQ if cls._convert_bool_value(value) == 'true' else CO.NE
             return '{}={}={}'.format(filter_base, operator, RQL_NULL)
 
-        if lookup == 'exact':
-            return '{}={}'.format(filter_base, cls._add_quotes_to_value(value))
-
-        if lookup in ('gt', 'gte', 'lt', 'lte'):
-            if lookup == 'gte':
+        if lookup in (DJL.GT, DJL.GTE, DJL.LT, DJL.LTE):
+            if lookup == DJL.GTE:
                 operator = CO.GE
-            elif lookup == 'lte':
+            elif lookup == DJL.LTE:
                 operator = CO.LE
             else:
                 operator = lookup
             return '{}={}={}'.format(filter_base, operator, value)
 
-        if lookup in (
-                'contains', 'icontains', 'startswith', 'endswith', 'istartswith', 'iendswith',
-        ):
-            operator = SO.I_LIKE if lookup[0] == 'i' else SO.LIKE
+        operator = SO.I_LIKE if lookup[0] == 'i' else SO.LIKE
+        if lookup in (DJL.CONTAINS, DJL.I_CONTAINS, DJL.ENDSWITH, DJL.I_ENDSWITH) and \
+                value[0] != RQL_ANY_SYMBOL:
+            value = RQL_ANY_SYMBOL + value
 
-            if lookup in ('contains', 'icontains', 'endswith', 'iendswith') and \
-                    value[0] != RQL_ANY_SYMBOL:
-                value = RQL_ANY_SYMBOL + value
+        if lookup in (DJL.CONTAINS, DJL.I_CONTAINS, DJL.STARTSWITH, DJL.I_STARTSWITH) and \
+                value[-1] != RQL_ANY_SYMBOL:
+            value += RQL_ANY_SYMBOL
 
-            if lookup in ('contains', 'icontains', 'startswith', 'istartswith') and \
-                    value[-1] != RQL_ANY_SYMBOL:
-                value += RQL_ANY_SYMBOL
-
-            return '{}({},{})'.format(operator, filter_base, cls._add_quotes_to_value(value))
+        return '{}({},{})'.format(operator, filter_base, cls._add_quotes_to_value(value))
 
     @classmethod
     def _convert_bool_value(cls, value):
         if value in ('True', 'true', '1'):
-            return 'true'
+            return RQL_TRUE
         elif value in ('False', 'false', '0'):
-            return 'false'
+            return RQL_FALSE
 
         cls._conversion_error()
 
     @classmethod
     def _add_quotes_to_value(cls, value):
-        for quote in ('"', "'"):
-            if value[0] == value[-1] == quote:
-                return value
-
         for quote in ('"', "'"):
             if quote not in value:
                 return '{q}{}{q}'.format(value, q=quote)
