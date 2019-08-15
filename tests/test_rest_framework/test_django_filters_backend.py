@@ -80,9 +80,17 @@ def assert_ok_response(response, count):
     assert len(response.data) == count
 
 
+def create_book(title=None):
+    return Book.objects.create(title=title)
+
+
+def create_books(titles):
+    return [create_book(title=title) for title in titles]
+
+
 @pytest.mark.django_db
 def test_common_comparison(api_client, clear_cache):
-    books = [Book.objects.create(title='G'), Book.objects.create(title='H')]
+    books = create_books(['G', 'H'])
 
     response = filter_api(api_client, 'order_by=published.at&title=G')
     assert_ok_response(response, 1)
@@ -95,8 +103,7 @@ def test_common_comparison(api_client, clear_cache):
     ('', 2),
 ))
 def test__in_with_one_value(api_client, clear_cache, title, count):
-    Book.objects.create(title='G')
-    Book.objects.create(title='')
+    create_books(['G', ''])
 
     response = filter_api(api_client, 'title__in={}'.format(title))
     assert_ok_response(response, count)
@@ -104,11 +111,7 @@ def test__in_with_one_value(api_client, clear_cache, title, count):
 
 @pytest.mark.django_db
 def test__in_with_several_values(api_client, clear_cache):
-    books = [
-        Book.objects.create(title='G'),
-        Book.objects.create(title='H'),
-        Book.objects.create(title=''),
-    ]
+    books = create_books(['G', 'H', ''])
 
     response = filter_api(api_client, 'title__in=G,H')
     assert_ok_response(response, 2)
@@ -121,8 +124,7 @@ def test__in_with_several_values(api_client, clear_cache):
     ',G',
 ))
 def test__in_with_several_values_one_empty_one_invalid(api_client, clear_cache, query):
-    Book.objects.create(title='G')
-    Book.objects.create(title='')
+    create_books(['G', ''])
 
     response = filter_api(api_client, 'title__in={}'.format(query))
     assert_ok_response(response, 1)
@@ -130,11 +132,7 @@ def test__in_with_several_values_one_empty_one_invalid(api_client, clear_cache, 
 
 @pytest.mark.django_db
 def test_double__in_property(api_client, clear_cache):
-    books = [
-        Book.objects.create(title='G'),
-        Book.objects.create(title='H'),
-        Book.objects.create(title=''),
-    ]
+    books = create_books(['G', 'H', ''])
 
     response = filter_api(api_client, 'title__in=G,H&title__in=,G')
     assert_ok_response(response, 1)
@@ -182,7 +180,7 @@ def test_boolean_value_fail(api_client, clear_cache, value):
     ('0', 1),
 ))
 def test__isnull_ok(api_client, clear_cache, value, index):
-    books = [Book.objects.create(), Book.objects.create(title='G')]
+    books = create_books([None, 'G'])
 
     response = filter_api(api_client, 'title__isnull={}'.format(value))
     assert_ok_response(response, 1)
@@ -207,7 +205,7 @@ def test__isnull_fail(api_client, clear_cache, value):
     ('G', 1),
 ))
 def test__exact(api_client, clear_cache, value, count):
-    Book.objects.create(title='G')
+    create_book('G')
 
     response = filter_api(api_client, 'title__exact={}'.format(value))
     assert_ok_response(response, count)
@@ -219,7 +217,7 @@ def test__exact(api_client, clear_cache, value, count):
     (('G', 'H'), 0),
 ))
 def test_multiple_choice(api_client, clear_cache, values, count):
-    Book.objects.create(title='G')
+    create_book('G')
 
     response = filter_api(
         api_client, 'title__exact={}&title__exact={}'.format(values[0], values[1]),
@@ -243,7 +241,7 @@ def test_multiple_choice(api_client, clear_cache, values, count):
     ('titlE', 1),
 ))
 def test__contains(api_client, clear_cache, value, count, operator):
-    Book.objects.create(title='Title')
+    create_book('Title')
 
     response = filter_api(api_client, 'title__{}={}'.format(operator, value))
     assert_ok_response(response, count)
@@ -265,7 +263,7 @@ def test__contains(api_client, clear_cache, value, count, operator):
     ('titlE', 1),
 ))
 def test__startswith(api_client, clear_cache, value, count, operator):
-    Book.objects.create(title='Title')
+    create_book('Title')
 
     response = filter_api(api_client, 'title__{}={}'.format(operator, value))
     assert_ok_response(response, count)
@@ -287,7 +285,7 @@ def test__startswith(api_client, clear_cache, value, count, operator):
     ('titlE', 1),
 ))
 def test__endswith(api_client, clear_cache, value, count, operator):
-    Book.objects.create(title='Title')
+    create_book('Title')
 
     response = filter_api(api_client, 'title__{}={}'.format(operator, value))
     assert_ok_response(response, count)
@@ -368,7 +366,7 @@ def test_order_fail(api_client, clear_cache, ordering_term):
 @pytest.mark.django_db
 def test_quoted_value_with_special_symbols(api_client, clear_cache):
     title = "'|(), '"
-    Book.objects.create(title=title)
+    create_book(title)
 
     response = filter_api(api_client, 'title={}'.format(title))
     assert_ok_response(response, 0)
@@ -390,7 +388,7 @@ def test_value_with_quotes_fail(api_client, clear_cache):
 
 @pytest.mark.django_db
 def test_empty_property(api_client, clear_cache):
-    Book.objects.create()
+    create_book()
 
     response = filter_api(api_client, '=')
     assert_ok_response(response, 1)
@@ -402,7 +400,7 @@ def test_empty_property(api_client, clear_cache):
     'title__exact',
 ))
 def test_empty_value(api_client, clear_cache, prop):
-    Book.objects.create()
+    create_book()
 
     response = filter_api(api_client, '{}='.format(prop))
     assert_ok_response(response, 1)
@@ -410,7 +408,7 @@ def test_empty_value(api_client, clear_cache, prop):
 
 @pytest.mark.django_db
 def test_no_query(api_client, clear_cache):
-    Book.objects.create()
+    create_book()
 
     response = filter_api(api_client, '')
     assert_ok_response(response, 1)
@@ -418,11 +416,7 @@ def test_no_query(api_client, clear_cache):
 
 @pytest.mark.django_db
 def test_pagination(api_client, clear_cache):
-    [
-        Book.objects.create(title='G'),
-        Book.objects.create(title='G'),
-        Book.objects.create(title='H'),
-    ]
+    create_books(['G', 'G', 'H'])
 
     response = filter_api(api_client, 'limit=1&offset=1&title__exact=G')
     assert response['Content-Range'] == 'items 1-1/2'

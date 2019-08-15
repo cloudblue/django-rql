@@ -6,8 +6,19 @@ from django.utils.dateparse import parse_date, parse_datetime
 from lark.exceptions import LarkError
 
 from dj_rql.constants import (
-    ComparisonOperators, DjangoLookups, FilterLookups, FilterTypes, ListOperators, SearchOperators,
-    RESERVED_FILTER_NAMES, RQL_ANY_SYMBOL, RQL_EMPTY, RQL_NULL, SUPPORTED_FIELD_TYPES,
+    ComparisonOperators,
+    DjangoLookups,
+    FilterLookups,
+    FilterTypes,
+    ListOperators,
+    SearchOperators,
+    RESERVED_FILTER_NAMES,
+    RQL_ANY_SYMBOL,
+    RQL_EMPTY,
+    RQL_FALSE,
+    RQL_NULL,
+    RQL_TRUE,
+    SUPPORTED_FIELD_TYPES,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
 from dj_rql.parser import RQLParser
@@ -219,7 +230,7 @@ class RQLFilterClass(object):
             field_name can have dots or double underscores in them. They are interpreted as
             links to the related models.
         """
-        field_name_parts = field_name.split('.' if '.' in field_name else '__')
+        field_name_parts = cls._get_field_name_parts(field_name)
         field_name_parts_length = len(field_name_parts)
         current_model = base_model
         for index, part in enumerate(field_name_parts, start=1):
@@ -229,6 +240,10 @@ class RQLFilterClass(object):
                     'Unsupported field type: {}.'.format(field_name)
                 return current_field
             current_model = current_field.related_model
+
+    @staticmethod
+    def _get_field_name_parts(field_name):
+        return field_name.split('.' if '.' in field_name else '__') if field_name else []
 
     @staticmethod
     def _build_mapped_item(field, field_orm_route, lookups=None, use_repr=None, null_values=None):
@@ -371,9 +386,9 @@ class RQLFilterClass(object):
                 raise ValueError
 
         elif filter_type == FilterTypes.BOOLEAN:
-            if val not in ('false', 'true'):
+            if val not in (RQL_FALSE, RQL_TRUE):
                 raise ValueError
-            return val == 'true'
+            return val == RQL_TRUE
 
         if val == RQL_EMPTY:
             if (filter_type == FilterTypes.INT) or (not django_field.blank):

@@ -171,3 +171,15 @@ def test_bad_search():
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
     assert str(e.value) == "id: 'search' can be applied only to text filters."
+
+
+def test_get_field():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = ['id']
+
+        @classmethod
+        def get_field(cls, *args):
+            return cls._get_field(*args)
+
+    assert Cls.get_field(Book, '') is None
