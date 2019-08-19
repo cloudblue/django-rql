@@ -6,7 +6,7 @@ import pytest
 from django.db.models import Q
 from django.utils.timezone import now
 
-from dj_rql.constants import ListOperators, RQL_NULL, DjangoLookups, FilterLookups
+from dj_rql.constants import FilterLookups, ListOperators, RQL_NULL
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
 from tests.dj_rf.filters import BooksFilterClass
