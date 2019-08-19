@@ -57,6 +57,16 @@ class RQLFilterClass(object):
             'error': 'Filter logic is not implemented: {}.'.format(filter_name),
         })
 
+    def build_name_for_custom_ordering(self, filter_name):
+        """ Builder for ordering name of custom filter.
+
+        Args:
+            filter_name (str): Name of the filter.
+        """
+        raise RQLFilterParsingError(details={
+            'error': 'Ordering logic is not implemented: {}.'.format(filter_name),
+        })
+
     def apply_filters(self, query):
         """ Entry point function for model queryset filtering. """
         if not query:
@@ -149,7 +159,11 @@ class RQLFilterClass(object):
             if not isinstance(filters, list):
                 filters = [filters]
             for f in filters:
-                ordering_fields.append('{}{}'.format(sign, f['orm_route']))
+                if f.get('custom'):
+                    ordering_name = self.build_name_for_custom_ordering(filter_name)
+                else:
+                    ordering_name = f['orm_route']
+                ordering_fields.append('{}{}'.format(sign, ordering_name))
 
         return qs.order_by(*ordering_fields)
 

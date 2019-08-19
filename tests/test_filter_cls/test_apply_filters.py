@@ -217,6 +217,12 @@ def test_ordering_by_several_filters():
         list(book_qs.order_by('author__email', '-published_at'))
 
 
+@pytest.mark.django_db
+def test_ordering_by_empty_value():
+    books = create_books()
+    assert apply_filters('ordering()') == books
+
+
 def test_several_ordering_operations():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters('ordering(d_id)&ordering(author.email)')
