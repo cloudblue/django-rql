@@ -44,14 +44,13 @@ class RQLFilterClass(object):
 
         self.queryset = queryset
 
-    def build_q_for_custom_filter(self, filter_name, operator, str_value, list_operator=None):
+    def build_q_for_custom_filter(self, filter_name, operator, str_value, **kwargs):
         """ Django Q() builder for custom filter.
 
         Args:
             filter_name (str): Name of the filter.
             operator (str): RQL grammar operator, like `eq`.
             str_value (str): String filter value.
-            list_operator (str): IN or OUT if this is a part of list operation
         """
         raise RQLFilterParsingError(details={
             'error': 'Filter logic is not implemented: {}.'.format(filter_name),
@@ -100,17 +99,25 @@ class RQLFilterClass(object):
                         filter_name, list_filter_lookup, str_value,
                     ))
 
-        if base_item.get('custom'):
-            return self.build_q_for_custom_filter(filter_name, operator, str_value, list_operator)
-
-        django_field = base_item['field']
-        use_repr = base_item.get('use_repr', False)
         null_values = base_item.get('null_values', set())
-
         filter_lookup = self._get_filter_lookup(
             filter_name, operator, str_value, available_lookups, null_values,
         )
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
+
+        if base_item.get('custom'):
+            return self.build_q_for_custom_filter(
+                filter_name,
+                operator,
+                str_value,
+                list_operator=list_operator,
+                filter_lookup=filter_lookup,
+                django_lookup=django_lookup,
+            )
+
+        django_field = base_item['field']
+        use_repr = base_item.get('use_repr', False)
+
         typed_value = self._get_typed_value(
             filter_name, filter_lookup, str_value, django_field,
             use_repr, null_values, django_lookup,
@@ -197,6 +204,7 @@ class RQLFilterClass(object):
             elif item.get('custom'):
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
                 self._add_filter_item(field_filter_route, item)
+                self._register_ordering_and_search(item, field_filter_route)
 
             else:
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
@@ -224,17 +232,19 @@ class RQLFilterClass(object):
                     self._check_search(item, field_filter_route, field)
 
                 self._add_filter_item(field_filter_route, items)
-
-                if item.get('ordering'):
-                    self.ordering_filters.add(field_filter_route)
-
-                if item.get('search'):
-                    self.search_filters.add(field_filter_route)
+                self._register_ordering_and_search(item, field_filter_route)
 
     def _add_filter_item(self, filter_name, item):
         assert filter_name not in RESERVED_FILTER_NAMES, \
             "'{}' is a reserved filter name.".format(filter_name)
         self.filters[filter_name] = item
+
+    def _register_ordering_and_search(self, item, field_filter_route):
+        if item.get('ordering'):
+            self.ordering_filters.add(field_filter_route)
+
+        if item.get('search'):
+            self.search_filters.add(field_filter_route)
 
     @classmethod
     def _get_field(cls, base_model, field_name):

@@ -71,6 +71,7 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 'custom_filter',
         'custom': True,
+        'lookups': {FilterLookups.I_LIKE},
 
         'custom_data': [1],
     }, {
@@ -92,7 +93,7 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 'has_list_lookup',
         'custom': True,
-        'lookups': {FilterLookups.EQ, FilterLookups.IN, FilterLookups.OUT},
+        'lookups': {FilterLookups.EQ, FilterLookups.NE, FilterLookups.IN, FilterLookups.OUT},
     }, {
         'filter': 'no_list_lookup',
         'custom': True,
@@ -100,4 +101,8 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 't__in',
         'source': 'title',
-    }, 'github_stars']
+    }, 'github_stars', {
+        'filter': 'ordering_filter',
+        'custom': True,
+        'ordering': True,
+    }]

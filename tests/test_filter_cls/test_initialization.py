@@ -66,12 +66,17 @@ def test_building_filters():
         },
         'str_choice_field_repr': {
             'orm_route': 'str_choice_field', 'lookups': {FL.EQ, FL.NE}, 'use_repr': True,
-        }
+        },
+        'has_list_lookup': {'custom': True, 'lookups': {FL.EQ, FL.IN, FL.OUT}},
+        'no_list_lookup': {'custom': True, 'lookups': {FL.EQ}},
+        't__in': {'orm_route': 'title', 'lookups': FL.string()},
+        'github_stars': {'orm_route': 'github_stars', 'lookups': FL.numeric()},
+        'ordering_filter': {'custom': True, 'ordering': True},
     }
 
     assert_filter_cls(
         BooksFilterClass, expected_sub_dct,
-        {'author.email', 'published.at', 'd_id', 'int_choice_field'},
+        {'author.email', 'published.at', 'd_id', 'int_choice_field', 'ordering_filter'},
         {'title', 'author.email', 'author__email', 'str_choice_field'},
     )
 
