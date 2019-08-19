@@ -119,12 +119,23 @@ class ModelFilterClass(RQLFilterClass):
         
         'custom_data': [1],
     }]
+
+
+from dj_rql.drf import RQLContentRangeLimitOffsetPagination, RQLFilterBackend
+
+class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
+    queryset = MODEL.objects.all()
+    serializer_class = ModelSerializer
+    rql_filter_class = ModelFilterClass
+    pagination_class = RQLContentRangeLimitOffsetPagination
+    filter_backends = (RQLFilterBackend,)
 ```
 
 Django Rest Framework Extensions
 ================================
 1. Pagination (limit, offset)
 2. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices)
+3. Backend `DjangoFiltersRQLFilterBackend` with automatic conversion of [Django-Filters](https://django-filter.readthedocs.io/en/master/) query to RQL query 
 
 Best Practices
 ==============

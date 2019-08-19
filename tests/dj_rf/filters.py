@@ -97,4 +97,7 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'no_list_lookup',
         'custom': True,
         'lookups': {FilterLookups.EQ},
-    }]
+    }, {
+        'filter': 't__in',
+        'source': 'title',
+    }, 'github_stars']

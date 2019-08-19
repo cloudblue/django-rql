@@ -6,6 +6,8 @@ from django.db import models
 RQL_ANY_SYMBOL = '*'
 RQL_EMPTY = 'empty()'
 RQL_NULL = 'null()'
+RQL_TRUE = 'true'
+RQL_FALSE = 'false'
 RQL_LIMIT_PARAM = 'limit'
 RQL_OFFSET_PARAM = 'offset'
 RQL_ORDERING_OPERATOR = 'ordering'
@@ -161,3 +163,26 @@ class DjangoLookups(object):
     I_ENDSWITH = 'iendswith'
     REGEX = 'regex'
     I_REGEX = 'iregex'
+
+    IN = 'in'
+
+    @classmethod
+    def all(cls):
+        return {
+            cls.IN,
+            cls.NULL,
+            cls.EXACT,
+            cls.I_EXACT,
+            cls.CONTAINS,
+            cls.I_CONTAINS,
+            cls.STARTSWITH,
+            cls.I_STARTSWITH,
+            cls.ENDSWITH,
+            cls.I_ENDSWITH,
+            cls.REGEX,
+            cls.I_REGEX,
+            cls.GT,
+            cls.GTE,
+            cls.LT,
+            cls.LTE,
+        }

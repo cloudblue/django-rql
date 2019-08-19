@@ -33,7 +33,9 @@ class RQLFilterBackend(BaseFilterBackend):
             return queryset
 
         filter_instance = self._get_filter_instance(filter_class, queryset, view)
-        return filter_instance.apply_filters(_get_query(request))
+        rql_ast, queryset = filter_instance.apply_filters(self.get_query(filter_instance, request))
+        setattr(request, 'rql_ast', rql_ast)
+        return queryset
 
     @staticmethod
     def get_filter_class(view):
@@ -50,6 +52,10 @@ class RQLFilterBackend(BaseFilterBackend):
             FilterCache.CACHE[qual_name] = filter_instance
         return filter_instance
 
+    @classmethod
+    def get_query(cls, filter_instance, request):
+        return get_query(request)
+
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
     """ RQL limit offset pagination. """
@@ -60,13 +66,18 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
         self._rql_offset = None
 
     def paginate_queryset(self, queryset, request, view=None):
-        rql_ast = RQLParser.parse_query(_get_query(request))
         try:
-            self._rql_limit, self._rql_offset = RQLLimitOffsetTransformer().transform(rql_ast)
-        except LarkError:
-            raise RQLFilterParsingError(details={
-                'error': 'Limit and offset are set incorrectly.',
-            })
+            rql_ast = getattr(request, 'rql_ast')
+        except AttributeError:
+            rql_ast = RQLParser.parse_query(get_query(request))
+
+        if rql_ast is not None:
+            try:
+                self._rql_limit, self._rql_offset = RQLLimitOffsetTransformer().transform(rql_ast)
+            except LarkError:
+                raise RQLFilterParsingError(details={
+                    'error': 'Limit and offset are set incorrectly.',
+                })
         return super(RQLLimitOffsetPagination, self).paginate_queryset(queryset, request, view)
 
     def get_limit(self, *args):
@@ -104,5 +115,5 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
         return Response(data, headers={"Content-Range": content_range})
 
 
-def _get_query(drf_request):
+def get_query(drf_request):
     return urlunquote(drf_request._request.META['QUERY_STRING'])

@@ -20,3 +20,4 @@ pytest-django==3.4.8
 scandir==1.10.0
 typing==3.6.6
 django-model-utils==3.2.0
+pytest-mock==1.10.4
