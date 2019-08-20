@@ -52,10 +52,6 @@ class Book(models.Model):
     )
     str_choice_field = models.CharField(max_length=5, choices=STR_CHOICES, default=STR_CHOICES.one)
 
-    STATE_VERBS = Choices(
-        'submit', 'refine', 'deploy', 'complete', 'cancel',
-    )
-
     fsm_field = FSMField(default=STR_CHOICES.one, choices=STR_CHOICES, null=True)
 
 
