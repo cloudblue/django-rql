@@ -27,12 +27,17 @@ def test_ordering_ok(p1, p2):
     assert ordering_transform((p2, p1, '+{}'.format(p2))) == (p2, p1, p2)
 
 
-@pytest.mark.parametrize('prop', FAIL_PROPS)
+def test_ordering_empty_ok():
+    assert ordering_transform([]) == ()
+
+
+@pytest.mark.parametrize('prop', FAIL_PROPS[1:])
 def test_ordering_property_fail(prop):
     with pytest.raises(LarkError):
         ordering_transform(prop)
 
 
 # Temporary is here
-def test_select_ok():
-    RQLParser.parse('select(prop)')
+@pytest.mark.parametrize('prop', ('', 'prop'))
+def test_select_ok(prop):
+    RQLParser.parse('select({})'.format(prop))

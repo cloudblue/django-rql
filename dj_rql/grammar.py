@@ -53,7 +53,8 @@ searching: search_term _L_BRACE prop _COMMA val _R_BRACE
 
 ordering: ordering_term _signed_props
 select: select_term _signed_props
-_signed_props: _L_BRACE sign_prop (_COMMA sign_prop)* _R_BRACE
+_signed_props: _L_BRACE _R_BRACE
+    | _L_BRACE sign_prop (_COMMA sign_prop)* _R_BRACE
     
 val: prop
     | QUOTED_VAL

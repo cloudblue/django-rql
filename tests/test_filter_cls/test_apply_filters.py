@@ -6,8 +6,9 @@ import pytest
 from django.db.models import Q
 from django.utils.timezone import now
 
-from dj_rql.constants import ListOperators, RQL_NULL
+from dj_rql.constants import FilterLookups, ListOperators, RQL_NULL
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError
+from dj_rql.filter_cls import RQLFilterClass
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
 from tests.test_filter_cls.utils import book_qs, create_books
@@ -217,6 +218,12 @@ def test_ordering_by_several_filters():
         list(book_qs.order_by('author__email', '-published_at'))
 
 
+@pytest.mark.django_db
+def test_ordering_by_empty_value():
+    books = create_books()
+    assert apply_filters('ordering()') == books
+
+
 def test_several_ordering_operations():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters('ordering(d_id)&ordering(author.email)')
@@ -274,3 +281,57 @@ def test_custom_filter_list_lookup_fail(operator):
     with pytest.raises(RQLFilterLookupError) as e:
         CustomCls(book_qs).apply_filters('{}(no_list_lookup,(1,2))'.format(operator))
     assert e.value.details['lookup'] == operator
+
+
+@pytest.mark.django_db
+def test_custom_filter_ordering():
+    class CustomCls(BooksFilterClass):
+        def build_name_for_custom_ordering(self, filter_name):
+            return 'id'
+
+        def assert_ordering(self, filter_name, expected):
+            assert list(self.apply_filters('ordering({})'.format(filter_name))[1]) == expected
+
+    books = create_books()
+
+    CustomCls(book_qs).assert_ordering('ordering_filter', [books[0], books[1]])
+    CustomCls(book_qs).assert_ordering('-ordering_filter', [books[1], books[0]])
+
+
+@pytest.mark.django_db
+def test_custom_filter_search_ok(mocker):
+    class CustomCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'search_filter',
+            'custom': True,
+            'search': True,
+            'lookups': {FilterLookups.I_LIKE}
+        }]
+
+        def assert_search(self, value, expected):
+            assert list(self.apply_filters('search={}'.format(value))[1]) == expected
+
+        @classmethod
+        def side_effect(cls, *args, **kwargs):
+            django_lookup = kwargs['django_lookup']
+            return Q(**{
+                'title__{}'.format(django_lookup): cls._get_searching_typed_value(
+                    django_lookup, args[-1],
+                )
+            })
+
+    build_q_for_custom_filter_patch = mocker.patch.object(
+        CustomCls, 'build_q_for_custom_filter', side_effect=CustomCls.side_effect,
+    )
+
+    books = [
+        Book.objects.create(title='book'),
+        Book.objects.create(title='another'),
+    ]
+
+    CustomCls(book_qs).assert_search('ok', [books[0]])
+    CustomCls(book_qs).assert_search('AN', [books[1]])
+    CustomCls(book_qs).assert_search('o', books)
+
+    assert build_q_for_custom_filter_patch.call_count == 3
