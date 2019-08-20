@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 from uuid import uuid4
 
 from django.db import models
+from django_fsm import FSMField
 from model_utils import Choices
 
 
@@ -50,6 +51,12 @@ class Book(models.Model):
         ('two', 'II'),
     )
     str_choice_field = models.CharField(max_length=5, choices=STR_CHOICES, default=STR_CHOICES.one)
+
+    STATE_VERBS = Choices(
+        'submit', 'refine', 'deploy', 'complete', 'cancel',
+    )
+
+    fsm_field = FSMField(default=STR_CHOICES.one, choices=STR_CHOICES, null=True)
 
 
 class Page(models.Model):

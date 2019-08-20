@@ -72,12 +72,13 @@ def test_building_filters():
         't__in': {'orm_route': 'title', 'lookups': FL.string()},
         'github_stars': {'orm_route': 'github_stars', 'lookups': FL.numeric()},
         'ordering_filter': {'custom': True, 'ordering': True},
+        'fsm': {'orm_route': 'fsm_field', 'lookups': FL.string()},
     }
 
     assert_filter_cls(
         BooksFilterClass, expected_sub_dct,
-        {'author.email', 'published.at', 'd_id', 'int_choice_field', 'ordering_filter'},
-        {'title', 'author.email', 'author__email', 'str_choice_field'},
+        {'author.email', 'published.at', 'd_id', 'int_choice_field', 'ordering_filter', 'fsm'},
+        {'title', 'author.email', 'author__email', 'str_choice_field', 'fsm'},
     )
 
 

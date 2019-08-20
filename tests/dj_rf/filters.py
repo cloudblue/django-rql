@@ -105,4 +105,9 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'ordering_filter',
         'custom': True,
         'ordering': True,
+    }, {
+        'filter': 'fsm',
+        'source': 'fsm_field',
+        'ordering': True,
+        'search': True,
     }]
