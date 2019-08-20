@@ -21,3 +21,4 @@ scandir==1.10.0
 typing==3.6.6
 django-model-utils==3.2.0
 pytest-mock==1.10.4
+django-fsm==2.6.1

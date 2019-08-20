@@ -79,28 +79,26 @@ class FilterTypes(object):
 
     @classmethod
     def field_filter_type(cls, field):
-        mapper = {
-            models.AutoField: cls.INT,
-            models.BigAutoField: cls.INT,
-            models.BigIntegerField: cls.INT,
-            models.BooleanField: cls.BOOLEAN,
-            models.CharField: cls.STRING,
-            models.DateField: cls.DATE,
-            models.DateTimeField: cls.DATETIME,
-            models.DecimalField: cls.DECIMAL,
-            models.EmailField: cls.STRING,
-            models.FloatField: cls.FLOAT,
-            models.IntegerField: cls.INT,
-            models.NullBooleanField: cls.BOOLEAN,
-            models.PositiveIntegerField: cls.INT,
-            models.PositiveSmallIntegerField: cls.INT,
-            models.SlugField: cls.STRING,
-            models.SmallIntegerField: cls.INT,
-            models.TextField: cls.STRING,
-            models.URLField: cls.STRING,
-            models.UUIDField: cls.STRING,
-        }
-        return mapper[type(field)]
+        mapper = [
+            (models.AutoField, cls.INT),
+            (models.BooleanField, cls.BOOLEAN),
+            (models.NullBooleanField, cls.BOOLEAN),
+            (models.DateTimeField, cls.DATETIME),
+            (models.DateField, cls.DATE),
+            (models.DecimalField, cls.DECIMAL),
+            (models.FloatField, cls.FLOAT),
+            (models.IntegerField, cls.INT),
+            (models.TextField, cls.STRING),
+            (models.UUIDField, cls.STRING),
+            (models.CharField, cls.STRING),
+        ]
+        return next(
+            (
+                filter_type for base_cls, filter_type in mapper
+                if issubclass(field.__class__, base_cls)
+            ),
+            cls.STRING,
+        )
 
     @classmethod
     def default_field_filter_lookups(cls, field):

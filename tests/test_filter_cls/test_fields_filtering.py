@@ -262,6 +262,20 @@ def test_d_id():
 
 
 @pytest.mark.django_db
+def test_fsm():
+    filter_name = 'fsm'
+    books = [
+        Book.objects.create(fsm_field=Book.STR_CHOICES.one),
+        Book.objects.create(fsm_field=Book.STR_CHOICES.two),
+        Book.objects.create(fsm_field=None),
+    ]
+
+    assert filter_field(filter_name, CO.EQ, Book.STR_CHOICES.one) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, Book.STR_CHOICES.two) == [books[1]]
+    assert filter_field(filter_name, CO.NE, RQL_NULL) == [books[0], books[1]]
+
+
+@pytest.mark.django_db
 def test_int_choice_field():
     filter_name = 'int_choice_field'
     books = [Book.objects.create(int_choice_field=choice) for choice, _ in Book.INT_CHOICES]
