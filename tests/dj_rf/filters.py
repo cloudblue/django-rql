@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from django.db.models import IntegerField, CharField, AutoField
+
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.constants import FilterLookups, RQL_NULL
 from tests.dj_rf.models import Book
@@ -109,5 +111,36 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'fsm',
         'source': 'fsm_field',
         'ordering': True,
+        'search': True,
+    }, {
+        'filter': 'anno_int',
+        'dynamic': True,
+        'field': IntegerField(),
+        'lookups': {FilterLookups.EQ},
+        'ordering': True,
+    }, {
+        'filter': 'anno_str',
+        'dynamic': True,
+        'field': CharField(),
+        'search': True,
+    }, {
+        'filter': 'anno_int_ref',
+        'dynamic': True,
+        'field': IntegerField(),
+        'source': 'anno_int',
+        'ordering': True,
+    }, {
+        'filter': 'anno_auto',
+        'dynamic': True,
+        'field': AutoField(null=True),
+    }, {
+        'filter': 'anno_title_non_dynamic',
+        'dynamic': False,
+        'source': 'title',
+    }, {
+        'filter': 'anno_title_dynamic',
+        'dynamic': True,
+        'source': 'title',
+        'field': CharField(),
         'search': True,
     }]

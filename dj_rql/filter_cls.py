@@ -189,8 +189,13 @@ class RQLFilterClass(object):
                 self._add_filter_item(
                     field_filter_route, self._build_mapped_item(field, field_orm_route),
                 )
+                continue
 
-            elif 'namespace' in item:
+            if 'namespace' in item:
+                for option in ('filter', 'dynamic', 'custom'):
+                    assert option not in item, \
+                        "'{}' is not supported by namespaces: {}.".format(option, item['namespace'])
+
                 related_filter_route = '{}{}.'.format(filter_route, item['namespace'])
                 orm_field_name = item.get('source', item['namespace'])
                 related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
@@ -200,39 +205,44 @@ class RQLFilterClass(object):
                     item.get('filters', []), related_filter_route,
                     related_orm_route, related_model,
                 )
+                continue
 
-            elif item.get('custom'):
+            assert 'filter' in item, "All extended filters must have set 'filter' set."
+
+            if item.get('custom', False):
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
                 self._add_filter_item(field_filter_route, item)
                 self._register_ordering_and_search(item, field_filter_route)
+                continue
 
-            else:
-                field_filter_route = '{}{}'.format(filter_route, item['filter'])
-                self._check_use_repr(item, field_filter_route)
+            field_filter_route = '{}{}'.format(filter_route, item['filter'])
+            self._check_use_repr(item, field_filter_route)
+            self._check_dynamic(item, field_filter_route, filter_route)
 
-                kwargs = {
-                    'lookups': item.get('lookups'),
-                    'use_repr': item.get('use_repr'),
-                    'null_values': item.get('null_values'),
-                }
+            field = item.get('field')
+            kwargs = {
+                'lookups': item.get('lookups'),
+                'use_repr': item.get('use_repr'),
+                'null_values': item.get('null_values'),
+            }
 
-                if 'sources' in item:
-                    items = []
-                    for source in item['sources']:
-                        full_orm_route = '{}{}'.format(orm_route, source)
-                        field = self._get_field(model, source)
-                        items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
-                        self._check_search(item, field_filter_route, field)
-
-                else:
-                    orm_field_name = item.get('source', item['filter'])
-                    full_orm_route = '{}{}'.format(orm_route, orm_field_name)
-                    field = self._get_field(model, orm_field_name)
-                    items = self._build_mapped_item(field, full_orm_route, **kwargs)
+            if 'sources' in item:
+                items = []
+                for source in item['sources']:
+                    full_orm_route = '{}{}'.format(orm_route, source)
+                    field = field or self._get_field(model, source)
+                    items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
                     self._check_search(item, field_filter_route, field)
 
-                self._add_filter_item(field_filter_route, items)
-                self._register_ordering_and_search(item, field_filter_route)
+            else:
+                orm_field_name = item.get('source', item['filter'])
+                full_orm_route = '{}{}'.format(orm_route, orm_field_name)
+                field = field or self._get_field(model, orm_field_name)
+                items = self._build_mapped_item(field, full_orm_route, **kwargs)
+                self._check_search(item, field_filter_route, field)
+
+            self._add_filter_item(field_filter_route, items)
+            self._register_ordering_and_search(item, field_filter_route)
 
     def _add_filter_item(self, filter_name, item):
         assert filter_name not in RESERVED_FILTER_NAMES, \
@@ -269,10 +279,16 @@ class RQLFilterClass(object):
     def _get_field_name_parts(field_name):
         return field_name.split('.' if '.' in field_name else '__') if field_name else []
 
-    @staticmethod
-    def _build_mapped_item(field, field_orm_route, lookups=None, use_repr=None, null_values=None):
+    @classmethod
+    def _build_mapped_item(cls,
+                           field,
+                           field_orm_route,
+                           lookups=None,
+                           use_repr=None,
+                           null_values=None,
+                           ):
         possible_lookups = lookups or FilterTypes.default_field_filter_lookups(field)
-        if not (field.null or field == field.model._meta.pk):
+        if not (field.null or cls._is_pk_field(field)):
             possible_lookups.discard(FilterLookups.NULL)
 
         result = {
@@ -286,6 +302,10 @@ class RQLFilterClass(object):
             result['use_repr'] = use_repr
 
         return result
+
+    @staticmethod
+    def _is_pk_field(field):
+        return field == field.model._meta.pk if hasattr(field, 'model') else False
 
     @staticmethod
     def _get_model_field(model, field_name):
@@ -512,6 +532,18 @@ class RQLFilterClass(object):
             "{}: 'use_repr' and 'ordering' can't be used together.".format(filter_name)
         assert not (filter_item.get('use_repr') and filter_item.get('search')), \
             "{}: 'use_repr' and 'search' can't be used together.".format(filter_name)
+
+    @staticmethod
+    def _check_dynamic(filter_item, filter_name, filter_route):
+        field = filter_item.get('field')
+        if filter_item.get('dynamic', False):
+            assert filter_route == '', \
+                "Dynamic fields are not supported in namespaces: {}.".format(filter_name)
+            assert field is not None, \
+                "Dynamic fields must have 'field' set: {}.".format(filter_name)
+        else:
+            assert field is None, \
+                "Non Dynamic fields can't have 'field' set: {}.".format(filter_name)
 
     @staticmethod
     def _check_search(filter_item, filter_name, field):

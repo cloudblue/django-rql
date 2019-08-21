@@ -58,7 +58,7 @@ class ModelFilterClass(RQLFilterClass):
         
         'use_repr': bool  # can't be used in namespaces
         'ordering': bool  # can't be true if 'use_repr=True'
-        'search': bool
+        'search': bool    # can't be true if 'use_repr=True'
     }
     
     """
@@ -71,12 +71,12 @@ class ModelFilterClass(RQLFilterClass):
         'ordering': False,
     }, {
         # `ordering` can be set to True, if filter must support ordering (sorting)
-        # `ordering` must can't be applied to non-db fields
+        # `ordering` can't be applied to non-db fields
         'filter': 'status',
         'ordering': True,
     }, {
         # `search` must be set to True for filter to be used in searching
-        # `search` must be applied only to text fields, which have ilike lookup
+        # `search` must be applied only to text db-fields, which have ilike lookup
         'filter': 'author__email',
         'search': True,
     }, {
@@ -95,7 +95,6 @@ class ModelFilterClass(RQLFilterClass):
         'filter': 'rating.blog',
         'source': 'blog_rating',
         'use_repr': True,
-        'ordering': True,
     }, {
         'filter': 'rating.blog_int',
         'source': 'blog_rating',
@@ -116,6 +115,9 @@ class ModelFilterClass(RQLFilterClass):
         # `custom` option must be set to True for such fields
         'filter': 'custom_filter',
         'custom': True,
+        'lookups': {FilterLookups.EQ, FilterLookups.IN, FilterLookups.I_LIKE},
+        'ordering': True,
+        'search': True,
         
         'custom_data': [1],
     }]
@@ -141,6 +143,7 @@ Best Practices
 ==============
 1. Use `dj_rql.utils.assert_filter_cls` to test your API view filters. If the mappings are correct and there is no custom filtering logic, then it's practically guaranteed, that filtering will work correctly.
 0. Prefer using `custom=True` with `RQLFilterClass.build_q_for_custom_filter` overriding over overriding `RQLFilterClass.build_q_for_filter`.
+0. Custom filters may support ordering (`ordering=True`) with `build_name_for_custom_ordering`.
 
 Development
 ===========

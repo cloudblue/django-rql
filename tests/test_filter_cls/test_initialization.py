@@ -73,12 +73,35 @@ def test_building_filters():
         'github_stars': {'orm_route': 'github_stars', 'lookups': FL.numeric()},
         'ordering_filter': {'custom': True, 'ordering': True},
         'fsm': {'orm_route': 'fsm_field', 'lookups': FL.string()},
+        'anno_int': {'orm_route': 'anno_int', 'lookups': {FL.EQ}},
+        'anno_int_ref': {'orm_route': 'anno_int', 'lookups': non_null_numeric_lookups},
+        'anno_str': {'orm_route': 'anno_str', 'lookups': non_null_string_lookups},
+        'anno_auto': {'orm_route': 'anno_auto', 'lookups': FL.numeric()},
+        'anno_title_non_dynamic': {'orm_route': 'title', 'lookups': FL.string()},
+        'anno_title_dynamic': {'orm_route': 'title', 'lookups': non_null_string_lookups},
     }
 
     assert_filter_cls(
         BooksFilterClass, expected_sub_dct,
-        {'author.email', 'published.at', 'd_id', 'int_choice_field', 'ordering_filter', 'fsm'},
-        {'title', 'author.email', 'author__email', 'str_choice_field', 'fsm'},
+        {
+            'author.email',
+            'published.at',
+            'd_id',
+            'int_choice_field',
+            'ordering_filter',
+            'fsm',
+            'anno_int',
+            'anno_int_ref',
+        },
+        {
+            'title',
+            'author.email',
+            'author__email',
+            'str_choice_field',
+            'fsm',
+            'anno_str',
+            'anno_title_dynamic',
+        },
     )
 
 

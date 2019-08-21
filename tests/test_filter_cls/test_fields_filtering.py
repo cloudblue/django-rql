@@ -276,6 +276,15 @@ def test_fsm():
 
 
 @pytest.mark.django_db
+def test_anno_int_ok():
+    filter_name = 'anno_int'
+    books = create_books()
+
+    assert filter_field(filter_name, CO.EQ, 10) == []
+    assert filter_field(filter_name, CO.EQ, 1000) == books
+
+
+@pytest.mark.django_db
 def test_int_choice_field():
     filter_name = 'int_choice_field'
     books = [Book.objects.create(int_choice_field=choice) for choice, _ in Book.INT_CHOICES]
