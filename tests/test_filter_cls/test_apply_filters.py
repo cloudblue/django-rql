@@ -3,7 +3,8 @@ from __future__ import unicode_literals
 from functools import partial
 
 import pytest
-from django.db.models import Q
+from django.core.exceptions import FieldError
+from django.db.models import Q, IntegerField
 from django.utils.timezone import now
 
 from dj_rql.constants import FilterLookups, ListOperators, RQL_NULL
@@ -335,3 +336,18 @@ def test_custom_filter_search_ok(mocker):
     CustomCls(book_qs).assert_search('o', books)
 
     assert build_q_for_custom_filter_patch.call_count == 3
+
+
+@pytest.mark.django_db
+def test_dynamic_no_annotation():
+    class CustomCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'anno',
+            'dynamic': True,
+            'field': IntegerField(),
+        }]
+
+    # We want to be error unhandled in this case
+    with pytest.raises(FieldError):
+        CustomCls(book_qs).apply_filters('anno=5')

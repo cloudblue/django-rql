@@ -276,12 +276,69 @@ def test_fsm():
 
 
 @pytest.mark.django_db
-def test_anno_int_ok():
-    filter_name = 'anno_int'
+@pytest.mark.parametrize('filter_name', ('anno_int', 'anno_int_ref'))
+def test_anno_int_ok(filter_name):
     books = create_books()
 
     assert filter_field(filter_name, CO.EQ, 10) == []
     assert filter_field(filter_name, CO.EQ, 1000) == books
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('filter_name', ('anno_int', 'anno_int_ref'))
+def test_anno_int_fail_lookup(filter_name):
+    with pytest.raises(RQLFilterLookupError):
+        filter_field(filter_name, SearchOperators.I_LIKE, 10)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('filter_name', ('anno_int', 'anno_int_ref'))
+def test_anno_int_fail_value(filter_name):
+    with pytest.raises(RQLFilterValueError):
+        filter_field(filter_name, CO.EQ, 'val')
+
+
+@pytest.mark.django_db
+def test_anno_str_ok():
+    filter_name = 'anno_str'
+    books = create_books()
+
+    assert filter_field(filter_name, CO.EQ, 'te') == []
+    assert filter_field(filter_name, CO.EQ, 'text') == books
+
+
+@pytest.mark.django_db
+def test_anno_auto_ok():
+    filter_name = 'anno_auto'
+
+    books = create_books()
+    assert filter_field(filter_name, CO.EQ, RQL_NULL) == []
+    assert filter_field(filter_name, CO.EQ, 1) == [books[0]]
+    assert filter_field(filter_name, CO.NE, 1) == [books[1]]
+
+
+@pytest.mark.django_db
+def test_anno_title_non_dynamic():
+    filter_name = 'anno_title_non_dynamic'
+
+    books = create_books()
+    books[0].title = 'text'
+    books[0].save(update_fields=['title'])
+
+    assert filter_field(filter_name, CO.EQ, RQL_NULL) == [books[1]]
+    assert filter_field(filter_name, CO.EQ, 'text') == [books[0]]
+
+
+@pytest.mark.django_db
+def test_anno_title_dynamic():
+    filter_name = 'anno_title_dynamic'
+
+    books = create_books()
+    books[0].title = 'text'
+    books[0].save(update_fields=['title'])
+
+    assert filter_field(filter_name, CO.EQ, 'text') == [books[0]]
+    assert filter_field(filter_name, SearchOperators.I_LIKE, 'Te*') == [books[0]]
 
 
 @pytest.mark.django_db
@@ -454,3 +511,9 @@ def test_custom_filter_fail():
     with pytest.raises(RQLFilterParsingError) as e:
         filter_field('custom_filter', SearchOperators.I_LIKE, 'value')
     assert e.value.details['error'] == 'Filter logic is not implemented: custom_filter.'
+
+
+def test_custom_filter_ordering_fail():
+    with pytest.raises(RQLFilterParsingError) as e:
+        BooksFilterClass(book_qs).build_name_for_custom_ordering('custom_filter')
+    assert e.value.details['error'] == 'Ordering logic is not implemented: custom_filter.'

@@ -189,6 +189,78 @@ def test_bad_use_repr_and_search():
     assert str(e.value) == "str_choice_field: 'use_repr' and 'search' can't be used together."
 
 
+@pytest.mark.parametrize('option', ('filter', 'dynamic', 'custom'))
+def test_bad_option_in_namespace(option):
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'namespace': 'title',
+            option: True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "title: '{}' is not supported by namespaces.".format(option)
+
+
+def test_bad_item_structure():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'source': 'title',
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "All extended filters must have set 'filter' set."
+
+
+def test_bad_dynamic_in_namespace():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'namespace': 'author',
+            'filters': [{
+                'filter': 'a',
+                'dynamic': True,
+            }]
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "author.a: dynamic filters are not supported in namespaces."
+
+
+def test_dynamic_field_not_set():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'title',
+            'dynamic': True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "title: dynamic filters must have 'field' set."
+
+
+def test_bad_dynamic_set():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'custom',
+            'custom': True,
+            'field': True,
+        }, {
+            'filter': 'common',
+            'field': True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "common: common filters can't have 'field' set."
+
+
 def test_bad_search():
     class Cls(RQLFilterClass):
         MODEL = Book

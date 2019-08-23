@@ -194,7 +194,7 @@ class RQLFilterClass(object):
             if 'namespace' in item:
                 for option in ('filter', 'dynamic', 'custom'):
                     assert option not in item, \
-                        "'{}' is not supported by namespaces: {}.".format(option, item['namespace'])
+                        "{}: '{}' is not supported by namespaces.".format(item['namespace'], option)
 
                 related_filter_route = '{}{}.'.format(filter_route, item['namespace'])
                 orm_field_name = item.get('source', item['namespace'])
@@ -520,7 +520,7 @@ class RQLFilterClass(object):
     @staticmethod
     def remove_quotes(str_value):
         # Values can start with single or double quotes, if they have special chars inside them
-        return str_value[1:-1] if str_value[0] in ('"', "'") else str_value
+        return str_value[1:-1] if str_value and str_value[0] in ('"', "'") else str_value
 
     @staticmethod
     def _is_searching_lookup(filter_lookup):
@@ -538,12 +538,12 @@ class RQLFilterClass(object):
         field = filter_item.get('field')
         if filter_item.get('dynamic', False):
             assert filter_route == '', \
-                "Dynamic fields are not supported in namespaces: {}.".format(filter_name)
+                "{}: dynamic filters are not supported in namespaces.".format(filter_name)
             assert field is not None, \
-                "Dynamic fields must have 'field' set: {}.".format(filter_name)
+                "{}: dynamic filters must have 'field' set.".format(filter_name)
         else:
-            assert field is None, \
-                "Non Dynamic fields can't have 'field' set: {}.".format(filter_name)
+            assert not filter_item.get('custom', False) and field is None, \
+                "{}: common filters can't have 'field' set.".format(filter_name)
 
     @staticmethod
     def _check_search(filter_item, filter_name, field):
