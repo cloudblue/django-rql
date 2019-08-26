@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 
 from tests.dj_rf.models import Book
+from tests.dj_rf.view import apply_annotations
 
-book_qs = Book.objects.order_by('id')
+book_qs = apply_annotations(Book.objects.order_by('id'))
 
 
 def create_books(count=2):

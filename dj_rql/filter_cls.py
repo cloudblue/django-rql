@@ -17,6 +17,7 @@ from dj_rql.constants import (
     RQL_EMPTY,
     RQL_FALSE,
     RQL_NULL,
+    RQL_SEARCH_PARAM,
     RQL_TRUE,
     SUPPORTED_FIELD_TYPES,
 )
@@ -30,11 +31,14 @@ iterable_types = (list, tuple)
 class RQLFilterClass(object):
     MODEL = None
     FILTERS = None
+    EXTENDED_SEARCH_ORM_ROUTES = tuple()
 
     def __init__(self, queryset):
         assert self.MODEL, 'Model must be set for Filter Class.'
         assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, \
             'List of filters must be set for Filter Class.'
+        assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), \
+            'Extended search ORM routes must be iterable.'
 
         self.ordering_filters = set()
         self.search_filters = set()
@@ -79,11 +83,15 @@ class RQLFilterClass(object):
         except LarkError as e:
             # Lark reraises it's errors, but the original ones are needed
             raise e.orig_exc
+
         self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
         return rql_ast, self.queryset
 
     def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
         """ Django Q() builder for the given expression. """
+        if filter_name == RQL_SEARCH_PARAM:
+            return self._build_q_for_search(operator, str_value)
+
         base_item = self.get_filter_base_item(filter_name)
         if not base_item:
             return Q()
@@ -141,6 +149,45 @@ class RQLFilterClass(object):
         if filter_item:
             return filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
 
+    def _build_q_for_search(self, operator, str_value):
+        if operator != ComparisonOperators.EQ:
+            raise RQLFilterParsingError(details={
+                'error': 'Bad search filter: {}.'.format(operator),
+            })
+
+        unquoted_value = self.remove_quotes(str_value)
+        if not unquoted_value.startswith(RQL_ANY_SYMBOL):
+            unquoted_value = '*' + unquoted_value
+
+        if not unquoted_value.endswith(RQL_ANY_SYMBOL):
+            unquoted_value += '*'
+
+        q = self._build_q_for_extended_search(unquoted_value)
+        for filter_name in self.search_filters:
+            q |= self.build_q_for_filter(
+                filter_name, SearchOperators.I_LIKE, unquoted_value,
+            )
+
+        return q
+
+    def _build_q_for_extended_search(self, str_value):
+        q = Q()
+        extended_search_filter_lookup = FilterLookups.I_LIKE
+
+        for django_orm_route in self.EXTENDED_SEARCH_ORM_ROUTES:
+            django_lookup = self._get_searching_django_lookup(
+                extended_search_filter_lookup, str_value,
+            )
+            typed_value = self._get_searching_typed_value(django_lookup, str_value)
+            q |= self._build_django_q(
+                {'orm_route': django_orm_route},
+                django_lookup,
+                extended_search_filter_lookup,
+                typed_value,
+            )
+
+        return q
+
     def _apply_ordering(self, qs, properties):
         if len(properties) == 0:
             return qs
@@ -189,8 +236,13 @@ class RQLFilterClass(object):
                 self._add_filter_item(
                     field_filter_route, self._build_mapped_item(field, field_orm_route),
                 )
+                continue
 
-            elif 'namespace' in item:
+            if 'namespace' in item:
+                for option in ('filter', 'dynamic', 'custom'):
+                    assert option not in item, \
+                        "{}: '{}' is not supported by namespaces.".format(item['namespace'], option)
+
                 related_filter_route = '{}{}.'.format(filter_route, item['namespace'])
                 orm_field_name = item.get('source', item['namespace'])
                 related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
@@ -200,39 +252,44 @@ class RQLFilterClass(object):
                     item.get('filters', []), related_filter_route,
                     related_orm_route, related_model,
                 )
+                continue
 
-            elif item.get('custom'):
+            assert 'filter' in item, "All extended filters must have set 'filter' set."
+
+            if item.get('custom', False):
                 field_filter_route = '{}{}'.format(filter_route, item['filter'])
                 self._add_filter_item(field_filter_route, item)
                 self._register_ordering_and_search(item, field_filter_route)
+                continue
 
-            else:
-                field_filter_route = '{}{}'.format(filter_route, item['filter'])
-                self._check_use_repr(item, field_filter_route)
+            field_filter_route = '{}{}'.format(filter_route, item['filter'])
+            self._check_use_repr(item, field_filter_route)
+            self._check_dynamic(item, field_filter_route, filter_route)
 
-                kwargs = {
-                    'lookups': item.get('lookups'),
-                    'use_repr': item.get('use_repr'),
-                    'null_values': item.get('null_values'),
-                }
+            field = item.get('field')
+            kwargs = {
+                'lookups': item.get('lookups'),
+                'use_repr': item.get('use_repr'),
+                'null_values': item.get('null_values'),
+            }
 
-                if 'sources' in item:
-                    items = []
-                    for source in item['sources']:
-                        full_orm_route = '{}{}'.format(orm_route, source)
-                        field = self._get_field(model, source)
-                        items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
-                        self._check_search(item, field_filter_route, field)
-
-                else:
-                    orm_field_name = item.get('source', item['filter'])
-                    full_orm_route = '{}{}'.format(orm_route, orm_field_name)
-                    field = self._get_field(model, orm_field_name)
-                    items = self._build_mapped_item(field, full_orm_route, **kwargs)
+            if 'sources' in item:
+                items = []
+                for source in item['sources']:
+                    full_orm_route = '{}{}'.format(orm_route, source)
+                    field = field or self._get_field(model, source)
+                    items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
                     self._check_search(item, field_filter_route, field)
 
-                self._add_filter_item(field_filter_route, items)
-                self._register_ordering_and_search(item, field_filter_route)
+            else:
+                orm_field_name = item.get('source', item['filter'])
+                full_orm_route = '{}{}'.format(orm_route, orm_field_name)
+                field = field or self._get_field(model, orm_field_name)
+                items = self._build_mapped_item(field, full_orm_route, **kwargs)
+                self._check_search(item, field_filter_route, field)
+
+            self._add_filter_item(field_filter_route, items)
+            self._register_ordering_and_search(item, field_filter_route)
 
     def _add_filter_item(self, filter_name, item):
         assert filter_name not in RESERVED_FILTER_NAMES, \
@@ -269,10 +326,16 @@ class RQLFilterClass(object):
     def _get_field_name_parts(field_name):
         return field_name.split('.' if '.' in field_name else '__') if field_name else []
 
-    @staticmethod
-    def _build_mapped_item(field, field_orm_route, lookups=None, use_repr=None, null_values=None):
+    @classmethod
+    def _build_mapped_item(cls,
+                           field,
+                           field_orm_route,
+                           lookups=None,
+                           use_repr=None,
+                           null_values=None,
+                           ):
         possible_lookups = lookups or FilterTypes.default_field_filter_lookups(field)
-        if not (field.null or field == field.model._meta.pk):
+        if not (field.null or cls._is_pk_field(field)):
             possible_lookups.discard(FilterLookups.NULL)
 
         result = {
@@ -286,6 +349,10 @@ class RQLFilterClass(object):
             result['use_repr'] = use_repr
 
         return result
+
+    @staticmethod
+    def _is_pk_field(field):
+        return field == field.model._meta.pk if hasattr(field, 'model') else False
 
     @staticmethod
     def _get_model_field(model, field_name):
@@ -500,7 +567,7 @@ class RQLFilterClass(object):
     @staticmethod
     def remove_quotes(str_value):
         # Values can start with single or double quotes, if they have special chars inside them
-        return str_value[1:-1] if str_value[0] in ('"', "'") else str_value
+        return str_value[1:-1] if str_value and str_value[0] in ('"', "'") else str_value
 
     @staticmethod
     def _is_searching_lookup(filter_lookup):
@@ -512,6 +579,18 @@ class RQLFilterClass(object):
             "{}: 'use_repr' and 'ordering' can't be used together.".format(filter_name)
         assert not (filter_item.get('use_repr') and filter_item.get('search')), \
             "{}: 'use_repr' and 'search' can't be used together.".format(filter_name)
+
+    @staticmethod
+    def _check_dynamic(filter_item, filter_name, filter_route):
+        field = filter_item.get('field')
+        if filter_item.get('dynamic', False):
+            assert filter_route == '', \
+                "{}: dynamic filters are not supported in namespaces.".format(filter_name)
+            assert field is not None, \
+                "{}: dynamic filters must have 'field' set.".format(filter_name)
+        else:
+            assert not filter_item.get('custom', False) and field is None, \
+                "{}: common filters can't have 'field' set.".format(filter_name)
 
     @staticmethod
     def _check_search(filter_item, filter_name, field):

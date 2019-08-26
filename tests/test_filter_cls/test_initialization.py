@@ -73,12 +73,35 @@ def test_building_filters():
         'github_stars': {'orm_route': 'github_stars', 'lookups': FL.numeric()},
         'ordering_filter': {'custom': True, 'ordering': True},
         'fsm': {'orm_route': 'fsm_field', 'lookups': FL.string()},
+        'anno_int': {'orm_route': 'anno_int', 'lookups': {FL.EQ}},
+        'anno_int_ref': {'orm_route': 'anno_int', 'lookups': non_null_numeric_lookups},
+        'anno_str': {'orm_route': 'anno_str', 'lookups': non_null_string_lookups},
+        'anno_auto': {'orm_route': 'anno_auto', 'lookups': FL.numeric()},
+        'anno_title_non_dynamic': {'orm_route': 'title', 'lookups': FL.string()},
+        'anno_title_dynamic': {'orm_route': 'title', 'lookups': non_null_string_lookups},
     }
 
     assert_filter_cls(
         BooksFilterClass, expected_sub_dct,
-        {'author.email', 'published.at', 'd_id', 'int_choice_field', 'ordering_filter', 'fsm'},
-        {'title', 'author.email', 'author__email', 'str_choice_field', 'fsm'},
+        {
+            'author.email',
+            'published.at',
+            'd_id',
+            'int_choice_field',
+            'ordering_filter',
+            'fsm',
+            'anno_int',
+            'anno_int_ref',
+        },
+        {
+            'title',
+            'author.email',
+            'author__email',
+            'str_choice_field',
+            'fsm',
+            'anno_str',
+            'anno_title_dynamic',
+        },
     )
 
 
@@ -91,6 +114,15 @@ def test_model_is_not_set():
     with pytest.raises(AssertionError) as e:
         RQLFilterClass(empty_qs)
     assert str(e.value) == 'Model must be set for Filter Class.'
+
+
+def test_wrong_extended_search_setup():
+    class Cls(BooksFilterClass):
+        EXTENDED_SEARCH_ORM_ROUTES = 'invalid'
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == 'Extended search ORM routes must be iterable.'
 
 
 @pytest.mark.parametrize('filters', [None, {}, set()])
@@ -164,6 +196,78 @@ def test_bad_use_repr_and_search():
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
     assert str(e.value) == "str_choice_field: 'use_repr' and 'search' can't be used together."
+
+
+@pytest.mark.parametrize('option', ('filter', 'dynamic', 'custom'))
+def test_bad_option_in_namespace(option):
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'namespace': 'title',
+            option: True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "title: '{}' is not supported by namespaces.".format(option)
+
+
+def test_bad_item_structure():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'source': 'title',
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "All extended filters must have set 'filter' set."
+
+
+def test_bad_dynamic_in_namespace():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'namespace': 'author',
+            'filters': [{
+                'filter': 'a',
+                'dynamic': True,
+            }]
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "author.a: dynamic filters are not supported in namespaces."
+
+
+def test_dynamic_field_not_set():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'title',
+            'dynamic': True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "title: dynamic filters must have 'field' set."
+
+
+def test_bad_dynamic_set():
+    class Cls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [{
+            'filter': 'custom',
+            'custom': True,
+            'field': True,
+        }, {
+            'filter': 'common',
+            'field': True,
+        }]
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == "common: common filters can't have 'field' set."
 
 
 def test_bad_search():
