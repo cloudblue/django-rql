@@ -374,7 +374,7 @@ def test_extended_search_ok():
 
 
 @pytest.mark.django_db
-def test_extended_search_ok():
+def test_extended_search_fail():
     class CustomCls(RQLFilterClass):
         MODEL = Book
         FILTERS = ['id']
