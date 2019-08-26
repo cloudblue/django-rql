@@ -351,3 +351,35 @@ def test_dynamic_no_annotation():
     # We want to be error unhandled in this case
     with pytest.raises(FieldError):
         CustomCls(book_qs).apply_filters('anno=5')
+
+
+@pytest.mark.django_db
+def test_extended_search_ok():
+    class CustomCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = ['id']
+        EXTENDED_SEARCH_ORM_ROUTES = ['title']
+
+        def assert_search(self, value, expected):
+            assert list(self.apply_filters('search={}'.format(value))[1]) == expected
+
+    books = [
+        Book.objects.create(title='book'),
+        Book.objects.create(title='another'),
+    ]
+
+    CustomCls(book_qs).assert_search('ok', [books[0]])
+    CustomCls(book_qs).assert_search('AN', [books[1]])
+    CustomCls(book_qs).assert_search('o', books)
+
+
+@pytest.mark.django_db
+def test_extended_search_ok():
+    class CustomCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = ['id']
+        EXTENDED_SEARCH_ORM_ROUTES = ['invalid']
+
+    # We want to be error unhandled in this case
+    with pytest.raises(FieldError):
+        CustomCls(book_qs).apply_filters('search=text')

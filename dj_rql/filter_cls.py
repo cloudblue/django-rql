@@ -17,6 +17,7 @@ from dj_rql.constants import (
     RQL_EMPTY,
     RQL_FALSE,
     RQL_NULL,
+    RQL_SEARCH_PARAM,
     RQL_TRUE,
     SUPPORTED_FIELD_TYPES,
 )
@@ -30,11 +31,14 @@ iterable_types = (list, tuple)
 class RQLFilterClass(object):
     MODEL = None
     FILTERS = None
+    EXTENDED_SEARCH_ORM_ROUTES = tuple()
 
     def __init__(self, queryset):
         assert self.MODEL, 'Model must be set for Filter Class.'
         assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, \
             'List of filters must be set for Filter Class.'
+        assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), \
+            'Extended search ORM routes must be iterable.'
 
         self.ordering_filters = set()
         self.search_filters = set()
@@ -79,11 +83,15 @@ class RQLFilterClass(object):
         except LarkError as e:
             # Lark reraises it's errors, but the original ones are needed
             raise e.orig_exc
+
         self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
         return rql_ast, self.queryset
 
     def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
         """ Django Q() builder for the given expression. """
+        if filter_name == RQL_SEARCH_PARAM:
+            return self._build_q_for_search(operator, str_value)
+
         base_item = self.get_filter_base_item(filter_name)
         if not base_item:
             return Q()
@@ -140,6 +148,45 @@ class RQLFilterClass(object):
         filter_item = self.filters.get(filter_name)
         if filter_item:
             return filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
+
+    def _build_q_for_search(self, operator, str_value):
+        if operator != ComparisonOperators.EQ:
+            raise RQLFilterParsingError(details={
+                'error': 'Bad search filter: {}.'.format(operator),
+            })
+
+        unquoted_value = self.remove_quotes(str_value)
+        if not unquoted_value.startswith(RQL_ANY_SYMBOL):
+            unquoted_value = '*' + unquoted_value
+
+        if not unquoted_value.endswith(RQL_ANY_SYMBOL):
+            unquoted_value += '*'
+
+        q = self._build_q_for_extended_search(str_value)
+        for filter_name in self.search_filters:
+            q |= self.build_q_for_filter(
+                filter_name, SearchOperators.I_LIKE, unquoted_value,
+            )
+
+        return q
+
+    def _build_q_for_extended_search(self, str_value):
+        q = Q()
+        extended_search_filter_lookup = FilterLookups.I_LIKE
+
+        for django_orm_route in self.EXTENDED_SEARCH_ORM_ROUTES:
+            django_lookup = self._get_searching_django_lookup(
+                extended_search_filter_lookup, str_value,
+            )
+            typed_value = self._get_searching_typed_value(django_lookup, str_value)
+            q |= self._build_django_q(
+                {'orm_route': django_orm_route},
+                django_lookup,
+                extended_search_filter_lookup,
+                typed_value,
+            )
+
+        return q
 
     def _apply_ordering(self, qs, properties):
         if len(properties) == 0:

@@ -39,6 +39,7 @@ class ModelFilterClass(RQLFilterClass):
     """
     MODEL - Django ORM model
     FILTERS - List of filters
+    EXTENDED_SEARCH_ORM_ROUTES - List of additional Django ORM fields for search
     
     Filters can be set in two ways:
         1) string (default settings are calculated from ORM)
@@ -136,8 +137,9 @@ class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
 Django Rest Framework Extensions
 ================================
 1. Pagination (limit, offset)
-2. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices)
-3. Backend `DjangoFiltersRQLFilterBackend` with automatic conversion of [Django-Filters](https://django-filter.readthedocs.io/en/master/) query to RQL query 
+0. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices)
+0. Support for custom fields, inherited at any depth from basic model fields, like CharField().
+0. Backend `DjangoFiltersRQLFilterBackend` with automatic conversion of [Django-Filters](https://django-filter.readthedocs.io/en/master/) query to RQL query.
 
 Best Practices
 ==============

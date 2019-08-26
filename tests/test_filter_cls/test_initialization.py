@@ -116,6 +116,15 @@ def test_model_is_not_set():
     assert str(e.value) == 'Model must be set for Filter Class.'
 
 
+def test_wrong_extended_search_setup():
+    class Cls(BooksFilterClass):
+        EXTENDED_SEARCH_ORM_ROUTES = 'invalid'
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == 'Extended search ORM routes must be iterable.'
+
+
 @pytest.mark.parametrize('filters', [None, {}, set()])
 def test_fields_are_not_set(filters):
     class Cls(RQLFilterClass):

@@ -4,10 +4,8 @@ from django.db.models import Q
 from lark import Transformer, Tree
 
 from dj_rql.constants import (
-    ComparisonOperators, ListOperators, LogicalOperators, SearchOperators,
-    RQL_ANY_SYMBOL, RQL_LIMIT_PARAM, RQL_OFFSET_PARAM, RQL_SEARCH_PARAM,
+    ComparisonOperators, ListOperators, LogicalOperators, RQL_LIMIT_PARAM, RQL_OFFSET_PARAM,
 )
-from dj_rql.exceptions import RQLFilterParsingError
 
 
 class BaseRQLTransformer(Transformer):
@@ -78,27 +76,6 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     def comp(self, args):
         prop, operation, value = self._extract_comparison(args)
-
-        if prop == RQL_SEARCH_PARAM:
-            if operation != ComparisonOperators.EQ:
-                raise RQLFilterParsingError(details={
-                    'error': 'Bad search filter: {}.'.format(operation),
-                })
-
-            unquoted_value = self._filter_cls_instance.remove_quotes(value)
-            if not unquoted_value.startswith(RQL_ANY_SYMBOL):
-                unquoted_value = '*' + unquoted_value
-
-            if not unquoted_value.endswith(RQL_ANY_SYMBOL):
-                unquoted_value += '*'
-
-            q = Q()
-            for filter_name in self._filter_cls_instance.search_filters:
-                q |= self._filter_cls_instance.build_q_for_filter(
-                    filter_name, SearchOperators.I_LIKE, unquoted_value,
-                )
-            return q
-
         return self._filter_cls_instance.build_q_for_filter(prop, operation, value)
 
     def logical(self, args):
