@@ -162,7 +162,7 @@ class RQLFilterClass(object):
         if not unquoted_value.endswith(RQL_ANY_SYMBOL):
             unquoted_value += '*'
 
-        q = self._build_q_for_extended_search(str_value)
+        q = self._build_q_for_extended_search(unquoted_value)
         for filter_name in self.search_filters:
             q |= self.build_q_for_filter(
                 filter_name, SearchOperators.I_LIKE, unquoted_value,
