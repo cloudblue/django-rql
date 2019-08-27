@@ -26,7 +26,6 @@ def test_parsing_error():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(bad_query)
     assert e.value.details['error'] == 'Bad filter query.'
-    assert e.value.details['original_error'].startswith('Unexpected token')
 
 
 def test_lookup_error():
