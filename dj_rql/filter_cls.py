@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+from uuid import uuid4
+
 import six
 from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
@@ -399,7 +401,7 @@ class RQLFilterClass(object):
 
     @classmethod
     def _get_searching_django_lookup(cls, filter_lookup, str_value):
-        val = cls.remove_quotes(str_value)
+        val, _ = cls._reflect_like_value(str_value)
 
         prefix = 'I_' if filter_lookup == FilterLookups.I_LIKE else ''
 
@@ -438,14 +440,22 @@ class RQLFilterClass(object):
             ))
 
     @classmethod
+    def _reflect_like_value(cls, str_value):
+        star_replacer = uuid4().hex
+        return '\\'.join(
+            v.replace(r'\{}'.format(RQL_ANY_SYMBOL), star_replacer)
+            for v in cls.remove_quotes(str_value).split(r'\\')
+        ), star_replacer
+
+    @classmethod
     def _get_searching_typed_value(cls, django_lookup, str_value):
-        if '{}{}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in str_value:
+        val, star_replacer = cls._reflect_like_value(str_value)
+
+        if '{}{}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in val:
             raise ValueError
 
-        val = cls.remove_quotes(str_value)
-
         if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
-            return val.replace(RQL_ANY_SYMBOL, '')
+            return val.replace(RQL_ANY_SYMBOL, '').replace(star_replacer, RQL_ANY_SYMBOL)
 
         any_symbol_regex = '(.*?)'
         if val == RQL_ANY_SYMBOL:
@@ -454,7 +464,9 @@ class RQLFilterClass(object):
         new_val = val
         new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{}'.format(new_val)
         new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{}$'.format(new_val)
-        return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex)
+        return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex).replace(
+            star_replacer, RQL_ANY_SYMBOL,
+        )
 
     @classmethod
     def _convert_value(cls, django_field, str_value, use_repr=False):
