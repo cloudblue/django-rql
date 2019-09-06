@@ -106,8 +106,8 @@ class RQLFilterClass(object):
                 else FilterLookups.OUT
             if list_filter_lookup not in available_lookups:
                 raise RQLFilterLookupError(**self._get_error_details(
-                        filter_name, list_filter_lookup, str_value,
-                    ))
+                    filter_name, list_filter_lookup, str_value,
+                ))
 
         null_values = base_item.get('null_values', set())
         filter_lookup = self._get_filter_lookup(
@@ -606,6 +606,6 @@ class RQLFilterClass(object):
 
     @staticmethod
     def _check_search(filter_item, filter_name, field):
-        assert not (filter_item.get('search') and
-                    FilterTypes.field_filter_type(field) != FilterTypes.STRING), \
+        is_non_string_field_type = FilterTypes.field_filter_type(field) != FilterTypes.STRING
+        assert not (filter_item.get('search') and is_non_string_field_type), \
             "{}: 'search' can be applied only to text filters.".format(filter_name)
