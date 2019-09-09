@@ -458,6 +458,13 @@ def test_empty_value_fail(filter_name):
     ('*val*ue', DjangoLookups.REGEX, 'val(.*?)ue$'),
     ('*val*ue*', DjangoLookups.REGEX, 'val(.*?)ue'),
     ('*', DjangoLookups.REGEX, '(.*?)'),
+    ('value\*', DjangoLookups.EXACT, 'value*'),
+    (r'value\\*', DjangoLookups.STARTSWITH, 'value\\'),
+    (r'value\\\*', DjangoLookups.EXACT, r'value\*'),
+    (r'value\**', DjangoLookups.STARTSWITH, 'value*'),
+    ('*\*\*value', DjangoLookups.ENDSWITH, '**value'),
+    ('*val\*ue*', DjangoLookups.CONTAINS, 'val*ue'),
+    ('va\*l*\*ue*', DjangoLookups.REGEX, '^va*l(.*?)*ue'),
 ])
 def test_searching_q_ok(value, db_lookup, db_value):
     cls = BooksFilterClass(book_qs)

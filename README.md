@@ -28,6 +28,7 @@ Currently supported operators
 0. Constants (null(), empty()) 
 0. Ordering (ordering)
 
+
 Example
 =======
 ```python
@@ -133,6 +134,13 @@ class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
     pagination_class = RQLContentRangeLimitOffsetPagination
     filter_backends = (RQLFilterBackend,)
 ```
+
+Notes
+=====
+0. Values with whitespaces or special characters, like ',' need to have “” or ‘’
+1. Supported date format is ISO8601: 2019-02-12
+2. Supported datetime format is ISO8601: 2019-02-12T10:02:00 / 2019-02-12T10:02Z / 2019-02-12T10:02:00+03:00
+
 
 Django Rest Framework Extensions
 ================================
