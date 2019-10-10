@@ -51,9 +51,6 @@ class BaseRQLTransformer(Transformer):
     def start(self, args):
         return args[0]
 
-    def select(self, args):
-        return Q()
-
 
 class RQLToDjangoORMTransformer(BaseRQLTransformer):
     """ Parsed RQL AST tree transformer to Django ORM Query.
@@ -118,6 +115,9 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     def ordering(self, args):
         self._ordering.append(tuple(args[1:]))
+        return Q()
+
+    def select(self, args):
         return Q()
 
 
