@@ -30,8 +30,8 @@ def test_compatibility_modify_initial_query(backend):
 
 @pytest.mark.parametrize('query,expected', (
     ('', False),
-    ('&', False),
-    ('k=v&&', False),
+    ('&', True),
+    ('k=v&&', True),
     ('k=True', True),
     ('author.is_male=True', True),
     ('&k&', True),

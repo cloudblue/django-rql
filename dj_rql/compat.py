@@ -73,6 +73,9 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         if not query_string.strip():
             return False
 
+        if query_string[-1] == '&':
+            return True
+
         qp_all_filters = set()
         qp_old_filters = set()
         for filter_name in request.query_params.keys():
