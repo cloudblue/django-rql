@@ -117,6 +117,9 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         self._ordering.append(tuple(args[1:]))
         return Q()
 
+    def select(self, args):
+        return Q()
+
 
 class RQLLimitOffsetTransformer(BaseRQLTransformer):
     """ Parsed RQL AST tree transformer to (limit, offset) tuple for limit offset pagination. """
