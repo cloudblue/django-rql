@@ -51,6 +51,9 @@ class BaseRQLTransformer(Transformer):
     def start(self, args):
         return args[0]
 
+    def select(self, args):
+        return Q()
+
 
 class RQLToDjangoORMTransformer(BaseRQLTransformer):
     """ Parsed RQL AST tree transformer to Django ORM Query.

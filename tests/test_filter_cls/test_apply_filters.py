@@ -382,3 +382,8 @@ def test_extended_search_fail():
     # We want to be error unhandled in this case
     with pytest.raises(FieldError):
         CustomCls(book_qs).apply_filters('search=text')
+
+
+@pytest.mark.django_db
+def test_select():
+    assert apply_filters('select(text)') == []
