@@ -249,7 +249,9 @@ class RQLFilterClass(object):
                 orm_field_name = item.get('source', item['namespace'])
                 related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
 
-                related_model = self._get_model_field(model, orm_field_name).related_model
+                related_model = self._get_field(
+                    model, orm_field_name, get_related=True,
+                ).related_model
                 self._build_filters(
                     item.get('filters', []), related_filter_route,
                     related_orm_route, related_model,
@@ -306,7 +308,7 @@ class RQLFilterClass(object):
             self.search_filters.add(field_filter_route)
 
     @classmethod
-    def _get_field(cls, base_model, field_name):
+    def _get_field(cls, base_model, field_name, get_related=False):
         """ Django ORM field getter.
 
         Notes:
@@ -319,7 +321,7 @@ class RQLFilterClass(object):
         for index, part in enumerate(field_name_parts, start=1):
             current_field = cls._get_model_field(current_model, part)
             if index == field_name_parts_length:
-                assert isinstance(current_field, SUPPORTED_FIELD_TYPES), \
+                assert get_related or isinstance(current_field, SUPPORTED_FIELD_TYPES), \
                     'Unsupported field type: {}.'.format(field_name)
                 return current_field
             current_model = current_field.related_model

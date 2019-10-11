@@ -79,6 +79,10 @@ def test_building_filters():
         'anno_auto': {'orm_route': 'anno_auto', 'lookups': FL.numeric()},
         'anno_title_non_dynamic': {'orm_route': 'title', 'lookups': FL.string()},
         'anno_title_dynamic': {'orm_route': 'title', 'lookups': non_null_string_lookups},
+        'author_publisher.id': {
+            'orm_route': 'author__publisher__id',
+            'lookups': FL.numeric(),
+        },
     }
 
     assert_filter_cls(
