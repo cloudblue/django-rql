@@ -420,3 +420,15 @@ def test_pagination(api_client, clear_cache):
 
     response = filter_api(api_client, 'limit=1&offset=1&title__exact=G')
     assert response['Content-Range'] == 'items 1-1/2'
+
+
+@pytest.mark.django_db
+def test_choice(api_client, clear_cache):
+    books = [Book.objects.create(str_choice_field=choice) for choice, _ in Book.STR_CHOICES]
+
+    response = filter_api(api_client, 'str_choice_field__in={},{}'.format('one', 'two'))
+    assert_ok_response(response, 2)
+
+    response = filter_api(api_client, 'str_choice_field__in=,{}'.format('one'))
+    assert_ok_response(response, 1)
+    assert response.data[0]['id'] == books[0].id

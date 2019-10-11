@@ -506,7 +506,7 @@ class RQLFilterClass(object):
                 return int(val)
             return val
 
-        return cls._get_choices_field_db_value(str_value, choices, filter_type, use_repr)
+        return cls._get_choices_field_db_value(val, choices, filter_type, use_repr)
 
     @classmethod
     def _get_choices_field_db_value(cls, value, choices, filter_type, use_repr):
