@@ -143,4 +143,8 @@ class BooksFilterClass(RQLFilterClass):
         'source': 'title',
         'field': CharField(),
         'search': True,
+    }, {
+        'namespace': 'author_publisher',
+        'source': 'author__publisher',
+        'filters': ['id'],
     }]
