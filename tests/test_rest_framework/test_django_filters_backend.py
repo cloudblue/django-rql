@@ -54,6 +54,9 @@ def test_compatibility_modify_initial_query(backend):
     ('limit=10,eq(t__in,b)', False),
     ('limit=10;k__in=2', True),
     ('limit=10;eq(t__in,b)', False),
+    ('select(books)&k__in=v,v', True),
+    ('k__in=v,v&select(books)', True),
+    ('select(books)', False),
 ))
 def test_old_syntax(mocker, query, expected):
     request = mocker.MagicMock(query_params=QueryDict(query))
@@ -69,6 +72,16 @@ def test_old_syntax_filters(mocker):
     for _ in range(2):
         assert DjangoFiltersRQLFilterBackend.is_old_syntax(filter_instance, request, query) is True
         assert filter_instance.old_syntax_filters == {'t__in'}
+
+
+@pytest.mark.parametrize('query,expected', (
+    ('select(books)&k__in=v,v', 'select(books)&in(k,("v","v"))'),
+    ('k__in=v,v&select(books)', 'in(k,("v","v"))&select(books)'),
+))
+def test_old_syntax_select_remains(query, expected, mocker):
+    request = mocker.MagicMock(query_params=QueryDict(query))
+    filter_instance = BooksFilterClass(Book.objects.none())
+    assert DjangoFiltersRQLFilterBackend.get_rql_query(filter_instance, request, query) == expected
 
 
 def filter_api(api_client, query):
