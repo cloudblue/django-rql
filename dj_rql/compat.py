@@ -79,11 +79,13 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         qp_all_filters = set()
         qp_old_filters = set()
         for filter_name in request.query_params.keys():
-            if not set(Counter(filter_name)).isdisjoint(cls._IMPOSSIBLE_PROP_SYMBOLS):
+            select_not_in_filter = not cls._is_select_in_filter(filter_name)
+            if select_not_in_filter and \
+                    (not set(Counter(filter_name)).isdisjoint(cls._IMPOSSIBLE_PROP_SYMBOLS)):
                 return False
 
             for v in request.query_params.getlist(filter_name):
-                if not v:
+                if select_not_in_filter and not v:
                     return True
 
                 if v in ('True', 'False'):
@@ -124,6 +126,10 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         filter_value_pairs = []
 
         for filter_name in request.query_params.keys():
+            if cls._is_select_in_filter(filter_name):
+                filter_value_pairs.append(filter_name)
+                continue
+
             one_filter_value_pairs = []
             for value in request.query_params.getlist(filter_name):
                 if not value:
@@ -156,6 +162,10 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
                 filter_value_pairs.append('&'.join(one_filter_value_pairs))
 
         return '&'.join(filter_value_pairs) if filter_value_pairs else ''
+
+    @staticmethod
+    def _is_select_in_filter(filter_name):
+        return 'select(' in filter_name
 
     @classmethod
     def _convert_filter_to_rql(cls, filter_name, value):
