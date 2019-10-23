@@ -387,3 +387,13 @@ def test_extended_search_fail():
 @pytest.mark.django_db
 def test_select():
     assert apply_filters('select(text)') == []
+
+
+@pytest.mark.django_db
+def test_braces_in_braces():
+    books = [
+        Book.objects.create(title='book'),
+        Book.objects.create(title='another'),
+    ]
+    assert apply_filters('(((title=book)))&(title=book)') == [books[0]]
+    assert apply_filters('(title=book|(title=invalid))') == [books[0]]

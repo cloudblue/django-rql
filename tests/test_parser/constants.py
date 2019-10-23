@@ -18,6 +18,7 @@ OK_PROPS = (
 OK_VALUES = [
     'value', 'PRD-000-000' "0", '""', "''", '-3.23', '+2', '"text , t lt"', 'val*',
     '2014-01-21T19:31:58+03:00', '2015-02-12', '"eq(1,2)"', 'email@example.com',
+    r'\*',
     ComparisonOperators.NE, LogicalOperators.OR, LogicalOperators.NOT, ListOperators.IN,
     SearchOperators.I_LIKE,
     RQL_NULL, RQL_EMPTY,

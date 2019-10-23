@@ -21,6 +21,7 @@ expr_term: comp
     | searching
     | ordering
     | select
+    | _L_BRACE expr_term _R_BRACE
     
 logical: and_op
     | or_op
@@ -83,7 +84,7 @@ QUOTED_VAL: /"[^"]*"/
     | /'[^']*'/
 UNQUOTED_VAL: NULL
     | EMPTY
-    | /[\w\-\*\+]/ /[\w\.\-\:\+\@\*]/*
+    | /[\w\-\*\+\\]/ /[\w\.\-\:\+\@\*\\]/*
 
 EMPTY: "empty()"
 NULL: "null()"

@@ -6,6 +6,7 @@ from django.core.exceptions import FieldDoesNotExist
 from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.utils import assert_filter_cls
+from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book
 
@@ -87,25 +88,8 @@ def test_building_filters():
 
     assert_filter_cls(
         BooksFilterClass, expected_sub_dct,
-        {
-            'author.email',
-            'published.at',
-            'd_id',
-            'int_choice_field',
-            'ordering_filter',
-            'fsm',
-            'anno_int',
-            'anno_int_ref',
-        },
-        {
-            'title',
-            'author.email',
-            'author__email',
-            'str_choice_field',
-            'fsm',
-            'anno_str',
-            'anno_title_dynamic',
-        },
+        get_book_filter_cls_ordering_data(),
+        get_book_filter_cls_search_data(),
     )
 
 
