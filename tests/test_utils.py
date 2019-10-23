@@ -27,7 +27,7 @@ def test_no_key():
     with pytest.raises(AssertionError) as e:
         assert_filter_cls(BooksFilterClass, mismatch, set(), set())
 
-    assert str(e.value) == "Filter `key` is not set ({'orm_route': 'value'})."
+    assert "Filter `key` is not set" in str(e.value)
 
 
 def test_mismatch_for_list_data():
