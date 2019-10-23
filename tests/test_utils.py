@@ -3,20 +3,20 @@ from __future__ import unicode_literals
 import pytest
 
 from dj_rql.utils import assert_filter_cls
-from tests.data import BOOK_FILTER_CLS_ORDERING_DATA, BOOK_FILTER_CLS_SEARCH_DATA
+from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import BooksFilterClass
 
 
 def test_ordering_assertion():
     with pytest.raises(AssertionError) as e:
-        assert_filter_cls(BooksFilterClass, {}, set(), BOOK_FILTER_CLS_SEARCH_DATA)
+        assert_filter_cls(BooksFilterClass, {}, set(), get_book_filter_cls_search_data())
 
     assert str(e.value) == "Ordering filter data doesn't match."
 
 
 def test_search_assertion():
     with pytest.raises(AssertionError) as e:
-        assert_filter_cls(BooksFilterClass, {}, BOOK_FILTER_CLS_ORDERING_DATA, set())
+        assert_filter_cls(BooksFilterClass, {}, get_book_filter_cls_ordering_data(), set())
 
     assert str(e.value) == "Searching filter data doesn't match."
 
