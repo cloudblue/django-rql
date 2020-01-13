@@ -7,7 +7,7 @@ pipeline {
   }
   agent {
     kubernetes {
-      defaultContainer 'python3'
+      defaultContainer 'python'
       yaml """
 kind: Pod
 spec:
