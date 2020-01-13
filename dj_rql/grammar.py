@@ -1,7 +1,4 @@
 # flake8: noqa
-
-from __future__ import unicode_literals
-
 """
 RQL EBNF LALR(1) compatible grammar for standard Lark lexer.
 

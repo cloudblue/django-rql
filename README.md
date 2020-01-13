@@ -158,13 +158,13 @@ Best Practices
 Development
 ===========
 
-1. Python 2.7+
+1. Python 3.5+
 0. Install dependencies `requirements/dev.txt`
 
 Testing
 =======
 
-1. Python 2.7+
+1. Python 3.5+
 0. Install dependencies `requirements/test.txt`
 0. `export PYTHONPATH=/your/path/to/django-rql/`
 

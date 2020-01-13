@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from django.utils.http import urlunquote
 from lark.exceptions import LarkError
 from rest_framework.filters import BaseFilterBackend

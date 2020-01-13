@@ -7,13 +7,13 @@ pipeline {
   }
   agent {
     kubernetes {
-      defaultContainer 'python3'
+      defaultContainer 'python'
       yaml """
 kind: Pod
 spec:
   containers:
-    - name: python2
-      image: python:2.7.16-stretch
+    - name: python
+      image: python:3.8.0-buster
       imagePullPolicy: IfNotPresent
       command:
         - cat
@@ -21,17 +21,7 @@ spec:
       resources:
         requests:
           memory: "512Mi"
-          cpu: '0.5'
-    - name: python3
-      image: python:3.7.5-stretch
-      imagePullPolicy: IfNotPresent
-      command:
-        - cat
-      tty: true
-      resources:
-        requests:
-          memory: "512Mi"
-          cpu: '0.5'
+          cpu: '1'
     - name: sonar-scanner
       image: cloud.repo.int.zone/sonar-scanner:2.6.1
       imagePullPolicy: IfNotPresent
@@ -54,34 +44,24 @@ spec:
     }
     stage('Install deps') {
       steps {
-        container('python3') {
+        container('python') {
           sh 'pip install -U pip'
           sh 'pip install flake8'
         }
       }
     }
     stage('Test') {
-      parallel {
-        stage('python2') {
-          steps {
-            container('python2') {
-              sh 'python setup.py test'
-            }
-          }
-        }
-        stage('python3') {
-          steps {
-            container('python3') {
-              sh 'python setup.py test'
-            }
-          }
+      steps {
+        container('python') {
+          sh 'flake8'
+          sh 'python setup.py test'
         }
       }
     }
     stage('Upload') {
       when { not { changeRequest() } }
       steps {
-        container('python3') {
+        container('python') {
           sh 'pip install -U twine'
           sh 'git clean -fdx'
           withCredentials([usernamePassword(credentialsId: 'connect-artifactory', usernameVariable: 'TWINE_USERNAME', passwordVariable: 'TWINE_PASSWORD')]) {
