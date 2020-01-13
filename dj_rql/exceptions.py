@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 class RQLFilterError(Exception):
     """ Base class for RQL errors. """
     MESSAGE = 'RQL Filtering error.'

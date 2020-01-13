@@ -1,8 +1,5 @@
-from __future__ import unicode_literals
-
 from uuid import uuid4
 
-import six
 from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
 from lark.exceptions import LarkError
@@ -231,7 +228,7 @@ class RQLFilterClass(object):
             self.filters = {}
 
         for item in filters:
-            if isinstance(item, six.string_types):
+            if isinstance(item, str):
                 field_filter_route = '{}{}'.format(filter_route, item)
                 field_orm_route = '{}{}'.format(orm_route, item)
                 field = self._get_field(model, item)
