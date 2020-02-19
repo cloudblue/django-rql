@@ -385,8 +385,9 @@ def test_extended_search_fail():
 
 
 @pytest.mark.django_db
-def test_select():
-    assert apply_filters('select(text)') == []
+@pytest.mark.parametrize('select', ('title,+page,-rating.blog_int', '', 'title'))
+def test_select(select):
+    assert apply_filters('select({})'.format(select)) == []
 
 
 @pytest.mark.django_db

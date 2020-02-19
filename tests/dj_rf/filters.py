@@ -2,8 +2,10 @@ from __future__ import unicode_literals
 
 from django.db.models import IntegerField, CharField, AutoField
 
+from dj_rql.fields import SelectField
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.constants import FilterLookups, RQL_NULL
+from dj_rql.qs import SR, PR
 from tests.dj_rf.models import Book
 
 
@@ -45,10 +47,12 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'namespace': 'author',
         'filters': AUTHOR_FILTERS,
+        'qs': SR('author', 'author__publisher'),
     }, {
         'namespace': 'page',
         'source': 'pages',
         'filters': PAGE_FILTERS,
+        'qs': PR('pages'),
     }, {
         'filter': 'published.at',
         'source': 'published_at',
@@ -151,4 +155,10 @@ class BooksFilterClass(RQLFilterClass):
         'namespace': 'author_publisher',
         'source': 'author__publisher',
         'filters': ['id'],
+    }, {
+        'filter': 'select_author',
+        'dynamic': True,
+        'field': SelectField(),
+        'hidden': True,
+        'qs': SR('author'),
     }]

@@ -31,8 +31,9 @@ class RQLFilterBackend(BaseFilterBackend):
             return queryset
 
         filter_instance = self._get_filter_instance(filter_class, queryset, view)
-        rql_ast, queryset = filter_instance.apply_filters(self.get_query(filter_instance, request))
-        setattr(request, 'rql_ast', rql_ast)
+        rql_ast, queryset = filter_instance.apply_filters(
+            self.get_query(filter_instance, request), request,
+        )
         return queryset
 
     @staticmethod

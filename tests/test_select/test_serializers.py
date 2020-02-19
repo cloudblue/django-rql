@@ -1,0 +1,48 @@
+from collections import OrderedDict
+
+import pytest
+
+from tests.dj_rf.models import Author, Book, Page, Publisher
+from tests.dj_rf.serializers import SelectBookSerializer
+
+
+@pytest.mark.django_db
+def test_select_complex():
+    publisher = Publisher.objects.create(name='publisher')
+    author = Author.objects.create(name='auth', publisher=publisher)
+    book = Book.objects.create(author=author)
+    page = Page.objects.create(book=book, number=1, content='text')
+
+    select = OrderedDict()
+    select['blog_rating'] = True
+    select['github_stars'] = False
+    select['author.publisher'] = True
+    select['author.publisher.name'] = False
+    select['author_ref.name'] = False
+    select['pages'] = True
+    select['pages.content'] = False
+
+    class Request:
+        rql_select = {
+            'depth': 0,
+            'select': select,
+        }
+
+    data = SelectBookSerializer(book, context={'request': Request}).data
+    assert {
+        'id': book.id,
+        'blog_rating': None,
+        'star': {},
+        'author_ref': {
+            'id': author.id,
+        },
+        'author': {
+            'id': author.id,
+            'name': 'auth',
+            'publisher': {
+                'id': publisher.id,
+            },
+        },
+        'pages': [{
+            'id': str(page.uuid),
+        }]} == data

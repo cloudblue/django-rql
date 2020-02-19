@@ -7,6 +7,7 @@ Notes:
     - TERMINALS are uppercase. They only consist of values and other terminals.
 """
 
+# TODO: FIX OR for searching / ordering / select / limit / offset
 RQL_GRAMMAR = r"""
 start: term?
 

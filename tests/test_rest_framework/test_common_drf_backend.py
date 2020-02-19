@@ -1,3 +1,6 @@
+# TODO: Remove future
+# TODO: Think of tests placing
+
 from __future__ import unicode_literals
 
 import pytest

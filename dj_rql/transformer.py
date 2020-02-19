@@ -64,10 +64,15 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         self._filter_cls_instance = filter_cls_instance
 
         self._ordering = []
+        self._select = []
 
     @property
     def ordering_filters(self):
         return self._ordering
+
+    @property
+    def select_filters(self):
+        return self._select
 
     def start(self, args):
         return self._filter_cls_instance.queryset.filter(args[0])
@@ -116,6 +121,8 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return Q()
 
     def select(self, args):
+        assert not self._select
+        self._select = args[1:]
         return Q()
 
 

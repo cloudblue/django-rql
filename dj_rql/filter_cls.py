@@ -46,6 +46,9 @@ class RQLFilterClass(object):
         self.search_filters = set()
 
         self.filters = {}
+        self._select_tree = {}
+        self._default_exclusions = set()
+
         self._build_filters(self.FILTERS)
 
         self.queryset = queryset
@@ -76,29 +79,39 @@ class RQLFilterClass(object):
             'error': 'Ordering logic is not implemented: {}.'.format(filter_name),
         })
 
-    def apply_filters(self, query):
+    def apply_filters(self, query, request=None):
         """ Entry point function for model queryset filtering. """
         self._is_distinct = self.DISTINCT
+        rql_ast, qs, select = None, self.queryset, []
 
-        if not query:
-            return None, self.queryset
+        if query:
+            rql_ast = RQLParser.parse_query(query)
+            rql_transformer = RQLToDjangoORMTransformer(self)
 
-        rql_ast = RQLParser.parse_query(query)
+            try:
+                qs = rql_transformer.transform(rql_ast)
+            except LarkError as e:
+                # Lark reraises it's errors, but the original ones are needed
+                raise e.orig_exc
 
-        rql_transformer = RQLToDjangoORMTransformer(self)
-        try:
-            qs = rql_transformer.transform(rql_ast)
-        except LarkError as e:
-            # Lark reraises it's errors, but the original ones are needed
-            raise e.orig_exc
+            qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
+            select = rql_transformer.select_filters
 
-        qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
+        rql_select = self._build_rql_select(select)
+        qs = self._apply_optimizations(qs, rql_select)
 
         if self._is_distinct:
             qs = qs.distinct()
 
         self.queryset = qs
-        return rql_ast, self.queryset
+        if request:
+            setattr(request, 'rql_ast', rql_ast)
+            setattr(request, 'rql_select', {
+                'depth': 0,
+                'select': rql_select,
+            })
+
+        return rql_ast, qs
 
     def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
         """ Django Q() builder for the given expression. """
@@ -165,6 +178,76 @@ class RQLFilterClass(object):
         if filter_item:
             return filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
 
+    def optimize_field(self, qs, rql_select, field):
+        return qs, False
+
+    def _build_rql_select(self, select):
+        rql_select = {}
+
+        exclusions, inclusions = set(), set()
+        forbidden_inclusions, potential_exclusions = set(), set()
+
+        for select_prop in select:
+            # TODO: Check for border +{EMPTY} case
+            is_included = (not select_prop[0] == '-')
+            filter_name = select_prop[1:] if select_prop[0] in ('-', '+') else select_prop
+
+            select_tree = self._select_tree
+            parent_parts = ''
+            filter_name_parts = filter_name.split('.')
+            last_filter_name_part_index = len(filter_name_parts) - 1
+
+            if is_included:
+                for index, part in enumerate(filter_name_parts):
+                    if part not in select_tree:
+                        # TODO: Check if there can be no such SELECTED field
+                        raise
+
+                    if part in exclusions:
+                        # TODO: Check if NOT misconfiguration
+                        raise
+
+                    if parent_parts + '.' in forbidden_inclusions:
+                        # TODO: Check if NOT misconfiguration
+                        raise
+
+                    current_part = parent_parts + part
+                    inclusions.add(current_part)
+                    rql_select[current_part] = True
+
+                    if index != last_filter_name_part_index:
+                        parent_parts = current_part + '.'
+                        select_tree = select_tree[part]['fields']
+                    else:
+                        for neighbour_part in select_tree.keys():
+                            if neighbour_part != part:
+                                potential_exclusions.add(parent_parts + neighbour_part)
+
+            else:
+                if filter_name in inclusions:
+                    # TODO: Check if NOT misconfiguration
+                    raise
+
+                exclusions.add(filter_name)
+                rql_select[filter_name] = False
+
+                for index, part in enumerate(filter_name_parts):
+                    if part not in select_tree:
+                        # TODO: Check if there can be no such SELECTED field
+                        raise
+
+                    current_part = parent_parts + part
+                    parent_parts = current_part + '.'
+                    if index != last_filter_name_part_index:
+                        select_tree = select_tree[part]['fields']
+                    else:
+                        forbidden_inclusions.add(parent_parts)
+
+        for exclusion in potential_exclusions.union(self._default_exclusions) - inclusions:
+            rql_select[exclusion] = False
+
+        return rql_select
+
     def _build_q_for_search(self, operator, str_value):
         if operator != ComparisonOperators.EQ:
             raise RQLFilterParsingError(details={
@@ -204,6 +287,22 @@ class RQLFilterClass(object):
 
         return q
 
+    def _apply_optimizations(self, qs, rql_select):
+        return self.__apply_optimizations(qs, rql_select, self._select_tree)
+
+    def __apply_optimizations(self, qs, rql_select, tree):
+        if tree:
+            for field_name, field in tree.items():
+                if rql_select.get(field['path'], True):
+                    qs, optimized = self.optimize_field(qs, rql_select, field)
+
+                    optimization = field['qs']
+                    if not optimized and optimization:
+                        qs = optimization.apply(qs)
+                        qs = self.__apply_optimizations(qs, rql_select, field['fields'])
+
+        return qs
+
     def _apply_ordering(self, qs, properties):
         if len(properties) == 0:
             return qs
@@ -240,12 +339,14 @@ class RQLFilterClass(object):
 
         return qs.order_by(*ordering_fields)
 
-    def _build_filters(self, filters, filter_route='', orm_route='', orm_model=None):
+    def _build_filters(self, filters, filter_route='', orm_route='',
+                       orm_model=None, select_tree=None):
         """ Converter of provided nested filter configuration to linear inner representation. """
         model = orm_model or self.MODEL
 
         if not orm_route:
             self.filters = {}
+            select_tree = self._select_tree
 
         for item in filters:
             if isinstance(item, str):
@@ -255,6 +356,7 @@ class RQLFilterClass(object):
                 self._add_filter_item(
                     field_filter_route, self._build_mapped_item(field, field_orm_route),
                 )
+                self._fill_select_tree(item, field_filter_route, select_tree)
                 continue
 
             if 'namespace' in item:
@@ -262,28 +364,42 @@ class RQLFilterClass(object):
                     assert option not in item, \
                         "{}: '{}' is not supported by namespaces.".format(item['namespace'], option)
 
-                related_filter_route = '{}{}.'.format(filter_route, item['namespace'])
-                orm_field_name = item.get('source', item['namespace'])
+                namespace = item['namespace']
+                related_filter_route = '{}{}'.format(filter_route, namespace)
+                orm_field_name = item.get('source', namespace)
                 related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
 
                 related_model = self._get_field(
                     model, orm_field_name, get_related=True,
                 ).related_model
+
+                tree = self._fill_select_tree(
+                    namespace, related_filter_route, select_tree,
+                    namespace=True,
+                    hidden=item.get('hidden', False),
+                    qs=item.get('qs'),
+                )
                 self._build_filters(
-                    item.get('filters', []), related_filter_route,
-                    related_orm_route, related_model,
+                    item.get('filters', []), related_filter_route + '.',
+                    related_orm_route, related_model, select_tree=tree,
                 )
                 continue
 
             assert 'filter' in item, "All extended filters must have set 'filter' set."
+            filter_name = item['filter']
+            field_filter_route = '{}{}'.format(filter_route, filter_name)
+
+            self._fill_select_tree(
+                filter_name, field_filter_route, select_tree,
+                hidden=item.get('hidden', False),
+                qs=item.get('qs'),
+            )
 
             if item.get('custom', False):
-                field_filter_route = '{}{}'.format(filter_route, item['filter'])
                 self._add_filter_item(field_filter_route, item)
                 self._register_ordering_and_search(item, field_filter_route)
                 continue
 
-            field_filter_route = '{}{}'.format(filter_route, item['filter'])
             self._check_use_repr(item, field_filter_route)
             self._check_dynamic(item, field_filter_route, filter_route)
 
@@ -304,7 +420,7 @@ class RQLFilterClass(object):
                     self._check_search(item, field_filter_route, field)
 
             else:
-                orm_field_name = item.get('source', item['filter'])
+                orm_field_name = item.get('source', filter_name)
                 full_orm_route = '{}{}'.format(orm_route, orm_field_name)
                 field = field or self._get_field(model, orm_field_name)
                 items = self._build_mapped_item(field, full_orm_route, **kwargs)
@@ -312,6 +428,26 @@ class RQLFilterClass(object):
 
             self._add_filter_item(field_filter_route, items)
             self._register_ordering_and_search(item, field_filter_route)
+
+    def _fill_select_tree(self, f_name, full_f_name, select_tree, namespace=False, hidden=False, qs=None):
+        if hidden:
+            self._default_exclusions.add(full_f_name)
+
+        # TODO: Namespace / hidden validation
+        current_select_tree = select_tree
+        filter_name_parts = f_name.split('.')
+        last_filter_name_part_index = len(filter_name_parts) - 1
+        for index, filter_name_part in enumerate(filter_name_parts):
+            current_select_tree.setdefault(filter_name_part, {
+                'hidden': hidden,
+                'fields': {},
+                'namespace': namespace or (index != last_filter_name_part_index),
+                'qs': qs,
+                'path': full_f_name,
+            })
+            current_select_tree = current_select_tree[filter_name_part]['fields']
+
+        return current_select_tree
 
     def _add_filter_item(self, filter_name, item):
         assert filter_name not in RESERVED_FILTER_NAMES, \
