@@ -18,7 +18,6 @@ def apply_annotations(qs):
     return qs.annotate(
         anno_int=Value(1000, IntegerField()),
         anno_str=Value('text', CharField(max_length=10)),
-        anno_auto=F('id'),
     )
 
 

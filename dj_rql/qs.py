@@ -1,11 +1,14 @@
-# TODO: Describe limitations, work on potential errors, related to Prefetch objects,
-#  wrong order in qs
+# TODO: Great Readme
+from django.db.models import Prefetch
 
 
 class DBOptimization:
-    def __init__(self, *relations, parent=None):
+    def __init__(self, *relations, parent=None, **kwargs):
+        assert relations, 'At least one optimization must be specified.'
+
         self._relations = relations
         self._parent = parent
+        self._extensions = kwargs
 
     @property
     def parent(self):
@@ -16,6 +19,10 @@ class DBOptimization:
         return self._relations[0]
 
     @property
+    def extensions(self):
+        return self._extensions
+
+    @property
     def relations(self):
         return self._relations
 
@@ -23,30 +30,60 @@ class DBOptimization:
         raise NotImplementedError
 
 
-class SelectRelatedOptimization(DBOptimization):
+class SimpleOptimization(DBOptimization):
+    @property
+    def parent(self):
+        return None
+
+
+class Annotation(SimpleOptimization):
+    def __init__(self, parent=None, **kwargs):
+        super(Annotation, self).__init__('None', parent=parent, **kwargs)
+
+    def apply(self, queryset):
+        return queryset.annotate(**self._extensions)
+
+
+class SelectRelated(SimpleOptimization):
     def apply(self, queryset):
         return queryset.select_related(*self._relations)
 
 
-class PrefetchRelatedOptimization(DBOptimization):
+class PrefetchRelated(SimpleOptimization):
     def apply(self, queryset):
         return queryset.prefetch_related(*self._relations)
 
 
-class _NestedOptimizationMixin:
+class _NestedOptimization(DBOptimization):
     SR = 0
     PR = 1
 
+    def __init__(self, *relations, parent=None, **kwargs):
+        if parent and isinstance(parent, Annotation):
+            parent = None
+
+        self._parents_relation_data = self._get_parents_relation_data(parent)
+        super(_NestedOptimization, self).__init__(*relations, parent=parent, **kwargs)
+
     @property
     def parents_relation_data(self):
-        parents_relation, relation_type = '', self.SR
-        prev = self.parent
-        while prev:
-            if isinstance(prev, PrefetchRelatedOptimization):
-                relation_type = self.PR
+        return self._parents_relation_data
 
-            # TODO: We don't support Prefetch objects in Parents Path
+    @classmethod
+    def _get_parents_relation_data(cls, parent):
+        parents_relation, relation_type = '', cls.SR
+        prev = parent
+        while prev:
+            if isinstance(prev, Chain):
+                prev = prev.main_relation
+                continue
+
+            if isinstance(prev, PrefetchRelated):
+                relation_type = cls.PR
+
             prev_relation = prev.main_relation
+            assert isinstance(prev_relation, str), 'Only simple parent relations are supported.'
+
             parents_relation = '{}__{}'.format(prev_relation, parents_relation)
             prev = prev.parent
 
@@ -56,28 +93,34 @@ class _NestedOptimizationMixin:
         }
 
 
-class NestedPrefetchRelatedOptimization(_NestedOptimizationMixin, PrefetchRelatedOptimization):
+class NestedPrefetchRelated(_NestedOptimization):
     def apply(self, queryset):
         if self.parent is None:
-            return super(NestedPrefetchRelatedOptimization, self).apply(queryset)
+            return PrefetchRelated(*self._relations, **self._extensions).apply(queryset)
 
         parents_relation = self.parents_relation_data['relation']
         for relation in self._relations:
-            # TODO: Check if relation is a Prefetch object
-            queryset = queryset.prefetch_related('{}{}'.format(parents_relation, relation))
+            if isinstance(relation, Prefetch):
+                relation.prefetch_through = parents_relation + relation.prefetch_through
+                relation.prefetch_to = parents_relation + relation.prefetch_to
+                pr = relation
+            else:
+                pr = parents_relation + relation
+
+            queryset = queryset.prefetch_related(pr)
         return queryset
 
 
-class NestedSelectRelatedOptimization(_NestedOptimizationMixin, SelectRelatedOptimization):
+class NestedSelectRelated(_NestedOptimization):
     def apply(self, queryset):
         if self.parent is None:
-            return super(NestedSelectRelatedOptimization, self).apply(queryset)
+            return SelectRelated(*self._relations, **self._extensions).apply(queryset)
 
         parents_relation_data = self.parents_relation_data
         parents_relation = parents_relation_data['relation']
-        optimization_cls = SelectRelatedOptimization \
+        optimization_cls = SelectRelated \
             if parents_relation_data['type'] == self.SR \
-            else PrefetchRelatedOptimization
+            else PrefetchRelated
 
         for relation in self._relations:
             queryset = optimization_cls('{}{}'.format(parents_relation, relation)).apply(queryset)
@@ -85,13 +128,23 @@ class NestedSelectRelatedOptimization(_NestedOptimizationMixin, SelectRelatedOpt
         return queryset
 
 
-class ChainOptimization(DBOptimization):
+class Chain(DBOptimization):
     def apply(self, queryset):
-        for opt in self._relations:
-            queryset = opt.apply(queryset, parent=self.parent)
+        if self.parent:
+            for opt in self._relations:
+                full_opt = opt.__class__(*opt.relations, parent=self.parent, **opt.extensions)
+                queryset = full_opt.apply(queryset)
+
+        else:
+            for opt in self._relations:
+                queryset = opt.apply(queryset)
+
         return queryset
 
 
-SR = SelectRelatedOptimization
-PR = PrefetchRelatedOptimization
-CH = ChainOptimization
+AN = Annotation
+SR = SelectRelated
+NSR = NestedSelectRelated
+PR = PrefetchRelated
+NPR = NestedPrefetchRelated
+CH = Chain

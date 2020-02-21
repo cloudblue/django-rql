@@ -308,16 +308,6 @@ def test_anno_str_ok():
 
 
 @pytest.mark.django_db
-def test_anno_auto_ok():
-    filter_name = 'anno_auto'
-
-    books = create_books()
-    assert filter_field(filter_name, CO.EQ, RQL_NULL) == []
-    assert filter_field(filter_name, CO.EQ, 1) == [books[0]]
-    assert filter_field(filter_name, CO.NE, 1) == [books[1]]
-
-
-@pytest.mark.django_db
 def test_anno_title_non_dynamic():
     filter_name = 'anno_title_non_dynamic'
 

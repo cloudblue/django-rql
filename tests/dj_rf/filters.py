@@ -1,11 +1,11 @@
 from __future__ import unicode_literals
 
-from django.db.models import IntegerField, CharField, AutoField
+from django.db.models import IntegerField, CharField, AutoField, F
 
 from dj_rql.fields import SelectField
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.constants import FilterLookups, RQL_NULL
-from dj_rql.qs import SR, PR
+from dj_rql.qs import AN, NSR, PR, SR
 from tests.dj_rf.models import Book
 
 
@@ -15,7 +15,8 @@ AUTHOR_FILTERS = ['is_male', {
     'search': True,
 }, {
     'namespace': 'publisher',
-    'filters': ['id']
+    'filters': ['id'],
+    'qs': NSR('publisher'),
 }]
 
 
@@ -141,6 +142,7 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'anno_auto',
         'dynamic': True,
         'field': AutoField(null=True),
+        'qs': AN(anno_auto=F('id')),
     }, {
         'filter': 'anno_title_non_dynamic',
         'dynamic': False,

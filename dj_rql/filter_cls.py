@@ -340,7 +340,7 @@ class RQLFilterClass(object):
         return qs.order_by(*ordering_fields)
 
     def _build_filters(self, filters, filter_route='', orm_route='',
-                       orm_model=None, select_tree=None):
+                       orm_model=None, select_tree=None, parent_qs=None):
         """ Converter of provided nested filter configuration to linear inner representation. """
         model = orm_model or self.MODEL
 
@@ -356,7 +356,7 @@ class RQLFilterClass(object):
                 self._add_filter_item(
                     field_filter_route, self._build_mapped_item(field, field_orm_route),
                 )
-                self._fill_select_tree(item, field_filter_route, select_tree)
+                self._fill_select_tree(item, field_filter_route, select_tree, parent_qs=parent_qs)
                 continue
 
             if 'namespace' in item:
@@ -373,15 +373,17 @@ class RQLFilterClass(object):
                     model, orm_field_name, get_related=True,
                 ).related_model
 
+                qs = item.get('qs')
                 tree = self._fill_select_tree(
                     namespace, related_filter_route, select_tree,
                     namespace=True,
                     hidden=item.get('hidden', False),
-                    qs=item.get('qs'),
+                    qs=qs,
+                    parent_qs=parent_qs,
                 )
                 self._build_filters(
                     item.get('filters', []), related_filter_route + '.',
-                    related_orm_route, related_model, select_tree=tree,
+                    related_orm_route, related_model, select_tree=tree, parent_qs=qs,
                 )
                 continue
 
@@ -393,6 +395,7 @@ class RQLFilterClass(object):
                 filter_name, field_filter_route, select_tree,
                 hidden=item.get('hidden', False),
                 qs=item.get('qs'),
+                parent_qs=parent_qs,
             )
 
             if item.get('custom', False):
@@ -429,7 +432,8 @@ class RQLFilterClass(object):
             self._add_filter_item(field_filter_route, items)
             self._register_ordering_and_search(item, field_filter_route)
 
-    def _fill_select_tree(self, f_name, full_f_name, select_tree, namespace=False, hidden=False, qs=None):
+    def _fill_select_tree(self, f_name, full_f_name, select_tree,
+                          namespace=False, hidden=False, qs=None, parent_qs=None):
         if hidden:
             self._default_exclusions.add(full_f_name)
 
@@ -437,12 +441,17 @@ class RQLFilterClass(object):
         current_select_tree = select_tree
         filter_name_parts = f_name.split('.')
         last_filter_name_part_index = len(filter_name_parts) - 1
+
+        changed_qs = qs
+        if qs and parent_qs:
+            changed_qs = qs.__class__(*qs.relations, parent=parent_qs, **qs.extensions)
+
         for index, filter_name_part in enumerate(filter_name_parts):
             current_select_tree.setdefault(filter_name_part, {
                 'hidden': hidden,
                 'fields': {},
                 'namespace': namespace or (index != last_filter_name_part_index),
-                'qs': qs,
+                'qs': changed_qs,
                 'path': full_f_name,
             })
             current_select_tree = current_select_tree[filter_name_part]['fields']
