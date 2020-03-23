@@ -31,6 +31,7 @@ class RQLFilterClass(object):
     MODEL = None
     FILTERS = None
     EXTENDED_SEARCH_ORM_ROUTES = tuple()
+    DISTINCT = False
 
     def __init__(self, queryset):
         assert self.MODEL, 'Model must be set for Filter Class.'
@@ -39,6 +40,8 @@ class RQLFilterClass(object):
         assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), \
             'Extended search ORM routes must be iterable.'
 
+        self._is_distinct = self.DISTINCT
+
         self.ordering_filters = set()
         self.search_filters = set()
 
@@ -46,6 +49,10 @@ class RQLFilterClass(object):
         self._build_filters(self.FILTERS)
 
         self.queryset = queryset
+
+    @property
+    def is_distinct(self):
+        return self._is_distinct
 
     def build_q_for_custom_filter(self, filter_name, operator, str_value, **kwargs):
         """ Django Q() builder for custom filter.
@@ -94,6 +101,9 @@ class RQLFilterClass(object):
         base_item = self.get_filter_base_item(filter_name)
         if not base_item:
             return Q()
+
+        if base_item.get('distinct'):
+            self._is_distinct = True
 
         filter_item = self.filters[filter_name]
         available_lookups = base_item.get('lookups', set())
@@ -272,6 +282,7 @@ class RQLFilterClass(object):
                 'lookups': item.get('lookups'),
                 'use_repr': item.get('use_repr'),
                 'null_values': item.get('null_values'),
+                'distinct': item.get('distinct'),
             }
 
             if 'sources' in item:
@@ -334,6 +345,7 @@ class RQLFilterClass(object):
                            lookups=None,
                            use_repr=None,
                            null_values=None,
+                           distinct=None,
                            ):
         possible_lookups = lookups or FilterTypes.default_field_filter_lookups(field)
         if not (field.null or cls._is_pk_field(field)):
@@ -344,6 +356,7 @@ class RQLFilterClass(object):
             'orm_route': field_orm_route,
             'lookups': possible_lookups,
             'null_values': null_values or {RQL_NULL},
+            'distinct': distinct or False,
         }
 
         if use_repr is not None:
