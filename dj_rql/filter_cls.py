@@ -31,6 +31,7 @@ class RQLFilterClass(object):
     MODEL = None
     FILTERS = None
     EXTENDED_SEARCH_ORM_ROUTES = tuple()
+    DISTINCT = False
 
     def __init__(self, queryset):
         assert self.MODEL, 'Model must be set for Filter Class.'

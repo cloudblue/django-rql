@@ -397,3 +397,15 @@ def test_braces_in_braces():
     ]
     assert apply_filters('(((title=book)))&(title=book)') == [books[0]]
     assert apply_filters('(title=book|(title=invalid))') == [books[0]]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('distinct', (True, False))
+def test_distinct(distinct):
+    class CustomCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = ['id']
+        DISTINCT = distinct
+
+    _, qs = CustomCls(book_qs).apply_filters('id=1')
+    assert qs.query.distinct is distinct
