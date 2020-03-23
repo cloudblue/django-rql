@@ -401,7 +401,7 @@ def test_braces_in_braces():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('distinct', (True, False))
-def test_distinct(distinct):
+def test_global_distinct(distinct):
     class CustomCls(RQLFilterClass):
         MODEL = Book
         FILTERS = ['id']
@@ -409,3 +409,21 @@ def test_distinct(distinct):
 
     _, qs = CustomCls(book_qs).apply_filters('id=1')
     assert qs.query.distinct is distinct
+
+
+@pytest.mark.django_db
+def test_distinct_on_field_no_field_in_filter():
+    _, qs = BooksFilterClass(book_qs).apply_filters('title=abc')
+    assert not qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_distinct_on_field_field_in_filter():
+    _, qs = BooksFilterClass(book_qs).apply_filters('status=planning')
+    assert qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_two_distinct_fields():
+    _, qs = BooksFilterClass(book_qs).apply_filters('status=planning,name=author')
+    assert qs.query.distinct

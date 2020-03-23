@@ -90,8 +90,10 @@ class ModelFilterClass(RQLFilterClass):
         'namespace': 'author',
         'filters': ['id', 'name'],  # will be converted to `author.id` and `author.name`
     },{
+        # `distinct` needs to be setup for filters that require QS to work in DISTINCT mode
         'filter': 'published.at',
         'source': 'published_at',
+        'distinct': True,
     }, {
         # `use_repr` flag is used to filter by choice representations
         'filter': 'rating.blog',

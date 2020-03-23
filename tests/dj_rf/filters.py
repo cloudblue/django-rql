@@ -34,12 +34,14 @@ class BooksFilterClass(RQLFilterClass):
         'search': True,
     }, 'current_price', 'written', {
         'filter': 'status',
+        'distinct': True,
     }, {
         'filter': 'author__email',
         'search': True,
     }, {
         'filter': 'name',
         'source': 'author__name',
+        'distinct': True,
     }, {
         'namespace': 'author',
         'filters': AUTHOR_FILTERS,

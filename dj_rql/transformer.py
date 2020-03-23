@@ -72,7 +72,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
     def start(self, args):
         qs = self._filter_cls_instance.queryset.filter(args[0])
 
-        if self._filter_cls_instance.DISTINCT:
+        if self._filter_cls_instance.is_distinct:
             qs = qs.distinct()
 
         return qs
