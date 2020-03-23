@@ -70,12 +70,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._ordering
 
     def start(self, args):
-        qs = self._filter_cls_instance.queryset.filter(args[0])
-
-        if self._filter_cls_instance.is_distinct:
-            qs = qs.distinct()
-
-        return qs
+        return self._filter_cls_instance.queryset.filter(args[0])
 
     def comp(self, args):
         prop, operation, value = self._extract_comparison(args)

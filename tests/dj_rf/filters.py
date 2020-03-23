@@ -53,6 +53,7 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'published.at',
         'source': 'published_at',
         'ordering': True,
+        'distinct': True,
     }, {
         'filter': 'rating.blog',
         'source': 'blog_rating',
@@ -74,6 +75,7 @@ class BooksFilterClass(RQLFilterClass):
         'ordering': True,
     }, {
         'filter': 'custom_filter',
+        'distinct': True,
         'custom': True,
         'lookups': {FilterLookups.I_LIKE},
 

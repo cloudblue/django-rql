@@ -90,7 +90,12 @@ class RQLFilterClass(object):
             # Lark reraises it's errors, but the original ones are needed
             raise e.orig_exc
 
-        self.queryset = self._apply_ordering(qs, rql_transformer.ordering_filters)
+        qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
+
+        if self._is_distinct:
+            qs = qs.distinct()
+
+        self.queryset = qs
         return rql_ast, self.queryset
 
     def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
@@ -222,6 +227,9 @@ class RQLFilterClass(object):
             if not isinstance(filters, list):
                 filters = [filters]
             for f in filters:
+                if f.get('distinct'):
+                    self._is_distinct = True
+
                 if f.get('custom'):
                     ordering_name = self.build_name_for_custom_ordering(filter_name)
                 else:
