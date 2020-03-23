@@ -427,3 +427,25 @@ def test_distinct_on_field_field_in_filter():
 def test_two_distinct_fields():
     _, qs = BooksFilterClass(book_qs).apply_filters('status=planning,name=author')
     assert qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_distinct_with_custom():
+    class CustomCls(BooksFilterClass):
+        def build_q_for_custom_filter(self, *args, **kwargs):
+            return Q()
+
+    _, qs = CustomCls(book_qs).apply_filters('ilike(custom_filter,text)')
+    assert qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_distinct_on_field_field_in_ordering():
+    _, qs = BooksFilterClass(book_qs).apply_filters('ordering(published.at)')
+    assert qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_distinct_on_field_field_not_in_ordering():
+    _, qs = BooksFilterClass(book_qs).apply_filters('ordering(int_choice_field)')
+    assert not qs.query.distinct
