@@ -53,10 +53,6 @@ class RQLFilterClass(object):
 
         self.queryset = queryset
 
-    @property
-    def is_distinct(self):
-        return self._is_distinct
-
     def build_q_for_custom_filter(self, filter_name, operator, str_value, **kwargs):
         """ Django Q() builder for custom filter.
 
@@ -99,9 +95,6 @@ class RQLFilterClass(object):
 
         rql_select = self._build_rql_select(select)
         qs = self._apply_optimizations(qs, rql_select)
-
-        if self._is_distinct:
-            qs = qs.distinct()
 
         self.queryset = qs
         if request:
@@ -288,7 +281,12 @@ class RQLFilterClass(object):
         return q
 
     def _apply_optimizations(self, qs, rql_select):
-        return self.__apply_optimizations(qs, rql_select, self._select_tree)
+        qs = self.__apply_optimizations(qs, rql_select, self._select_tree)
+
+        if self._is_distinct:
+            qs = qs.distinct()
+
+        return qs
 
     def __apply_optimizations(self, qs, rql_select, tree):
         if tree:

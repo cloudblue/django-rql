@@ -1,6 +1,4 @@
-from __future__ import unicode_literals
-
-from django.db.models import CharField, F, IntegerField, Value
+from django.db.models import CharField, IntegerField, Value
 from rest_framework import mixins
 from rest_framework.viewsets import GenericViewSet
 

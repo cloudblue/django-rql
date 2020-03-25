@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from django.db.models import IntegerField, CharField, AutoField, F
 
 from dj_rql.fields import SelectField

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from tests.dj_rf.models import Book
 from tests.dj_rf.view import apply_annotations
 

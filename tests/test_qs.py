@@ -1,8 +1,20 @@
 import pytest
 from django.db.models import IntegerField, Value, Prefetch
 
-from dj_rql.qs import *
-from tests.dj_rf.models import Book, Page
+from dj_rql.qs import (
+    Annotation,
+    Chain,
+    DBOptimization,
+    PrefetchRelated,
+    NestedPrefetchRelated,
+    NestedSelectRelated,
+    SelectRelated,
+    PR,
+    NPR,
+    NSR,
+    SR,
+)
+from tests.dj_rf.models import Book
 
 
 default_qs = Book.objects.all()

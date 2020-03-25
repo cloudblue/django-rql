@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from unittest import TestCase
 
 from rest_framework.pagination import PAGE_BREAK, PageLink

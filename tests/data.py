@@ -1,6 +1,3 @@
-from __future__ import unicode_literals
-
-
 def get_book_filter_cls_ordering_data():
     return {
         'author.email',

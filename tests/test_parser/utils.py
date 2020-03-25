@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from dj_rql.transformer import BaseRQLTransformer
 
 
