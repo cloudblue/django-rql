@@ -22,6 +22,7 @@ from dj_rql.constants import (
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
 from dj_rql.parser import RQLParser
+from dj_rql.qs import Annotation
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
 iterable_types = (list, tuple)
@@ -32,6 +33,7 @@ class RQLFilterClass(object):
     FILTERS = None
     EXTENDED_SEARCH_ORM_ROUTES = tuple()
     DISTINCT = False
+    SELECT = False
 
     def __init__(self, queryset):
         assert self.MODEL, 'Model must be set for Filter Class.'
@@ -93,16 +95,23 @@ class RQLFilterClass(object):
             qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
             select = rql_transformer.select_filters
 
-        rql_select = self._build_rql_select(select)
-        qs = self._apply_optimizations(qs, rql_select)
+            if self._is_distinct:
+                qs = qs.distinct()
 
-        self.queryset = qs
         if request:
             setattr(request, 'rql_ast', rql_ast)
-            setattr(request, 'rql_select', {
-                'depth': 0,
-                'select': rql_select,
-            })
+
+        if self.SELECT:
+            rql_select = self._build_rql_select(select)
+            qs = self._apply_optimizations(qs, rql_select)
+
+            if request:
+                setattr(request, 'rql_select', {
+                    'depth': 0,
+                    'select': rql_select,
+                })
+
+        self.queryset = qs
 
         return rql_ast, qs
 
@@ -281,12 +290,7 @@ class RQLFilterClass(object):
         return q
 
     def _apply_optimizations(self, qs, rql_select):
-        qs = self.__apply_optimizations(qs, rql_select, self._select_tree)
-
-        if self._is_distinct:
-            qs = qs.distinct()
-
-        return qs
+        return self.__apply_optimizations(qs, rql_select, self._select_tree)
 
     def __apply_optimizations(self, qs, rql_select, tree):
         if tree:
@@ -379,9 +383,11 @@ class RQLFilterClass(object):
                     qs=qs,
                     parent_qs=parent_qs,
                 )
+
+                parent_qs = qs if qs else parent_qs
                 self._build_filters(
                     item.get('filters', []), related_filter_route + '.',
-                    related_orm_route, related_model, select_tree=tree, parent_qs=qs,
+                    related_orm_route, related_model, select_tree=tree, parent_qs=parent_qs,
                 )
                 continue
 
@@ -432,17 +438,22 @@ class RQLFilterClass(object):
 
     def _fill_select_tree(self, f_name, full_f_name, select_tree,
                           namespace=False, hidden=False, qs=None, parent_qs=None):
+        if not self.SELECT:
+            return select_tree
+
         if hidden:
             self._default_exclusions.add(full_f_name)
 
-        # TODO: Namespace / hidden validation
         current_select_tree = select_tree
         filter_name_parts = f_name.split('.')
         last_filter_name_part_index = len(filter_name_parts) - 1
 
         changed_qs = qs
         if qs and parent_qs:
-            changed_qs = qs.__class__(*qs.relations, parent=parent_qs, **qs.extensions)
+            if isinstance(qs, Annotation):
+                changed_qs = qs.__class__(parent=parent_qs, **qs.extensions)
+            else:
+                changed_qs = qs.__class__(*qs.relations, parent=parent_qs, **qs.extensions)
 
         for index, filter_name_part in enumerate(filter_name_parts):
             current_select_tree.setdefault(filter_name_part, {

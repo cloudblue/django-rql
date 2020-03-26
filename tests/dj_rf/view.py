@@ -7,7 +7,7 @@ from dj_rql.drf import (
     RQLFilterBackend,
 )
 from dj_rql.compat import DjangoFiltersRQLFilterBackend
-from tests.dj_rf.filters import BooksFilterClass
+from tests.dj_rf.filters import BooksFilterClass, SelectBooksFilterClass
 from tests.dj_rf.models import Book
 from tests.dj_rf.serializers import SelectBookSerializer, BookSerializer
 
@@ -38,3 +38,4 @@ class DjangoFiltersViewSet(BaseViewSet):
 
 class SelectViewSet(mixins.RetrieveModelMixin, DRFViewSet):
     serializer_class = SelectBookSerializer
+    rql_filter_class = SelectBooksFilterClass

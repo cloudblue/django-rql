@@ -129,6 +129,12 @@ class NestedSelectRelated(_NestedOptimization):
 
 
 class Chain(DBOptimization):
+    def __init__(self, *relations, parent=None, **kwargs):
+        assert all(isinstance(rel, DBOptimization) for rel in relations), \
+            'Wrong Chain() optimization configuration.'
+
+        super(Chain, self).__init__(*relations, parent=parent, **kwargs)
+
     def apply(self, queryset):
         if self.parent:
             for opt in self._relations:

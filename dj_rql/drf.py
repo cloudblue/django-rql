@@ -66,10 +66,13 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
         self._rql_offset = None
 
     def paginate_queryset(self, queryset, request, view=None):
+        rql_ast = None
         try:
             rql_ast = getattr(request, 'rql_ast')
         except AttributeError:
-            rql_ast = RQLParser.parse_query(get_query(request))
+            query = get_query(request)
+            if query:
+                rql_ast = RQLParser.parse_query(query)
 
         if rql_ast is not None:
             try:

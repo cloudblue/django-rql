@@ -162,3 +162,7 @@ class BooksFilterClass(RQLFilterClass):
         'hidden': True,
         'qs': SR('author'),
     }]
+
+
+class SelectBooksFilterClass(BooksFilterClass):
+    SELECT = True
