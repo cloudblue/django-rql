@@ -7,7 +7,7 @@ from tests.dj_rf.models import Book
 from tests.test_filter_cls.utils import book_qs
 
 
-class TestFilterCls(RQLFilterClass):
+class SelectFilterCls(RQLFilterClass):
     MODEL = Book
     SELECT = True
     FILTERS = ('id',)
@@ -22,7 +22,7 @@ class TestFilterCls(RQLFilterClass):
 
 
 def test_init_no_select():
-    class Cls(TestFilterCls):
+    class Cls(SelectFilterCls):
         SELECT = False
         FILTERS = (
             {
@@ -38,7 +38,7 @@ def test_init_no_select():
 
 
 def test_init_default_select():
-    instance = TestFilterCls(book_qs)
+    instance = SelectFilterCls(book_qs)
     assert set(instance.heirarchy.keys()) == {'id'}
     assert instance.heirarchy['id']['path'] == 'id'
     assert not instance.heirarchy['id']['qs']
@@ -46,7 +46,7 @@ def test_init_default_select():
 
 
 def test_init_select():
-    class Cls(TestFilterCls):
+    class Cls(SelectFilterCls):
         FILTERS = (
             'id',
             {
@@ -106,7 +106,7 @@ def test_init_select():
 
 
 def test_init_hidden():
-    class Cls(TestFilterCls):
+    class Cls(SelectFilterCls):
         FILTERS = (
             {
                 'filter': 'vi',
@@ -170,7 +170,7 @@ def test_init_hidden():
 
 
 def test_init_qs():
-    class Cls(TestFilterCls):
+    class Cls(SelectFilterCls):
         FILTERS = (
             'id',
             {
@@ -248,7 +248,7 @@ def test_init_qs():
     assert qs.query.select_related == {'author': {'publisher': {}}}
 
     qs = top_ns['fields']['ft2']['qs'].apply(base_qs)
-    assert qs.query.select_related == {'author': {'publisher': {}}}
+    assert qs._prefetch_related_lookups == ('author__publisher',)
 
     inner_ns = top_ns['fields']['ns']
     qs = inner_ns['qs'].apply(base_qs)
@@ -282,4 +282,3 @@ def test_apply_rql_select_applied_no_query():
 def test_all_variations_of_select_combinations():
     # Need to check every potential branch
     pass
-

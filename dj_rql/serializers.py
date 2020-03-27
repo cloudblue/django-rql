@@ -8,6 +8,7 @@ from copy import deepcopy
 
 # TODO: Move to DRF
 
+
 class RQLMixin:
     # TODO: Check if NO fields in serialization
     def to_representation(self, instance):

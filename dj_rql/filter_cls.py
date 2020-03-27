@@ -22,7 +22,6 @@ from dj_rql.constants import (
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
 from dj_rql.parser import RQLParser
-from dj_rql.qs import Annotation
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
 iterable_types = (list, tuple)
@@ -42,8 +41,6 @@ class RQLFilterClass(object):
         assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), \
             'Extended search ORM routes must be iterable.'
 
-        self._is_distinct = self.DISTINCT
-
         self.ordering_filters = set()
         self.search_filters = set()
 
@@ -53,6 +50,7 @@ class RQLFilterClass(object):
 
         self._build_filters(self.FILTERS)
 
+        self._is_distinct = self.DISTINCT
         self.queryset = queryset
 
     def build_q_for_custom_filter(self, filter_name, operator, str_value, **kwargs):
@@ -450,10 +448,7 @@ class RQLFilterClass(object):
 
         changed_qs = qs
         if qs and parent_qs:
-            if isinstance(qs, Annotation):
-                changed_qs = qs.__class__(parent=parent_qs, **qs.extensions)
-            else:
-                changed_qs = qs.__class__(*qs.relations, parent=parent_qs, **qs.extensions)
+            changed_qs = qs.rebuild(parent_qs)
 
         for index, filter_name_part in enumerate(filter_name_parts):
             current_select_tree.setdefault(filter_name_part, {
