@@ -449,3 +449,14 @@ def test_distinct_on_field_field_in_ordering():
 def test_distinct_on_field_field_not_in_ordering():
     _, qs = BooksFilterClass(book_qs).apply_filters('ordering(int_choice_field)')
     assert not qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_distinct_sequence():
+    book_cls = BooksFilterClass(book_qs)
+    _, qs = book_cls.apply_filters('status=planning')
+    assert qs.query.distinct
+
+    book_cls.queryset = book_qs
+    _, qs = book_cls.apply_filters('title=abc')
+    assert not qs.query.distinct
