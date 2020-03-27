@@ -78,6 +78,8 @@ class RQLFilterClass(object):
 
     def apply_filters(self, query):
         """ Entry point function for model queryset filtering. """
+        self._is_distinct = self.DISTINCT
+
         if not query:
             return None, self.queryset
 
