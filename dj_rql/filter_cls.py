@@ -184,67 +184,70 @@ class RQLFilterClass(object):
     def _build_rql_select(self, select):
         rql_select = {}
 
-        exclusions, inclusions = set(), set()
-        forbidden_inclusions, potential_exclusions = set(), set()
+        include_select, exclude_select = [], []
+        inclusions, exclusions = set(), set()
 
         for select_prop in select:
-            # TODO: Check for border +{EMPTY} case
             is_included = (not select_prop[0] == '-')
             filter_name = select_prop[1:] if select_prop[0] in ('-', '+') else select_prop
 
+            if is_included:
+                include_select.append(filter_name)
+            else:
+                exclude_select.append(filter_name)
+
+        for filter_name in include_select:
             select_tree = self._select_tree
             parent_parts = ''
             filter_name_parts = filter_name.split('.')
             last_filter_name_part_index = len(filter_name_parts) - 1
 
-            if is_included:
-                for index, part in enumerate(filter_name_parts):
-                    if part not in select_tree:
-                        # TODO: Check if there can be no such SELECTED field
-                        raise
+            for index, part in enumerate(filter_name_parts):
+                if part not in select_tree:
+                    raise RQLFilterParsingError(details={
+                        'error': 'Bad select filter: {}.'.format(filter_name),
+                    })
 
-                    if part in exclusions:
-                        # TODO: Check if NOT misconfiguration
-                        raise
+                current_part = '{}.{}'.format(parent_parts, part) if parent_parts else part
 
-                    if parent_parts + '.' in forbidden_inclusions:
-                        # TODO: Check if NOT misconfiguration
-                        raise
+                inclusions.add(current_part)
+                rql_select[current_part] = True
 
-                    current_part = parent_parts + part
-                    inclusions.add(current_part)
-                    rql_select[current_part] = True
+                if index != last_filter_name_part_index:
+                    parent_parts = current_part
+                    select_tree = select_tree[part]['fields']
 
-                    if index != last_filter_name_part_index:
-                        parent_parts = current_part + '.'
-                        select_tree = select_tree[part]['fields']
-                    else:
-                        for neighbour_part in select_tree.keys():
-                            if neighbour_part != part:
-                                potential_exclusions.add(parent_parts + neighbour_part)
+                elif parent_parts in self._default_exclusions:
+                    for neighbour_part in select_tree.keys():
+                        if neighbour_part != part:
+                            exclusions.add(
+                                '{}.{}'.format(parent_parts, neighbour_part),
+                            )
 
-            else:
-                if filter_name in inclusions:
-                    # TODO: Check if NOT misconfiguration
-                    raise
+        real_exclude_select = set(exclude_select) \
+            .union(self._default_exclusions - inclusions) \
+            .union(exclusions - inclusions)
 
-                exclusions.add(filter_name)
-                rql_select[filter_name] = False
+        for filter_name in real_exclude_select:
+            if filter_name in inclusions:
+                raise RQLFilterParsingError(details={
+                    'error': 'Bad select filter: incompatible properties.',
+                })
 
-                for index, part in enumerate(filter_name_parts):
-                    if part not in select_tree:
-                        # TODO: Check if there can be no such SELECTED field
-                        raise
+            select_tree = self._select_tree
+            filter_name_parts = filter_name.split('.')
+            last_filter_name_part_index = len(filter_name_parts) - 1
 
-                    current_part = parent_parts + part
-                    parent_parts = current_part + '.'
-                    if index != last_filter_name_part_index:
-                        select_tree = select_tree[part]['fields']
-                    else:
-                        forbidden_inclusions.add(parent_parts)
+            for index, part in enumerate(filter_name_parts):
+                if part not in select_tree:
+                    raise RQLFilterParsingError(details={
+                        'error': 'Bad select filter: -{}.'.format(filter_name),
+                    })
 
-        for exclusion in potential_exclusions.union(self._default_exclusions) - inclusions:
-            rql_select[exclusion] = False
+                if index != last_filter_name_part_index:
+                    select_tree = select_tree[part]['fields']
+
+            rql_select[filter_name] = False
 
         return rql_select
 

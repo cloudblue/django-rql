@@ -1,5 +1,7 @@
+import pytest
 from django.db.models import IntegerField, Value
 
+from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.qs import AN, CH, PR, NPR, NSR, SR
 
@@ -168,6 +170,8 @@ def test_init_hidden():
 
     assert not instance.heirarchy['nvn']['fields']['vn']['fields']['id']['hidden']
 
+    assert instance.exclusions == {'nvn', 'vn.nvi', 'nvn.nvi'}
+
 
 def test_init_qs():
     class Cls(SelectFilterCls):
@@ -267,18 +271,285 @@ def test_init_qs():
     assert qs._prefetch_related_lookups == ('pages__author', 'pages__author__publisher')
 
 
+class _Request:
+    pass
+
+
 def test_apply_rql_select_not_applied_non_select_cls():
-    pass
+    class Cls(SelectFilterCls):
+        SELECT = False
+        FILTERS = (
+            {
+                'filter': 'hidden',
+                'source': 'id',
+                'hidden': True,
+            },
+        )
+
+    request = _Request()
+    Cls(book_qs).apply_filters('select(+hidden)', request)
+    assert hasattr(request, 'rql_ast')
+    assert not hasattr(request, 'rql_select')
 
 
-def test_apply_rql_select_not_applied_no_request():
-    pass
+def test_apply_rql_select_applied_no_request():
+    result = SelectFilterCls(book_qs).apply_filters('select(id)')
+    assert result
 
 
 def test_apply_rql_select_applied_no_query():
-    pass
+    request = _Request()
+
+    SelectFilterCls(book_qs).apply_filters('', request)
+    assert hasattr(request, 'rql_ast')
+    assert request.rql_select == {'depth': 0, 'select': {}}
 
 
-def test_all_variations_of_select_combinations():
-    # Need to check every potential branch
-    pass
+def test_default_exclusion_included():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'filter': 'ft1',
+                'source': 'id',
+                'hidden': True,
+            },
+            {
+                'filter': 'ft2',
+                'source': 'id',
+            },
+        )
+
+    request = _Request()
+    Cls(book_qs).apply_filters('select(-ft2)', request)
+    assert request.rql_select['select'] == {'ft1': False, 'ft2': False}
+
+
+def test_default_exclusion_overridden():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'filter': 'ft1',
+                'source': 'id',
+                'hidden': True,
+            },
+            {
+                'filter': 'ft2',
+                'source': 'id',
+            },
+        )
+
+    request = _Request()
+    Cls(book_qs).apply_filters('select(-ft2,ft1)', request)
+    assert request.rql_select['select'] == {'ft1': True, 'ft2': False}
+
+
+def test_signs_select():
+    class Cls(SelectFilterCls):
+        FILTERS = tuple(
+            {
+                'filter': 'ft{}'.format(i),
+                'source': 'id',
+            }
+            for i in range(1, 5)
+        )
+
+    request = _Request()
+    Cls(book_qs).apply_filters('select(ft1,+ft2,-ft3)', request)
+    assert request.rql_select['select'] == {'ft1': True, 'ft2': True, 'ft3': False}
+
+
+def test_bad_select_prop_top_level_include_select():
+    with pytest.raises(RQLFilterParsingError) as e:
+        SelectFilterCls(book_qs).apply_filters('select(abc)')
+
+    assert e.value.details['error'] == 'Bad select filter: abc.'
+
+
+def test_bad_select_prop_nested_include_select():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'filters': ('id',),
+            },
+        )
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        Cls(book_qs).apply_filters('select(+ns.abc)')
+
+    assert e.value.details['error'] == 'Bad select filter: ns.abc.'
+
+
+def test_bad_select_prop_top_level_exclude_select():
+    with pytest.raises(RQLFilterParsingError) as e:
+        SelectFilterCls(book_qs).apply_filters('select(-abc)')
+
+    assert e.value.details['error'] == 'Bad select filter: -abc.'
+
+
+def test_bad_select_prop_nested_exclude_select():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'filters': ('id',),
+            },
+        )
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        Cls(book_qs).apply_filters('select(-ns.abc)')
+
+    assert e.value.details['error'] == 'Bad select filter: -ns.abc.'
+
+
+def test_bad_select_prop_namespace_with_dot():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'filters': ('id',),
+            },
+        )
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        Cls(book_qs).apply_filters('select(+ns.)')
+
+    assert e.value.details['error'] == 'Bad select filter: ns..'
+
+
+def test_bad_select_prop_double_underscore_not_supported():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'filters': ('id',),
+            },
+        )
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        Cls(book_qs).apply_filters('select(+ns__id)')
+
+    assert e.value.details['error'] == 'Bad select filter: ns__id.'
+
+
+def test_bad_select_conf_included_then_excluded():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'filters': ('id',),
+            },
+        )
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        Cls(book_qs).apply_filters('select(ns.id,-ns)')
+
+    assert e.value.details['error'] == 'Bad select filter: incompatible properties.'
+
+
+def test_bad_select_conf_excluded_then_included():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'filters': ('id',)
+            },
+        )
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        Cls(book_qs).apply_filters('select(-ns,+ns.id)')
+
+    assert e.value.details['error'] == 'Bad select filter: incompatible properties.'
+
+
+def test_exclude_ok():
+    request = _Request()
+
+    SelectFilterCls(book_qs).apply_filters('select(-id)', request)
+    assert request.rql_select == {'depth': 0, 'select': {'id': False}}
+
+
+def test_select_complex():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'filter': 'ft1',
+                'source': 'id',
+            },
+            {
+                'filter': 'ft2',
+                'source': 'id',
+            },
+            {
+                'namespace': 'ns1',
+                'source': 'author',
+                'filters': (
+                    {
+                        'filter': 'ft1',
+                        'source': 'id',
+                        'hidden': True,
+                    },
+                    {
+                        'filter': 'ft2',
+                        'source': 'id',
+                    },
+                    {
+                        'namespace': 'ns1',
+                        'source': 'publisher',
+                        'hidden': False,
+                        'filters': ('id',)
+                    },
+                ),
+            },
+            {
+                'namespace': 'ns2',
+                'hidden': True,
+                'source': 'author',
+                'filters': (
+                    {
+                        'filter': 'ft1',
+                        'source': 'id',
+                        'hidden': True,
+                    },
+                    {
+                        'filter': 'ft2',
+                        'source': 'id',
+                    },
+                    {
+                        'filter': 'ft3',
+                        'source': 'id',
+                    },
+                    {
+                        'namespace': 'ns1',
+                        'source': 'publisher',
+                        'filters': ('id',),
+                    },
+                    {
+                        'namespace': 'ns2',
+                        'source': 'publisher',
+                        'filters': ('id',),
+                    },
+                ),
+            },
+        )
+
+    request = _Request()
+    Cls(book_qs).apply_filters('select(ns2.ns2.id,ft1,ns1,ns1.ft1,ns2.ft2)', request)
+    assert request.rql_select['select'] == {
+        'ft1': True,
+        'ns1': True,
+        'ns1.ft1': True,
+        'ns2': True,
+        'ns2.ft1': False,
+        'ns2.ft2': True,
+        'ns2.ft3': False,
+        'ns2.ns2': True,
+        'ns2.ns2.id': True,
+        'ns2.ns1': False,
+    }
