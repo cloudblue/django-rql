@@ -311,11 +311,11 @@ def test_custom_filter_search_ok(mocker):
             assert list(self.apply_filters('search={}'.format(value))[1]) == expected
 
         @classmethod
-        def side_effect(cls, *args, **kwargs):
-            django_lookup = kwargs['django_lookup']
+        def side_effect(cls, data):
+            django_lookup = data.django_lookup
             return Q(**{
                 'title__{}'.format(django_lookup): cls._get_searching_typed_value(
-                    django_lookup, args[-1],
+                    django_lookup, data.str_value,
                 )
             })
 
@@ -447,15 +447,4 @@ def test_distinct_on_field_field_in_ordering():
 @pytest.mark.django_db
 def test_distinct_on_field_field_not_in_ordering():
     _, qs = BooksFilterClass(book_qs).apply_filters('ordering(int_choice_field)')
-    assert not qs.query.distinct
-
-
-@pytest.mark.django_db
-def test_distinct_sequence():
-    book_cls = BooksFilterClass(book_qs)
-    _, qs = book_cls.apply_filters('status=planning')
-    assert qs.query.distinct
-
-    book_cls.queryset = book_qs
-    _, qs = book_cls.apply_filters('title=abc')
     assert not qs.query.distinct

@@ -4,7 +4,7 @@ from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
 from lark.exceptions import LarkError
 
-from dj_rql._dataclasses import OptimizationArgs
+from dj_rql._dataclasses import FilterArgs, OptimizationArgs
 from dj_rql.constants import (
     ComparisonOperators,
     DjangoLookups,
@@ -28,57 +28,82 @@ from dj_rql.transformer import RQLToDjangoORMTransformer
 iterable_types = (list, tuple)
 
 
-class RQLFilterClass(object):
+class RQLFilterClass:
     MODEL = None
     FILTERS = None
     EXTENDED_SEARCH_ORM_ROUTES = tuple()
     DISTINCT = False
     SELECT = False
 
-    def __init__(self, queryset):
+    def __init__(self, queryset, instance=None):
+        self.queryset = queryset
+        self._is_distinct = self.DISTINCT
+
+        if instance:
+            self._init_from_class(instance)
+        else:
+            self._default_init()
+
+    def _default_init(self):
         assert self.MODEL, 'Model must be set for Filter Class.'
         assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, \
             'List of filters must be set for Filter Class.'
         assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), \
             'Extended search ORM routes must be iterable.'
 
+        self.filters = {}
         self.ordering_filters = set()
         self.search_filters = set()
-
-        self.filters = {}
-        self._select_tree = {}
-        self._default_exclusions = set()
+        self.select_tree = {}
+        self.default_exclusions = set()
 
         self._build_filters(self.FILTERS)
 
-        self._is_distinct = self.DISTINCT
-        self.queryset = queryset
+    def _init_from_class(self, instance):
+        copied_attributes = (
+            'filters', 'ordering_filters', 'search_filters', 'select_tree', 'default_exclusions',
+        )
+        for attr in copied_attributes:
+            setattr(self, attr, getattr(instance, attr))
 
-    def build_q_for_custom_filter(self, filter_name, operator, str_value, **kwargs):
+    def build_q_for_custom_filter(self, data):
         """ Django Q() builder for custom filter.
 
-        Args:
-            filter_name (str): Name of the filter.
-            operator (str): RQL grammar operator, like `eq`.
-            str_value (str): String filter value.
+        :param FilterArgs data: Prepared filter data for custom filtering.
+        :rtype: django.db.models.Q
         """
         raise RQLFilterParsingError(details={
-            'error': 'Filter logic is not implemented: {}.'.format(filter_name),
+            'error': 'Filter logic is not implemented: {}.'.format(data.filter_name),
         })
 
     def build_name_for_custom_ordering(self, filter_name):
         """ Builder for ordering name of custom filter.
 
-        Args:
-            filter_name (str): Name of the filter.
+        :param str filter_name: Full filter name (f.e. ns1.ns2.filter1)
+        :return: Django field str path
+        :rtype: str
         """
         raise RQLFilterParsingError(details={
             'error': 'Ordering logic is not implemented: {}.'.format(filter_name),
         })
 
-    def apply_filters(self, query, request=None):
-        """ Entry point function for model queryset filtering. """
-        self._is_distinct = self.DISTINCT
+    def optimize_field(self, data):
+        """ This method can be overridden to apply complex DB optimization logic.
+
+        :param OptimizationArgs data:
+        :return: Optimized queryset
+        :rtype: django.db.models.QuerySet or None
+        """
+        pass
+
+    def apply_filters(self, query, request=None, view=None):
+        """
+
+        :param str query: RQL query string
+        :param request: Request from API view
+        :param view: API view
+        :return: Lark AST, Filtered QuerySet
+        """
         rql_ast, qs, select_filters = None, self.queryset, []
 
         if query:
@@ -114,8 +139,16 @@ class RQLFilterClass(object):
 
         return rql_ast, qs
 
-    def build_q_for_filter(self, filter_name, operator, str_value, list_operator=None):
-        """ Django Q() builder for the given expression. """
+    def build_q_for_filter(self, data):
+        """ Django Q() builder for extracted from query RQL expression.
+        In general, this method should not be overridden.
+
+        :param FilterArgs data: Prepared filter data for custom filtering.
+        :rtype: django.db.models.Q
+        """
+        filter_name, operator, str_value = data.filter_name, data.operator, data.str_value
+        list_operator = data.list_operator
+
         if filter_name == RQL_SEARCH_PARAM:
             return self._build_q_for_search(operator, str_value)
 
@@ -144,14 +177,14 @@ class RQLFilterClass(object):
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
 
         if base_item.get('custom'):
-            return self.build_q_for_custom_filter(
+            return self.build_q_for_custom_filter(FilterArgs(
                 filter_name,
                 operator,
                 str_value,
                 list_operator=list_operator,
                 filter_lookup=filter_lookup,
                 django_lookup=django_lookup,
-            )
+            ))
 
         django_field = base_item['field']
         use_repr = base_item.get('use_repr', False)
@@ -179,15 +212,8 @@ class RQLFilterClass(object):
         if filter_item:
             return filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
 
-    def optimize_field(self, data):
-        """
-        :param OptimizationArgs data:
-        :return:
-        """
-        pass
-
     def _build_rql_select(self, select):
-        rql_select = {}
+        select_data = {}
 
         include_select, exclude_select = [], []
         inclusions, exclusions = set(), set()
@@ -202,7 +228,7 @@ class RQLFilterClass(object):
                 exclude_select.append(filter_name)
 
         for filter_name in include_select:
-            select_tree = self._select_tree
+            select_tree = self.select_tree
             parent_parts = ''
             filter_name_parts = filter_name.split('.')
             last_filter_name_part_index = len(filter_name_parts) - 1
@@ -216,13 +242,13 @@ class RQLFilterClass(object):
                 current_part = '{}.{}'.format(parent_parts, part) if parent_parts else part
 
                 inclusions.add(current_part)
-                rql_select[current_part] = True
+                select_data[current_part] = True
 
                 if index != last_filter_name_part_index:
                     parent_parts = current_part
                     select_tree = select_tree[part]['fields']
 
-                elif parent_parts in self._default_exclusions:
+                elif parent_parts in self.default_exclusions:
                     for neighbour_part in select_tree.keys():
                         if neighbour_part != part:
                             exclusions.add(
@@ -230,7 +256,7 @@ class RQLFilterClass(object):
                             )
 
         real_exclude_select = set(exclude_select) \
-            .union(self._default_exclusions - inclusions) \
+            .union(self.default_exclusions - inclusions) \
             .union(exclusions - inclusions)
 
         for filter_name in real_exclude_select:
@@ -239,7 +265,7 @@ class RQLFilterClass(object):
                     'error': 'Bad select filter: incompatible properties.',
                 })
 
-            select_tree = self._select_tree
+            select_tree = self.select_tree
             filter_name_parts = filter_name.split('.')
             last_filter_name_part_index = len(filter_name_parts) - 1
 
@@ -252,9 +278,9 @@ class RQLFilterClass(object):
                 if index != last_filter_name_part_index:
                     select_tree = select_tree[part]['fields']
 
-            rql_select[filter_name] = False
+            select_data[filter_name] = False
 
-        return rql_select
+        return select_data
 
     def _build_q_for_search(self, operator, str_value):
         if operator != ComparisonOperators.EQ:
@@ -271,9 +297,9 @@ class RQLFilterClass(object):
 
         q = self._build_q_for_extended_search(unquoted_value)
         for filter_name in self.search_filters:
-            q |= self.build_q_for_filter(
+            q |= self.build_q_for_filter(FilterArgs(
                 filter_name, SearchOperators.I_LIKE, unquoted_value,
-            )
+            ))
 
         return q
 
@@ -297,7 +323,7 @@ class RQLFilterClass(object):
 
     def _apply_optimizations(self, queryset, select_data):
         return self.__apply_optimizations(
-            OptimizationArgs(queryset, select_data, self._select_tree),
+            OptimizationArgs(queryset, select_data, self.select_tree),
         )
 
     def __apply_optimizations(self, data):
@@ -370,7 +396,7 @@ class RQLFilterClass(object):
 
         if not orm_route:
             self.filters = {}
-            select_tree = self._select_tree
+            select_tree = self.select_tree
 
         for item in filters:
             if isinstance(item, str):
@@ -464,7 +490,7 @@ class RQLFilterClass(object):
             return select_tree
 
         if hidden:
-            self._default_exclusions.add(full_f_name)
+            self.default_exclusions.add(full_f_name)
 
         current_select_tree = select_tree
         filter_name_parts = f_name.split('.')

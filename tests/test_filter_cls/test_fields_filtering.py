@@ -4,6 +4,7 @@ from functools import partial
 import pytest
 from django.db.models import Q
 
+from dj_rql._dataclasses import FilterArgs
 from dj_rql.constants import (
     ComparisonOperators as CO,
     DjangoLookups,
@@ -19,7 +20,7 @@ from tests.test_filter_cls.utils import book_qs, create_books
 
 def filter_field(filter_name, operator, value):
     filter_cls = BooksFilterClass(book_qs)
-    q = filter_cls.build_q_for_filter(filter_name, operator, str(value))
+    q = filter_cls.build_q_for_filter(FilterArgs(filter_name, operator, str(value)))
     return list(book_qs.filter(q))
 
 
@@ -458,10 +459,10 @@ def test_searching_q_ok(value, db_lookup, db_value):
     cls = BooksFilterClass(book_qs)
 
     for v in (value, '"{}"'.format(value)):
-        like_q = cls.build_q_for_filter('title', SearchOperators.LIKE, v)
+        like_q = cls.build_q_for_filter(FilterArgs('title', SearchOperators.LIKE, v))
         assert like_q.children[0] == ('title__{}'.format(db_lookup), db_value)
 
-    i_like_q = cls.build_q_for_filter('title', SearchOperators.I_LIKE, value)
+    i_like_q = cls.build_q_for_filter(FilterArgs('title', SearchOperators.I_LIKE, value))
     assert i_like_q.children[0] == ('title__i{}'.format(db_lookup), db_value)
 
 
@@ -496,7 +497,7 @@ def test_custom_filter_ok():
             return Q(id__gte=2)
 
     filter_cls = CustomCls(book_qs)
-    q = filter_cls.build_q_for_filter('custom_filter', SearchOperators.I_LIKE, 'value')
+    q = filter_cls.build_q_for_filter(FilterArgs('custom_filter', SearchOperators.I_LIKE, 'value'))
 
     books = [Book.objects.create() for _ in range(2)]
     assert list(book_qs.filter(q)) == [books[1]]

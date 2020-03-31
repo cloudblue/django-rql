@@ -37,7 +37,7 @@ SUPPORTED_FIELD_TYPES = (
 )
 
 
-class FilterLookups(object):
+class FilterLookups:
     EQ = 'eq'
     NE = 'ne'
     GE = 'ge'
@@ -66,7 +66,7 @@ class FilterLookups(object):
         return {cls.EQ, cls.NE, cls.NULL}
 
 
-class FilterTypes(object):
+class FilterTypes:
     INT = 'int'
     DECIMAL = 'decimal'
     FLOAT = 'float'
@@ -112,7 +112,7 @@ class FilterTypes(object):
         return lookups[cls.field_filter_type(field)]
 
 
-class ComparisonOperators(object):
+class ComparisonOperators:
     EQ = 'eq'
     NE = 'ne'
     GT = 'gt'
@@ -121,12 +121,12 @@ class ComparisonOperators(object):
     LE = 'le'
 
 
-class ListOperators(object):
+class ListOperators:
     IN = 'in'
     OUT = 'out'
 
 
-class LogicalOperators(object):
+class LogicalOperators:
     AND = 'and'
     OR = 'or'
     NOT = 'not'
@@ -136,12 +136,12 @@ class LogicalOperators(object):
         return '{}_op'.format(key)
 
 
-class SearchOperators(object):
+class SearchOperators:
     LIKE = 'like'
     I_LIKE = 'ilike'
 
 
-class DjangoLookups(object):
+class DjangoLookups:
     EXACT = 'exact'
     GT = 'gt'
     GTE = 'gte'

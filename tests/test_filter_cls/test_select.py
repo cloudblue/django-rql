@@ -17,11 +17,11 @@ class SelectFilterCls(RQLFilterClass):
 
     @property
     def heirarchy(self):
-        return self._select_tree
+        return self.select_tree
 
     @property
     def exclusions(self):
-        return self._default_exclusions
+        return self.default_exclusions
 
 
 def test_init_no_select():

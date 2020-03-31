@@ -1,6 +1,7 @@
 from django.db.models import Q
 from lark import Transformer, Tree
 
+from dj_rql._dataclasses import FilterArgs
 from dj_rql.constants import (
     ComparisonOperators, ListOperators, LogicalOperators, RQL_LIMIT_PARAM, RQL_OFFSET_PARAM,
 )
@@ -79,7 +80,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     def comp(self, args):
         prop, operation, value = self._extract_comparison(args)
-        return self._filter_cls_instance.build_q_for_filter(prop, operation, value)
+        return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, value))
 
     def logical(self, args):
         operation = args[0].data
@@ -101,10 +102,10 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
         q = Q()
         for value_tree in args[2:]:
-            field_q = self._filter_cls_instance.build_q_for_filter(
+            field_q = self._filter_cls_instance.build_q_for_filter(FilterArgs(
                 prop, f_op, self._get_value(value_tree),
                 list_operator=operation,
-            )
+            ))
             if operation == ListOperators.IN:
                 q |= field_q
             else:
@@ -114,7 +115,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
     def searching(self, args):
         # like, ilike
         operation, prop, val = tuple(self._get_value(args[index]) for index in range(3))
-        return self._filter_cls_instance.build_q_for_filter(prop, operation, val)
+        return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, val))
 
     def ordering(self, args):
         self._ordering.append(tuple(args[1:]))

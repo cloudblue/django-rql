@@ -3,7 +3,7 @@ from rest_framework.filters import BaseFilterBackend
 from dj_rql.drf._utils import get_query
 
 
-class FilterCache(object):
+class FilterCache:
     CACHE = {}
 
     @classmethod
@@ -26,7 +26,7 @@ class RQLFilterBackend(BaseFilterBackend):
 
         filter_instance = self._get_filter_instance(filter_class, queryset, view)
         rql_ast, queryset = filter_instance.apply_filters(
-            self.get_query(filter_instance, request), request,
+            self.get_query(filter_instance, request, view), request, view,
         )
         return queryset
 
@@ -37,14 +37,15 @@ class RQLFilterBackend(BaseFilterBackend):
     @staticmethod
     def _get_filter_instance(filter_class, queryset, view):
         qual_name = '{}.{}'.format(view.basename, filter_class.__name__)
+
         filter_instance = FilterCache.CACHE.get(qual_name)
         if filter_instance:
-            filter_instance.queryset = queryset
-        else:
-            filter_instance = filter_class(queryset)
-            FilterCache.CACHE[qual_name] = filter_instance
+            return filter_class(queryset=queryset, instance=filter_instance)
+
+        filter_instance = filter_class(queryset)
+        FilterCache.CACHE[qual_name] = filter_instance
         return filter_instance
 
     @classmethod
-    def get_query(cls, filter_instance, request):
+    def get_query(cls, filter_instance, request, view):
         return get_query(request)
