@@ -4,6 +4,7 @@ from django.db.models import Q
 from django.utils.dateparse import parse_date, parse_datetime
 from lark.exceptions import LarkError
 
+from dj_rql._dataclasses import OptimizationArgs
 from dj_rql.constants import (
     ComparisonOperators,
     DjangoLookups,
@@ -78,7 +79,7 @@ class RQLFilterClass(object):
     def apply_filters(self, query, request=None):
         """ Entry point function for model queryset filtering. """
         self._is_distinct = self.DISTINCT
-        rql_ast, qs, select = None, self.queryset, []
+        rql_ast, qs, select_filters = None, self.queryset, []
 
         if query:
             rql_ast = RQLParser.parse_query(query)
@@ -91,7 +92,7 @@ class RQLFilterClass(object):
                 raise e.orig_exc
 
             qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
-            select = rql_transformer.select_filters
+            select_filters = rql_transformer.select_filters
 
             if self._is_distinct:
                 qs = qs.distinct()
@@ -100,13 +101,13 @@ class RQLFilterClass(object):
             setattr(request, 'rql_ast', rql_ast)
 
         if self.SELECT:
-            rql_select = self._build_rql_select(select)
-            qs = self._apply_optimizations(qs, rql_select)
+            select_data = self._build_rql_select(select_filters)
+            qs = self._apply_optimizations(qs, select_data)
 
             if request:
                 setattr(request, 'rql_select', {
                     'depth': 0,
-                    'select': rql_select,
+                    'select': select_data,
                 })
 
         self.queryset = qs
@@ -178,8 +179,12 @@ class RQLFilterClass(object):
         if filter_item:
             return filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
 
-    def optimize_field(self, qs, rql_select, field):
-        return qs, False
+    def optimize_field(self, data):
+        """
+        :param OptimizationArgs data:
+        :return:
+        """
+        pass
 
     def _build_rql_select(self, select):
         rql_select = {}
@@ -290,19 +295,35 @@ class RQLFilterClass(object):
 
         return q
 
-    def _apply_optimizations(self, qs, rql_select):
-        return self.__apply_optimizations(qs, rql_select, self._select_tree)
+    def _apply_optimizations(self, queryset, select_data):
+        return self.__apply_optimizations(
+            OptimizationArgs(queryset, select_data, self._select_tree),
+        )
 
-    def __apply_optimizations(self, qs, rql_select, tree):
-        if tree:
-            for field_name, field in tree.items():
-                if rql_select.get(field['path'], True):
-                    qs, optimized = self.optimize_field(qs, rql_select, field)
+    def __apply_optimizations(self, data):
+        """
+        :param OptimizationArgs data:
+        :return:
+        """
+        qs, select_data, filter_tree = data.queryset, data.select_data, data.filter_tree
 
-                    optimization = field['qs']
-                    if not optimized and optimization:
+        if filter_tree:
+            for node in filter_tree.values():
+                filter_path = node['path']
+                if select_data.get(filter_path, True):
+                    optimized_qs = self.optimize_field(
+                        OptimizationArgs(qs, select_data, filter_tree, node, filter_path),
+                    )
+
+                    optimization = node['qs']
+                    if optimized_qs is not None:
+                        qs = optimized_qs
+                    elif optimization:
                         qs = optimization.apply(qs)
-                        qs = self.__apply_optimizations(qs, rql_select, field['fields'])
+
+                    qs = self.__apply_optimizations(
+                        OptimizationArgs(qs, select_data, node['fields']),
+                    )
 
         return qs
 

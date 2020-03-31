@@ -1,4 +1,5 @@
 import pytest
+from django.core.exceptions import FieldError
 from django.db.models import IntegerField, Value
 
 from dj_rql.exceptions import RQLFilterParsingError
@@ -553,3 +554,113 @@ def test_select_complex():
         'ns2.ns2.id': True,
         'ns2.ns1': False,
     }
+
+
+def test_qs_optimization_full_tree():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'filter': 'ft1',
+                'source': 'id',
+                'qs': SR('author')
+            },
+            {
+                'filter': 'ft2',
+                'source': 'id',
+                'qs': PR('pages'),
+                'hidden': True,
+            },
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'qs': NSR('author'),
+                'filters': (
+                    {
+                        'filter': 'ft1',
+                        'source': 'id',
+                        'qs': NSR('publisher'),
+                    },
+                    {
+                        'filter': 'ft2',
+                        'source': 'id',
+                        'qs': NPR('publisher'),
+                    },
+                ),
+            },
+        )
+
+    _, qs = Cls(book_qs).apply_filters('select(-ns.ft2,ns)')
+    assert qs.query.select_related == {'author': {'publisher': {}}}
+
+
+def test_qs_optimization_custom_optimization():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'filter': 'ft1',
+                'source': 'id',
+            },
+            {
+                'filter': 'ft2',
+                'source': 'id',
+                'hidden': True,
+            },
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'qs': NSR('author'),
+                'filters': (
+                    {
+                        'filter': 'ft1',
+                        'source': 'id',
+                    },
+                    {
+                        'filter': 'ft2',
+                        'source': 'id',
+                    },
+                ),
+            },
+        )
+
+        def optimize_field(self, data):
+            optimization_mapper = {
+                'ft1': '_optimize_ft1',
+                'ft2': '_optimize_ft2',
+                'ns.ft1': '_optimize_ns_ft1',
+                'ns.ft2': '_optimize_ns_ft2',
+            }
+
+            optimization_func = optimization_mapper.get(data.filter_path)
+            if optimization_func:
+                return getattr(self, optimization_func)(data)
+
+        def _optimize_ft1(self, data):
+            return data.queryset.select_related('author')
+
+        def _optimize_ft2(self, data):
+            return data.queryset.prefetch_related('pages')
+
+        def _optimize_ns_ft1(self, data):
+            return data.queryset.select_related('author__publisher')
+
+        def _optimize_ns_ft2(self, data):
+            return data.queryset.prefetch_related('author__publisher')
+
+    _, qs = Cls(book_qs).apply_filters('select(-ns.ft2,ns)')
+    assert qs.query.select_related == {'author': {'publisher': {}}}
+
+
+def test_qs_optimization_django_error():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'filter': 'ft1',
+                'source': 'id',
+                'qs': SR('invalid'),
+            },
+        )
+
+    _, qs = Cls(book_qs).apply_filters('')
+
+    with pytest.raises(FieldError):
+        list(qs.all())
