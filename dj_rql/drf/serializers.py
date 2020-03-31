@@ -3,35 +3,34 @@ from copy import deepcopy
 
 
 class RQLMixin:
-    # TODO: Check if NO fields in serialization
     def to_representation(self, instance):
         self.apply_rql_select()
         return super(RQLMixin, self).to_representation(instance)
 
     def apply_rql_select(self):
         rql_select = self._get_field_rql_select(self)
-        if rql_select:
-            setattr(self, 'rql_select', rql_select)
-            deeper_rql_select = self._get_deeper_rql_select()
 
-            for field_name, include_field in rql_select['select'].items():
-                split_field_name = field_name.split('.')
-                is_current_level_field = (len(split_field_name) == 1)
-                current_depth_field_name = split_field_name[0]
+        setattr(self, 'rql_select', rql_select)
+        deeper_rql_select = self._get_deeper_rql_select()
 
-                if is_current_level_field:
-                    if not include_field:
-                        self.fields.pop(current_depth_field_name, None)
+        for field_name, is_included in rql_select['select'].items():
+            split_field_name = field_name.split('.')
+            is_current_level_field = (len(split_field_name) == 1)
+            current_depth_field_name = split_field_name[0]
 
-                elif current_depth_field_name in self.fields:
-                    deeper_depth_field_name = '.'.join(split_field_name[1:])
-                    deeper_field = self.fields[current_depth_field_name]
+            if is_current_level_field:
+                if not is_included:
+                    self.fields.pop(current_depth_field_name, None)
 
-                    deeper_field_select = {deeper_depth_field_name: include_field}
-                    self._set_field_rql_select(deeper_field, select=deeper_field_select)
+            elif current_depth_field_name in self.fields:
+                deeper_depth_field_name = '.'.join(split_field_name[1:])
+                deeper_field = self.fields[current_depth_field_name]
 
-                    deeper_rql_select.setdefault(current_depth_field_name, OrderedDict())
-                    deeper_rql_select[current_depth_field_name].update(deeper_field_select)
+                deeper_field_select = {deeper_depth_field_name: is_included}
+                self._set_field_rql_select(deeper_field, select=deeper_field_select)
+
+                deeper_rql_select.setdefault(current_depth_field_name, OrderedDict())
+                deeper_rql_select[current_depth_field_name].update(deeper_field_select)
 
     def rql_context(self, field_name):
         deeper_select = self._get_deeper_rql_select()

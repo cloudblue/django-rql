@@ -114,6 +114,7 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'ordering_filter',
         'custom': True,
         'ordering': True,
+        'lookups': {FilterLookups.EQ},
     }, {
         'filter': 'fsm',
         'source': 'fsm_field',

@@ -304,7 +304,7 @@ def test_custom_filter_search_ok(mocker):
             'filter': 'search_filter',
             'custom': True,
             'search': True,
-            'lookups': {FilterLookups.I_LIKE}
+            'lookups': {FilterLookups.I_LIKE},
         }]
 
         def assert_search(self, value, expected):

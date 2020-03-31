@@ -126,7 +126,7 @@ class RQLFilterClass:
             setattr(request, 'rql_ast', rql_ast)
 
         if self.SELECT:
-            select_data = self._build_rql_select(select_filters)
+            select_data = self._build_select_data(select_filters)
             qs = self._apply_optimizations(qs, select_data)
 
             if request:
@@ -212,7 +212,7 @@ class RQLFilterClass:
         if filter_item:
             return filter_item[0] if isinstance(filter_item, iterable_types) else filter_item
 
-    def _build_rql_select(self, select):
+    def _build_select_data(self, select):
         select_data = {}
 
         include_select, exclude_select = [], []
@@ -451,6 +451,8 @@ class RQLFilterClass:
             )
 
             if item.get('custom', False):
+                assert 'lookups' in item, "Custom filters must specify possible lookups."
+
                 self._add_filter_item(field_filter_route, item)
                 self._register_ordering_and_search(item, field_filter_route)
                 continue

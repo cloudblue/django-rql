@@ -16,6 +16,7 @@ def test_select_complex():
     select = OrderedDict()
     select['blog_rating'] = True
     select['github_stars'] = False
+    select['author'] = True
     select['author.publisher'] = True
     select['author.publisher.name'] = False
     select['author_ref.name'] = False
@@ -46,3 +47,40 @@ def test_select_complex():
         'pages': [{
             'id': str(page.uuid),
         }]} == data
+
+
+@pytest.mark.django_db
+def test_select_request_without_rql_select():
+    book = Book.objects.create()
+
+    class Request:
+        pass
+
+    data = SelectBookSerializer(book, context={'request': Request}).data
+    assert data
+
+
+@pytest.mark.django_db
+def test_select_no_request():
+    book = Book.objects.create()
+
+    data = SelectBookSerializer(book).data
+    assert data
+
+
+@pytest.mark.django_db
+def test_select_misconfiguration():
+    book = Book.objects.create()
+
+    select = OrderedDict()
+    select['invalid'] = True
+    select['invalid.invalid'] = False
+
+    class Request:
+        rql_select = {
+            'depth': 0,
+            'select': select,
+        }
+
+    data = SelectBookSerializer(book, context={'request': Request}).data
+    assert data
