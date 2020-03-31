@@ -1,7 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 
-from dj_rql.drf import FilterCache
+from dj_rql.drf.backend import FilterCache
 
 
 @pytest.fixture

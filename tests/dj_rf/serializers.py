@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from dj_rql.serializers import RQLMixin
+from dj_rql.drf.serializers import RQLMixin
 from tests.dj_rf.models import Publisher, Author, Page, Book
 
 

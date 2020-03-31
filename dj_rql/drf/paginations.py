@@ -1,60 +1,11 @@
-from urllib.parse import unquote
-
 from lark.exceptions import LarkError
-from rest_framework.filters import BaseFilterBackend
 from rest_framework.pagination import LimitOffsetPagination, _positive_int
 from rest_framework.response import Response
 
+from dj_rql.drf._utils import get_query
 from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLLimitOffsetTransformer
-
-
-class FilterCache(object):
-    CACHE = {}
-
-    @classmethod
-    def clear(cls):
-        cls.CACHE = {}
-
-
-class RQLFilterBackend(BaseFilterBackend):
-    """ RQL filter backend for DRF GenericAPIViews.
-
-    Examples:
-        class ViewSet(mixins.ListModelMixin, GenericViewSet):
-            filter_backends = (RQLFilterBackend,)
-            rql_filter_class = ModelFilterClass
-    """
-    def filter_queryset(self, request, queryset, view):
-        filter_class = self.get_filter_class(view)
-        if not filter_class:
-            return queryset
-
-        filter_instance = self._get_filter_instance(filter_class, queryset, view)
-        rql_ast, queryset = filter_instance.apply_filters(
-            self.get_query(filter_instance, request), request,
-        )
-        return queryset
-
-    @staticmethod
-    def get_filter_class(view):
-        return getattr(view, 'rql_filter_class', None)
-
-    @staticmethod
-    def _get_filter_instance(filter_class, queryset, view):
-        qual_name = '{}.{}'.format(view.basename, filter_class.__name__)
-        filter_instance = FilterCache.CACHE.get(qual_name)
-        if filter_instance:
-            filter_instance.queryset = queryset
-        else:
-            filter_instance = filter_class(queryset)
-            FilterCache.CACHE[qual_name] = filter_instance
-        return filter_instance
-
-    @classmethod
-    def get_query(cls, filter_instance, request):
-        return get_query(request)
 
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
@@ -116,7 +67,3 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
             self.offset, self.offset + length, self.count,
         )
         return Response(data, headers={"Content-Range": content_range})
-
-
-def get_query(drf_request):
-    return unquote(drf_request._request.META['QUERY_STRING'])

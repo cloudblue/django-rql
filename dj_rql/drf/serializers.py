@@ -1,13 +1,6 @@
 from collections import OrderedDict
 from copy import deepcopy
 
-# from rest_framework import serializers
-# class RQLMixin(serializers.Serializer):
-#
-#
-
-# TODO: Move to DRF
-
 
 class RQLMixin:
     # TODO: Check if NO fields in serialization

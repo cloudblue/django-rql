@@ -127,7 +127,8 @@ class ModelFilterClass(RQLFilterClass):
     }]
 
 
-from dj_rql.drf import RQLContentRangeLimitOffsetPagination, RQLFilterBackend
+from dj_rql.drf.backend import  RQLFilterBackend
+from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
 
 class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
     queryset = MODEL.objects.all()

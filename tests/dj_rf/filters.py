@@ -1,6 +1,6 @@
 from django.db.models import IntegerField, CharField, AutoField, F
 
-from dj_rql.fields import SelectField
+from dj_rql.drf.fields import SelectField
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.constants import FilterLookups, RQL_NULL
 from dj_rql.qs import AN, NSR, PR, SR
