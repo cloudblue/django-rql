@@ -16,6 +16,8 @@ from dj_rql.constants import (
     RQL_ANY_SYMBOL,
     RQL_EMPTY,
     RQL_FALSE,
+    RQL_MINUS,
+    RQL_PLUS,
     RQL_NULL,
     RQL_SEARCH_PARAM,
     RQL_TRUE,
@@ -215,17 +217,19 @@ class RQLFilterClass:
     def _build_select_data(self, select):
         select_data = {}
 
-        include_select, exclude_select = [], []
+        include_select, exclude_select = [], set()
         inclusions, exclusions = set(), set()
 
         for select_prop in select:
-            is_included = (not select_prop[0] == '-')
-            filter_name = select_prop[1:] if select_prop[0] in ('-', '+') else select_prop
+            is_included = (select_prop[0] != RQL_MINUS)
+            filter_name = select_prop[1:] \
+                if select_prop[0] in (RQL_MINUS, RQL_PLUS) \
+                else select_prop
 
             if is_included:
                 include_select.append(filter_name)
             else:
-                exclude_select.append(filter_name)
+                exclude_select.add(filter_name)
 
         for filter_name in include_select:
             select_tree = self.select_tree
@@ -255,7 +259,7 @@ class RQLFilterClass:
                                 '{}.{}'.format(parent_parts, neighbour_part),
                             )
 
-        real_exclude_select = set(exclude_select) \
+        real_exclude_select = exclude_select \
             .union(self.default_exclusions - inclusions) \
             .union(exclusions - inclusions)
 
@@ -363,9 +367,9 @@ class RQLFilterClass:
 
         ordering_fields = []
         for prop in properties[0]:
-            if '-' == prop[0]:
+            if RQL_MINUS == prop[0]:
                 filter_name = prop[1:]
-                sign = '-'
+                sign = RQL_MINUS
             else:
                 filter_name = prop
                 sign = ''

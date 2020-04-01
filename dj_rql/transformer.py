@@ -3,7 +3,12 @@ from lark import Transformer, Tree
 
 from dj_rql._dataclasses import FilterArgs
 from dj_rql.constants import (
-    ComparisonOperators, ListOperators, LogicalOperators, RQL_LIMIT_PARAM, RQL_OFFSET_PARAM,
+    ComparisonOperators,
+    ListOperators,
+    LogicalOperators,
+    RQL_PLUS,
+    RQL_LIMIT_PARAM,
+    RQL_OFFSET_PARAM,
 )
 
 
@@ -38,7 +43,7 @@ class BaseRQLTransformer(Transformer):
         if len(args) == 2:
             # has sign
             return '{}{}'.format(self._get_value(args[0]), self._get_value(args[1])) \
-                .lstrip('+')  # Plus is not needed in ordering
+                .lstrip(RQL_PLUS)  # Plus is not needed in ordering
         return self._get_value(args[0])
 
     def term(self, args):

@@ -54,8 +54,8 @@ _ParentData = namedtuple('_ParentData', 'parent relation type')
 
 
 class _NestedOptimizationMixin:
-    SR = 0
-    PR = 1
+    _SR = 0
+    _PR = 1
 
     def rebuild(self, parent_optimization=None):
         if not parent_optimization or isinstance(parent_optimization, Annotation):
@@ -68,7 +68,10 @@ class _NestedOptimizationMixin:
         parent_relation = real_parent_optimization.main_relation
         assert isinstance(parent_relation, str), 'Only simple parent relations are supported.'
 
-        parent_type = self.PR if isinstance(real_parent_optimization, PrefetchRelated) else self.SR
+        parent_type = self._PR \
+            if isinstance(real_parent_optimization, PrefetchRelated) \
+            else self._SR
+
         return self._rebuild_nested(
             _ParentData(real_parent_optimization, parent_relation, parent_type),
         )
@@ -105,7 +108,7 @@ class NestedPrefetchRelated(_NestedOptimizationMixin, PrefetchRelated):
 
 class NestedSelectRelated(_NestedOptimizationMixin, SelectRelated):
     def _rebuild_nested(self, parent_data):
-        optimization_cls = SelectRelated if parent_data.type == self.SR else PrefetchRelated
+        optimization_cls = SelectRelated if parent_data.type == self._SR else PrefetchRelated
         rebuilt_relations = [self._join_relation(parent_data.relation, r) for r in self._relations]
 
         return optimization_cls(*rebuilt_relations, **self._extensions)

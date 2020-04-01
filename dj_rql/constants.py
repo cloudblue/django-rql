@@ -2,6 +2,8 @@ from django.db import models
 
 
 RQL_ANY_SYMBOL = '*'
+RQL_PLUS = '+'
+RQL_MINUS = '-'
 RQL_EMPTY = 'empty()'
 RQL_NULL = 'null()'
 RQL_TRUE = 'true'
