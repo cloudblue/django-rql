@@ -1,30 +1,21 @@
-from __future__ import unicode_literals
-
-from django.db.models import CharField, F, IntegerField, Value
+from django.db.models import CharField, IntegerField, Value
 from rest_framework import mixins
-from rest_framework import serializers
 from rest_framework.viewsets import GenericViewSet
 
-from dj_rql.drf import (
-    RQLContentRangeLimitOffsetPagination,
+from dj_rql.drf.backend import (
     RQLFilterBackend,
 )
-from dj_rql.compat import DjangoFiltersRQLFilterBackend
-from tests.dj_rf.filters import BooksFilterClass
+from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
+from dj_rql.drf.compat import DjangoFiltersRQLFilterBackend
+from tests.dj_rf.filters import BooksFilterClass, SelectBooksFilterClass
 from tests.dj_rf.models import Book
-
-
-class BookSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Book
-        fields = ('id',)
+from tests.dj_rf.serializers import SelectBookSerializer, BookSerializer
 
 
 def apply_annotations(qs):
     return qs.annotate(
         anno_int=Value(1000, IntegerField()),
         anno_str=Value('text', CharField(max_length=10)),
-        anno_auto=F('id'),
     )
 
 
@@ -43,3 +34,8 @@ class DRFViewSet(BaseViewSet):
 
 class DjangoFiltersViewSet(BaseViewSet):
     filter_backends = (DjangoFiltersRQLFilterBackend,)
+
+
+class SelectViewSet(mixins.RetrieveModelMixin, DRFViewSet):
+    serializer_class = SelectBookSerializer
+    rql_filter_class = SelectBooksFilterClass

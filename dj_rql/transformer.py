@@ -1,8 +1,14 @@
 from django.db.models import Q
 from lark import Transformer, Tree
 
+from dj_rql._dataclasses import FilterArgs
 from dj_rql.constants import (
-    ComparisonOperators, ListOperators, LogicalOperators, RQL_LIMIT_PARAM, RQL_OFFSET_PARAM,
+    ComparisonOperators,
+    ListOperators,
+    LogicalOperators,
+    RQL_PLUS,
+    RQL_LIMIT_PARAM,
+    RQL_OFFSET_PARAM,
 )
 
 
@@ -37,7 +43,7 @@ class BaseRQLTransformer(Transformer):
         if len(args) == 2:
             # has sign
             return '{}{}'.format(self._get_value(args[0]), self._get_value(args[1])) \
-                .lstrip('+')  # Plus is not needed in ordering
+                .lstrip(RQL_PLUS)  # Plus is not needed in ordering
         return self._get_value(args[0])
 
     def term(self, args):
@@ -64,17 +70,22 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         self._filter_cls_instance = filter_cls_instance
 
         self._ordering = []
+        self._select = []
 
     @property
     def ordering_filters(self):
         return self._ordering
+
+    @property
+    def select_filters(self):
+        return self._select
 
     def start(self, args):
         return self._filter_cls_instance.queryset.filter(args[0])
 
     def comp(self, args):
         prop, operation, value = self._extract_comparison(args)
-        return self._filter_cls_instance.build_q_for_filter(prop, operation, value)
+        return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, value))
 
     def logical(self, args):
         operation = args[0].data
@@ -96,10 +107,10 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
         q = Q()
         for value_tree in args[2:]:
-            field_q = self._filter_cls_instance.build_q_for_filter(
+            field_q = self._filter_cls_instance.build_q_for_filter(FilterArgs(
                 prop, f_op, self._get_value(value_tree),
                 list_operator=operation,
-            )
+            ))
             if operation == ListOperators.IN:
                 q |= field_q
             else:
@@ -109,13 +120,15 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
     def searching(self, args):
         # like, ilike
         operation, prop, val = tuple(self._get_value(args[index]) for index in range(3))
-        return self._filter_cls_instance.build_q_for_filter(prop, operation, val)
+        return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, val))
 
     def ordering(self, args):
         self._ordering.append(tuple(args[1:]))
         return Q()
 
     def select(self, args):
+        assert not self._select
+        self._select = args[1:]
         return Q()
 
 

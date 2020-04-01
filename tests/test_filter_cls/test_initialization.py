@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import pytest
 from django.core.exceptions import FieldDoesNotExist
 
@@ -55,7 +53,7 @@ def test_building_filters():
             {'orm_route': 'id', 'lookups': FL.numeric()},
             {'orm_route': 'author__id', 'lookups': FL.numeric()},
         ],
-        'custom_filter': {'custom': True, 'custom_data': [1]},
+        'custom_filter': {'custom': True, 'custom_data': [1], 'lookups': {FL.I_LIKE}},
         'int_choice_field': {
             'orm_route': 'int_choice_field', 'lookups': non_null_numeric_lookups,
         },
@@ -72,7 +70,7 @@ def test_building_filters():
         'no_list_lookup': {'custom': True, 'lookups': {FL.EQ}},
         't__in': {'orm_route': 'title', 'lookups': FL.string()},
         'github_stars': {'orm_route': 'github_stars', 'lookups': FL.numeric()},
-        'ordering_filter': {'custom': True, 'ordering': True},
+        'ordering_filter': {'custom': True, 'ordering': True, 'lookups': {FL.EQ}},
         'fsm': {'orm_route': 'fsm_field', 'lookups': FL.string()},
         'anno_int': {'orm_route': 'anno_int', 'lookups': {FL.EQ}},
         'anno_int_ref': {'orm_route': 'anno_int', 'lookups': non_null_numeric_lookups},
@@ -248,6 +246,7 @@ def test_bad_dynamic_set():
             'filter': 'custom',
             'custom': True,
             'field': True,
+            'lookups': {FL.EQ},
         }, {
             'filter': 'common',
             'field': True,

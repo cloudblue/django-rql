@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from unittest import TestCase
 
 from rest_framework.pagination import PAGE_BREAK, PageLink
@@ -8,7 +6,6 @@ from rest_framework.test import APIRequestFactory
 
 from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.drf import RQLContentRangeLimitOffsetPagination
-
 
 factory = APIRequestFactory()
 

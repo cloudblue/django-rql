@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 from uuid import uuid4
 
 from django.db import models
@@ -17,7 +15,9 @@ class Author(models.Model):
 
     is_male = models.NullBooleanField()
 
-    publisher = models.ForeignKey(Publisher, related_name='+', on_delete=models.SET_NULL, null=True)
+    publisher = models.ForeignKey(
+        Publisher, related_name='authors', on_delete=models.SET_NULL, null=True,
+    )
 
 
 class Book(models.Model):

@@ -12,7 +12,8 @@ from dj_rql.constants import (
     RQL_ORDERING_OPERATOR,
     RQL_TRUE,
 )
-from dj_rql.drf import RQLFilterBackend, get_query
+from dj_rql.drf.backend import RQLFilterBackend
+from dj_rql.drf._utils import get_query
 from dj_rql.exceptions import RQLFilterParsingError
 
 
@@ -23,7 +24,7 @@ class CompatibilityRQLFilterBackend(RQLFilterBackend):
     compatibility DRF backend must be inherited from.
     """
     @classmethod
-    def get_query(cls, filter_instance, request):
+    def get_query(cls, filter_instance, request, view):
         query_string = cls.modify_initial_query(filter_instance, request, get_query(request))
 
         if not cls.is_old_syntax(filter_instance, request, query_string):

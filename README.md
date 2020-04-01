@@ -27,6 +27,7 @@ Currently supported operators
 0. Logical (and, or, not)
 0. Constants (null(), empty()) 
 0. Ordering (ordering)
+0. Select (select)
 
 
 Example
@@ -41,6 +42,8 @@ class ModelFilterClass(RQLFilterClass):
     MODEL - Django ORM model
     FILTERS - List of filters
     EXTENDED_SEARCH_ORM_ROUTES - List of additional Django ORM fields for search
+    DISTINCT - Boolean flag, that specifies if queryset must always be DISTINCT
+    SELECT - Boolean flag, that specifies if Filter Class supports select operations and queryset optimizations
     
     Filters can be set in two ways:
         1) string (default settings are calculated from ORM)
@@ -57,10 +60,18 @@ class ModelFilterClass(RQLFilterClass):
         'sources': iterable
         # or
         'custom': bool
+        # or
+        'dynamic': bool
+        'field': obj
+        
+        'lookups': set
+        
+        'qs': obj
         
         'use_repr': bool  # can't be used in namespaces
         'ordering': bool  # can't be true if 'use_repr=True'
         'search': bool    # can't be true if 'use_repr=True'
+        'hidden': bool
     }
     
     """
@@ -100,10 +111,12 @@ class ModelFilterClass(RQLFilterClass):
         'source': 'blog_rating',
         'use_repr': True,
     }, {
+        # `hidden` flag is used to set default select behaviour for associated field
         'filter': 'rating.blog_int',
         'source': 'blog_rating',
         'use_repr': False,
         'ordering': True,
+        'hidden': True,
     }, {
         # We can change default lookups for a certain filter
         'filter': 'amazon_rating',
@@ -127,7 +140,8 @@ class ModelFilterClass(RQLFilterClass):
     }]
 
 
-from dj_rql.drf import RQLContentRangeLimitOffsetPagination, RQLFilterBackend
+from dj_rql.drf.backend import  RQLFilterBackend
+from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
 
 class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
     queryset = MODEL.objects.all()
@@ -142,12 +156,12 @@ Notes
 0. Values with whitespaces or special characters, like ',' need to have “” or ‘’
 1. Supported date format is ISO8601: 2019-02-12
 2. Supported datetime format is ISO8601: 2019-02-12T10:02:00 / 2019-02-12T10:02Z / 2019-02-12T10:02:00+03:00
+3. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices) is added
 
 
 Django Rest Framework Extensions
 ================================
 1. Pagination (limit, offset)
-0. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices)
 0. Support for custom fields, inherited at any depth from basic model fields, like CharField().
 0. Backend `DjangoFiltersRQLFilterBackend` with automatic conversion of [Django-Filters](https://django-filter.readthedocs.io/en/master/) query to RQL query.
 

@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import pytest
 
 from dj_rql.utils import assert_filter_cls

@@ -1,6 +1,6 @@
-from __future__ import unicode_literals
-
 import pytest
+from django.test.utils import CaptureQueriesContext
+from django.db import connection
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 
@@ -59,7 +59,7 @@ def test_list_pagination(api_client, clear_cache):
 
 
 def test_rql_filter_cls_is_not_set():
-    class View(object):
+    class View:
         pass
 
     assert RQLFilterBackend().filter_queryset(None, 'str', View()) == 'str'
@@ -88,3 +88,16 @@ def test_cache(api_client, clear_cache):
 
     FilterCache.clear()
     assert FilterCache.CACHE == {}
+
+
+@pytest.mark.django_db
+def test_distinct_sequence(api_client, clear_cache):
+    with CaptureQueriesContext(connection) as context:
+        api_client.get('{}?{}'.format(reverse('book-list'), 'status=planning'))
+
+        assert 'distinct' in context.captured_queries[1]['sql'].lower()
+
+    with CaptureQueriesContext(connection) as context:
+        api_client.get('{}?{}'.format(reverse('book-list'), 'title=abc'))
+
+        assert 'distinct' not in context.captured_queries[1]['sql'].lower()
