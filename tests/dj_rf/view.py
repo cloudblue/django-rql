@@ -39,3 +39,7 @@ class DjangoFiltersViewSet(BaseViewSet):
 class SelectViewSet(mixins.RetrieveModelMixin, DRFViewSet):
     serializer_class = SelectBookSerializer
     rql_filter_class = SelectBooksFilterClass
+
+
+class NoFilterClsViewSet(DRFViewSet):
+    rql_filter_class = None

@@ -14,7 +14,11 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
         super(RQLLimitOffsetPagination, self).__init__(*args, **kwargs)
 
         self._rql_limit = None
-        self._rql_offset = None
+        self._rql_offset = None\
+
+
+    def get_paginated_response_schema(self, schema):
+        return schema
 
     def paginate_queryset(self, queryset, request, view=None):
         rql_ast = None
