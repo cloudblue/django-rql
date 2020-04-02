@@ -6,3 +6,5 @@ pytest-django
 pytest-mock
 django-fsm>=2.7
 django-model-utils>=3.2.0
+pyyaml
+uritemplate
