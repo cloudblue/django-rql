@@ -137,9 +137,8 @@ def test_api_auto_genereation():
     openapi_schema = SchemaGenerator().get_schema()
 
     assert '/books/' in openapi_schema['paths']
-
     parameters = openapi_schema['paths']['/books/']['get']['parameters']
-
+    assert len(parameters) > 10
     assert parameters[0]['name'] == 'limit'
     assert parameters[0]['schema'] == {'type': 'integer'}
     assert parameters[1]['name'] == 'offset'
@@ -147,3 +146,22 @@ def test_api_auto_genereation():
     assert parameters[2]['name'] == 'amazon_rating'
 
     assert '/nofiltercls/' in openapi_schema['paths']
+
+    assert '/books/{id}/' not in openapi_schema['paths']
+
+    assert '/books/{id}/act/' in openapi_schema['paths']
+    parameters = openapi_schema['paths']['/books/{id}/act/']['get']['parameters']
+    assert len(parameters) == 1
+    assert parameters[0]['name'] == 'id'
+
+    assert '/select/{id}/' in openapi_schema['paths']
+    parameters = openapi_schema['paths']['/select/{id}/']['get']['parameters']
+    assert len(parameters) == 1
+    assert parameters[0]['name'] == 'id'
+
+    assert '/old_books/{id}/' in openapi_schema['paths']
+    get_parameters = openapi_schema['paths']['/old_books/{id}/']['get']['parameters']
+    assert len(get_parameters) > 10
+    put_parameters = openapi_schema['paths']['/old_books/{id}/']['put']['parameters']
+    assert len(put_parameters) == 1
+    assert put_parameters[0]['name'] == 'id'
