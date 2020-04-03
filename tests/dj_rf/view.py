@@ -1,5 +1,7 @@
 from django.db.models import CharField, IntegerField, Value
 from rest_framework import mixins
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from dj_rql.drf.backend import (
@@ -31,9 +33,17 @@ class BaseViewSet(mixins.ListModelMixin, GenericViewSet):
 class DRFViewSet(BaseViewSet):
     filter_backends = (RQLFilterBackend,)
 
+    @action(detail=True)
+    def act(self, *args):
+        return Response()
 
-class DjangoFiltersViewSet(BaseViewSet):
-    filter_backends = (DjangoFiltersRQLFilterBackend,)
+
+class OpenAPIRetrieveSpecBackend(DjangoFiltersRQLFilterBackend):
+    OPENAPI_RETRIEVE_SPECIFICATION = True
+
+
+class DjangoFiltersViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, BaseViewSet):
+    filter_backends = (OpenAPIRetrieveSpecBackend,)
 
 
 class SelectViewSet(mixins.RetrieveModelMixin, DRFViewSet):

@@ -19,6 +19,8 @@ class RQLFilterBackend(BaseFilterBackend):
             filter_backends = (RQLFilterBackend,)
             rql_filter_class = ModelFilterClass
     """
+    OPENAPI_RETRIEVE_SPECIFICATION = False
+
     def filter_queryset(self, request, queryset, view):
         filter_class = self.get_filter_class(view)
         if not filter_class:
@@ -31,9 +33,16 @@ class RQLFilterBackend(BaseFilterBackend):
         return queryset
 
     def get_schema_operation_parameters(self, view):
+        spec = []
+        if view.action not in ('list', 'retrieve'):
+            return spec
+
+        if view.action == 'retrieve' and (not self.OPENAPI_RETRIEVE_SPECIFICATION):
+            return spec
+
         filter_class = self.get_filter_class(view)
         if not filter_class:
-            return []
+            return spec
 
         filter_instance = self._get_filter_instance(filter_class, queryset=None, view=view)
         return filter_instance.openapi_specification
