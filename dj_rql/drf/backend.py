@@ -30,9 +30,21 @@ class RQLFilterBackend(BaseFilterBackend):
         )
         return queryset
 
+    def get_schema_operation_parameters(self, view):
+        filter_class = self.get_filter_class(view)
+        if not filter_class:
+            return []
+
+        filter_instance = self._get_filter_instance(filter_class, queryset=None, view=view)
+        return filter_instance.openapi_specification
+
     @staticmethod
     def get_filter_class(view):
         return getattr(view, 'rql_filter_class', None)
+
+    @classmethod
+    def get_query(cls, filter_instance, request, view):
+        return get_query(request)
 
     @staticmethod
     def _get_filter_instance(filter_class, queryset, view):
@@ -45,7 +57,3 @@ class RQLFilterBackend(BaseFilterBackend):
         filter_instance = filter_class(queryset)
         FilterCache.CACHE[qual_name] = filter_instance
         return filter_instance
-
-    @classmethod
-    def get_query(cls, filter_instance, request, view):
-        return get_query(request)

@@ -36,13 +36,23 @@ class BooksFilterClass(RQLFilterClass):
     }, 'current_price', 'written', {
         'filter': 'status',
         'distinct': True,
+        'openapi': {
+            'required': True,
+        },
     }, {
         'filter': 'author__email',
         'search': True,
+        'openapi': {
+            'description': 'Author Email',
+            'deprecated': True,
+        },
     }, {
         'filter': 'name',
         'source': 'author__name',
         'distinct': True,
+        'openapi': {
+            'hidden': True,
+        },
     }, {
         'namespace': 'author',
         'filters': AUTHOR_FILTERS,
@@ -72,6 +82,9 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 'url',
         'source': 'publishing_url',
+        'openapi': {
+            'type': 'string',
+        },
     }, {
         'filter': 'd_id',
         'sources': ['id', 'author__id'],
@@ -110,6 +123,10 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'filter': 't__in',
         'source': 'title',
+        'openapi': {
+            'type': 'custom',
+            'format': 'custom',
+        },
     }, 'github_stars', {
         'filter': 'ordering_filter',
         'custom': True,

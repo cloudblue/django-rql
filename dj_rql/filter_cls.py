@@ -24,6 +24,7 @@ from dj_rql.constants import (
     SUPPORTED_FIELD_TYPES,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
+from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
@@ -36,6 +37,7 @@ class RQLFilterClass:
     EXTENDED_SEARCH_ORM_ROUTES = tuple()
     DISTINCT = False
     SELECT = False
+    OPENAPI_SPECIFICATION = RQLFilterClassSpecification
 
     def __init__(self, queryset, instance=None):
         self.queryset = queryset
@@ -98,8 +100,12 @@ class RQLFilterClass:
         """
         pass
 
+    @property
+    def openapi_specification(self):
+        return self.OPENAPI_SPECIFICATION.get(self)
+
     def apply_filters(self, query, request=None, view=None):
-        """
+        """ Main entrypoint for request filtering.
 
         :param str query: RQL query string
         :param request: Request from API view
@@ -466,10 +472,8 @@ class RQLFilterClass:
 
             field = item.get('field')
             kwargs = {
-                'lookups': item.get('lookups'),
-                'use_repr': item.get('use_repr'),
-                'null_values': item.get('null_values'),
-                'distinct': item.get('distinct'),
+                prop: item.get(prop)
+                for prop in ('lookups', 'use_repr', 'null_values', 'distinct', 'openapi')
             }
 
             if 'sources' in item:
@@ -554,14 +558,13 @@ class RQLFilterClass:
         return field_name.split('.' if '.' in field_name else '__') if field_name else []
 
     @classmethod
-    def _build_mapped_item(cls,
-                           field,
-                           field_orm_route,
-                           lookups=None,
-                           use_repr=None,
-                           null_values=None,
-                           distinct=None,
-                           ):
+    def _build_mapped_item(cls, field, field_orm_route, **kwargs):
+        lookups = kwargs.get('lookups')
+        use_repr = kwargs.get('use_repr')
+        null_values = kwargs.get('null_values')
+        distinct = kwargs.get('distinct')
+        openapi = kwargs.get('openapi')
+
         possible_lookups = lookups or FilterTypes.default_field_filter_lookups(field)
         if not (field.null or cls._is_pk_field(field)):
             possible_lookups.discard(FilterLookups.NULL)
@@ -576,6 +579,9 @@ class RQLFilterClass:
 
         if use_repr is not None:
             result['use_repr'] = use_repr
+
+        if openapi is not None:
+            result['openapi'] = openapi
 
         return result
 
