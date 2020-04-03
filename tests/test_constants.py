@@ -1,6 +1,6 @@
 import pytest
 
-from dj_rql.constants import FilterLookups, FilterTypes, RQL_NULL
+from dj_rql.constants import FilterLookups, FilterTypes
 
 
 def test_field_filter_type():
