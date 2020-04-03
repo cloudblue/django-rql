@@ -6,7 +6,7 @@ from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.qs import AN, CH, PR, NPR, NSR, SR
 
-from tests.dj_rf.models import Book
+from tests.dj_rf.models import Author, Book
 from tests.test_filter_cls.utils import book_qs
 
 
@@ -664,3 +664,58 @@ def test_qs_optimization_django_error():
 
     with pytest.raises(FieldError):
         list(qs.all())
+
+
+def test_qs_optimization_deep_various_nesting():
+    class AuthorCls(SelectFilterCls):
+        MODEL = Author
+        FILTERS = (
+            {
+                'namespace': 'publisher',
+                'qs': NSR('publisher'),
+                'filters': (
+                    {
+                        'namespace': 'fk',
+                        'source': 'fk1',
+                        'qs': NSR('fk1'),
+                        'filters': ('id',),
+                    },
+                    {
+                        'namespace': 'fk2',
+                        'source': 'fk2',
+                        'qs': NSR('fk2'),
+                        'filters': ('id',),
+                    },
+                    {
+                        'namespace': 'authors',
+                        'qs': NPR('authors'),
+                        'filters': ('id',),
+                    },
+                ),
+            },
+            {
+                'namespace': 'fk1',
+                'qs': NSR('fk'),
+                'filters': ('id',),
+            },
+            {
+                'filter': 'id',
+                'qs': NPR('books'),
+            },
+        )
+
+    class BookCls(SelectFilterCls):
+        MODEL = Book
+        FILTERS = (
+            {
+                'namespace': 'author',
+                'qs': NSR('author'),
+                'filters': AuthorCls.FILTERS,
+            },
+        )
+
+    _, qs = BookCls(book_qs).apply_filters('')
+    assert qs.query.select_related == {'author': {'publisher': {'fk1': {}, 'fk2': {}}, 'fk': {}}}
+    assert qs._prefetch_related_lookups == (
+        'author__publisher__authors', 'author__books',
+    )
