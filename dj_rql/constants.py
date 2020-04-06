@@ -56,16 +56,25 @@ class FilterLookups:
     I_LIKE = 'ilike'
 
     @classmethod
-    def numeric(cls):
-        return {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE, cls.IN, cls.OUT, cls.NULL}
+    def numeric(cls, with_null=True):
+        return cls._add_null(
+            {cls.EQ, cls.NE, cls.GE, cls.GT, cls.LT, cls.LE, cls.IN, cls.OUT}, with_null,
+        )
 
     @classmethod
-    def string(cls):
-        return {cls.EQ, cls.NE, cls.IN, cls.OUT, cls.NULL, cls.LIKE, cls.I_LIKE}
+    def string(cls, with_null=True):
+        return cls._add_null({cls.EQ, cls.NE, cls.IN, cls.OUT, cls.LIKE, cls.I_LIKE}, with_null)
 
     @classmethod
-    def boolean(cls):
-        return {cls.EQ, cls.NE, cls.NULL}
+    def boolean(cls, with_null=True):
+        return cls._add_null({cls.EQ, cls.NE}, with_null)
+
+    @classmethod
+    def _add_null(cls, lookup_set, with_null):
+        if with_null:
+            lookup_set.add(cls.NULL)
+
+        return lookup_set
 
 
 class FilterTypes:

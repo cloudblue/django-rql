@@ -42,6 +42,8 @@ class RQLFilterClass:
     def __init__(self, queryset, instance=None):
         self.queryset = queryset
         self._is_distinct = self.DISTINCT
+        self._request = None
+        self._view = None
 
         if instance:
             self._init_from_class(instance)
@@ -112,6 +114,9 @@ class RQLFilterClass:
         :param view: API view
         :return: Lark AST, Filtered QuerySet
         """
+        self._request = request
+        self._view = view
+
         rql_ast, qs, select_filters = None, self.queryset, []
 
         if query:
@@ -144,6 +149,9 @@ class RQLFilterClass:
                 })
 
         self.queryset = qs
+
+        self._request = None
+        self._view = None
 
         return rql_ast, qs
 
@@ -434,7 +442,7 @@ class RQLFilterClass:
                 ).related_model
 
                 qs = item.get('qs')
-                tree = self._fill_select_tree(
+                tree, p_qs = self._fill_select_tree(
                     namespace, related_filter_route, select_tree,
                     namespace=True,
                     hidden=item.get('hidden', False),
@@ -442,10 +450,9 @@ class RQLFilterClass:
                     parent_qs=parent_qs,
                 )
 
-                parent_qs = qs if qs else parent_qs
                 self._build_filters(
                     item.get('filters', []), related_filter_route + '.',
-                    related_orm_route, related_model, select_tree=tree, parent_qs=parent_qs,
+                    related_orm_route, related_model, select_tree=tree, parent_qs=p_qs,
                 )
                 continue
 
@@ -497,7 +504,7 @@ class RQLFilterClass:
     def _fill_select_tree(self, f_name, full_f_name, select_tree,
                           namespace=False, hidden=False, qs=None, parent_qs=None):
         if not self.SELECT:
-            return select_tree
+            return select_tree, None
 
         if hidden:
             self.default_exclusions.add(full_f_name)
@@ -520,7 +527,7 @@ class RQLFilterClass:
             })
             current_select_tree = current_select_tree[filter_name_part]['fields']
 
-        return current_select_tree
+        return current_select_tree, parent_qs if not qs else changed_qs
 
     def _add_filter_item(self, filter_name, item):
         assert filter_name not in RESERVED_FILTER_NAMES, \

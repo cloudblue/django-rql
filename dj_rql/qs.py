@@ -108,7 +108,7 @@ class NestedPrefetchRelated(_NestedOptimizationMixin, PrefetchRelated):
 
 class NestedSelectRelated(_NestedOptimizationMixin, SelectRelated):
     def _rebuild_nested(self, parent_data):
-        optimization_cls = SelectRelated if parent_data.type == self._SR else PrefetchRelated
+        optimization_cls = NSR if parent_data.type == self._SR else NPR
         rebuilt_relations = [self._join_relation(parent_data.relation, r) for r in self._relations]
 
         return optimization_cls(*rebuilt_relations, **self._extensions)

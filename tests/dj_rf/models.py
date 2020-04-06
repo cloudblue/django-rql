@@ -5,8 +5,15 @@ from django_fsm import FSMField
 from model_utils import Choices
 
 
+class RandomFk(models.Model):
+    pass
+
+
 class Publisher(models.Model):
     name = models.CharField(max_length=20, null=True)
+
+    fk1 = models.ForeignKey(RandomFk, on_delete=models.SET_NULL, null=True)
+    fk2 = models.ForeignKey(RandomFk, on_delete=models.SET_NULL, null=True)
 
 
 class Author(models.Model):
@@ -18,6 +25,8 @@ class Author(models.Model):
     publisher = models.ForeignKey(
         Publisher, related_name='authors', on_delete=models.SET_NULL, null=True,
     )
+
+    fk1 = models.ForeignKey(RandomFk, on_delete=models.SET_NULL, null=True)
 
 
 class Book(models.Model):
