@@ -23,7 +23,7 @@ spec:
           memory: "512Mi"
           cpu: '1'
     - name: sonar-scanner
-      image: cloud.repo.int.zone/sonar-scanner:2.6.1
+      image: sonarsource/sonar-scanner-cli:4.2
       imagePullPolicy: IfNotPresent
       command:
         - cat
@@ -57,6 +57,28 @@ spec:
         }
       }
     }
+    stage('Scan') {
+      when { changeRequest() }
+      steps {
+        container('sonar-scanner') {
+          sh """sonar-scanner \
+            -Dsonar.pullrequest.key=${env.CHANGE_ID} \
+            -Dsonar.pullrequest.branch=${env.CHANGE_BRANCH} \
+            -Dsonar.pullrequest.base=${env.CHANGE_TARGET} \
+            -Dsonar.pullrequest.bitbucketserver.headSha=${env.GIT_COMMIT}
+          """
+        }
+      }
+    }
+    stage('Scan and push to Sonar') {
+      when { not { changeRequest() } }
+      steps {
+        container('sonar-scanner') {
+          sh """sonar-scanner \
+            -Dsonar.projectVersion=${version}"""
+        }
+      }
+    }
     stage('Upload') {
       when { not { changeRequest() } }
       steps {
@@ -67,33 +89,6 @@ spec:
             sh 'python setup.py sdist'
             sh 'twine upload --repository-url https://repo.int.zone/artifactory/api/pypi/pypi-local dist/*'
           }
-        }
-      }
-    }
-    stage('Scan') {
-      when { changeRequest() }
-      steps {
-        container('sonar-scanner') {
-          sh """sonar-scanner \
-            -Dsonar.projectVersion=${projectVersion} \
-            -Dsonar.stash.project=SWFT \
-            -Dsonar.stash.repository=django-rql \
-            -Dsonar.stash.pullrequest.id=${env.CHANGE_ID} \
-            -Dsonar.stash.notification=true \
-            -Dsonar.stash.comments.reset=false \
-            -Dsonar.stash.login=commit-blocker-bot \
-            -Dsonar.stash.report.issues=true \
-            -Dsonar.stash.report.line=false \
-            -Dsonar.stash.report.coverage=false"""
-        }
-      }
-    }
-    stage('Scan and push to Sonar') {
-      when { not { changeRequest() } }
-      steps {
-        container('sonar-scanner') {
-          sh """sonar-scanner \
-            -Dsonar.projectVersion=${projectVersion}"""
         }
       }
     }
