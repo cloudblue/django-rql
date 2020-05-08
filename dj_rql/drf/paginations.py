@@ -35,12 +35,18 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
                 raise RQLFilterParsingError(details={
                     'error': 'Limit and offset are set incorrectly.',
                 })
+
+        if self.get_limit() == 0:
+            self.count = self.get_count(queryset)
+            self.offset = 0
+            return []
+
         return super(RQLLimitOffsetPagination, self).paginate_queryset(queryset, request, view)
 
     def get_limit(self, *args):
         if self._rql_limit is not None:
             try:
-                return _positive_int(self._rql_limit, strict=True, cutoff=self.max_limit)
+                return _positive_int(self._rql_limit, strict=False, cutoff=self.max_limit)
             except ValueError:
                 pass
         return self.default_limit

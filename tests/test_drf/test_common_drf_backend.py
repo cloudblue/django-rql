@@ -58,6 +58,17 @@ def test_list_pagination(api_client, clear_cache):
     assert response._headers['content-range'][1] == 'items 1-2/5'
 
 
+
+@pytest.mark.django_db
+def test_list_pagination_zero_limit(api_client, clear_cache):
+    [Book.objects.create() for _ in range(5)]
+    query = 'limit=0'
+    response = api_client.get('{}?{}'.format(reverse('book-list'), query))
+    assert response.status_code == HTTP_200_OK
+    assert response.data == []
+    assert response._headers['content-range'][1] == 'items 0-0/5'
+
+
 def test_rql_filter_cls_is_not_set():
     class View:
         pass
