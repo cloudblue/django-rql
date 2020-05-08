@@ -164,7 +164,7 @@ class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
 
 Notes
 =====
-0. Values with whitespaces or special characters, like ',' need to have “” or ‘’
+0. Values with whitespaces or special characters, like ',' need to have "" or ''
 1. Supported date format is ISO8601: 2019-02-12
 2. Supported datetime format is ISO8601: 2019-02-12T10:02:00 / 2019-02-12T10:02Z / 2019-02-12T10:02:00+03:00
 3. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices) is added
