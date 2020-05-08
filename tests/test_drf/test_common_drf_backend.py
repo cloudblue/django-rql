@@ -58,7 +58,6 @@ def test_list_pagination(api_client, clear_cache):
     assert response._headers['content-range'][1] == 'items 1-2/5'
 
 
-
 @pytest.mark.django_db
 def test_list_pagination_zero_limit(api_client, clear_cache):
     [Book.objects.create() for _ in range(5)]
