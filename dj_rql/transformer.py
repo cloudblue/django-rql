@@ -71,6 +71,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
         self._ordering = []
         self._select = []
+        self._filtered_props = set()
 
     @property
     def ordering_filters(self):
@@ -81,10 +82,14 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._select
 
     def start(self, args):
-        return self._filter_cls_instance.queryset.filter(args[0])
+        qs = self._filter_cls_instance.apply_annotations(self._filtered_props)
+
+        return qs.filter(args[0])
 
     def comp(self, args):
         prop, operation, value = self._extract_comparison(args)
+        self._filtered_props.add(prop)
+
         return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, value))
 
     def logical(self, args):
@@ -98,6 +103,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         q = Q()
         for child in children:
             q |= child
+
         return q
 
     def listing(self, args):
@@ -115,20 +121,38 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
                 q |= field_q
             else:
                 q &= field_q
+
+        self._filtered_props.add(prop)
+
         return q
 
     def searching(self, args):
         # like, ilike
         operation, prop, val = tuple(self._get_value(args[index]) for index in range(3))
+        self._filtered_props.add(prop)
+
         return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, val))
 
     def ordering(self, args):
-        self._ordering.append(tuple(args[1:]))
+        props = args[1:]
+        self._ordering.append(tuple(props))
+
+        if props:
+            for prop in props:
+                self._filtered_props.add(prop.replace('-', '').replace('+', ''))
+
         return Q()
 
     def select(self, args):
         assert not self._select
-        self._select = args[1:]
+
+        props = args[1:]
+        self._select = props
+
+        if props:
+            for prop in props:
+                self._filtered_props.add(prop.replace('-', '').replace('+', ''))
+
         return Q()
 
 

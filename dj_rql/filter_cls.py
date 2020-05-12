@@ -1,3 +1,4 @@
+from collections import defaultdict
 from uuid import uuid4
 
 from django.db.models import Q
@@ -26,6 +27,7 @@ from dj_rql.constants import (
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
 from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.parser import RQLParser
+from dj_rql.qs import Annotation
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
 iterable_types = (list, tuple)
@@ -44,6 +46,7 @@ class RQLFilterClass:
         self._is_distinct = self.DISTINCT
         self._request = None
         self._view = None
+        self._applied_annotations = set()
 
         if instance:
             self._init_from_class(instance)
@@ -62,12 +65,19 @@ class RQLFilterClass:
         self.search_filters = set()
         self.select_tree = {}
         self.default_exclusions = set()
+        self.annotations = {}
 
         self._build_filters(self.FILTERS)
+        self._extend_annotations()
 
     def _init_from_class(self, instance):
         copied_attributes = (
-            'filters', 'ordering_filters', 'search_filters', 'select_tree', 'default_exclusions',
+            'filters',
+            'ordering_filters',
+            'search_filters',
+            'select_tree',
+            'default_exclusions',
+            'annotations',
         )
         for attr in copied_attributes:
             setattr(self, attr, getattr(instance, attr))
@@ -105,6 +115,39 @@ class RQLFilterClass:
     @property
     def openapi_specification(self):
         return self.OPENAPI_SPECIFICATION.get(self)
+
+    def apply_annotations(self, filter_names, queryset=None):
+        """
+        This method is used from RQL Transformer to apply annotations before filtering on queryset,
+        but after it's understood which filters are used. Also, it's used to apply annotations
+        for select() optimization.
+
+        :param set of str filter_names: Set of filter names
+        :param django.db.models.QuerySet or None queryset: Queryset for annotation
+        """
+        if queryset is None:
+            qs = self.queryset.all()
+        else:
+            qs = queryset.all()
+
+        if not self.SELECT:
+            return qs
+
+        for filter_name in filter_names:
+            anno_list = self.annotations.get(filter_name)
+
+            if not anno_list:
+                continue
+
+            for anno in anno_list:
+                anno_id = id(anno)
+                if anno_id in self._applied_annotations:
+                    continue
+
+                self._applied_annotations.add(anno_id)
+                qs = anno.apply(qs)
+
+        return qs
 
     def apply_filters(self, query, request=None, view=None):
         """ Main entrypoint for request filtering.
@@ -354,6 +397,7 @@ class RQLFilterClass:
         if filter_tree:
             for node in filter_tree.values():
                 filter_path = node['path']
+
                 if select_data.get(filter_path, True):
                     optimized_qs = self.optimize_field(
                         OptimizationArgs(qs, select_data, filter_tree, node, filter_path),
@@ -363,7 +407,10 @@ class RQLFilterClass:
                     if optimized_qs is not None:
                         qs = optimized_qs
                     elif optimization:
-                        qs = optimization.apply(qs)
+                        if isinstance(optimization, Annotation):
+                            qs = self.apply_annotations({filter_path}, qs)
+                        else:
+                            qs = optimization.apply(qs)
 
                     qs = self.__apply_optimizations(
                         OptimizationArgs(qs, select_data, node['fields']),
@@ -503,6 +550,7 @@ class RQLFilterClass:
 
     def _fill_select_tree(self, f_name, full_f_name, select_tree,
                           namespace=False, hidden=False, qs=None, parent_qs=None):
+
         if not self.SELECT:
             return select_tree, None
 
@@ -514,8 +562,12 @@ class RQLFilterClass:
         last_filter_name_part_index = len(filter_name_parts) - 1
 
         changed_qs = qs
-        if qs and parent_qs:
-            changed_qs = qs.rebuild(parent_qs)
+        if qs:
+            # Chains with Annotations are not considered
+            if isinstance(qs, Annotation):
+                self.annotations[full_f_name] = [qs]
+            elif parent_qs and not(isinstance(parent_qs, Annotation)):
+                changed_qs = qs.rebuild(parent_qs)
 
         for index, filter_name_part in enumerate(filter_name_parts):
             current_select_tree.setdefault(filter_name_part, {
@@ -540,6 +592,21 @@ class RQLFilterClass:
 
         if item.get('search'):
             self.search_filters.add(field_filter_route)
+
+    def _extend_annotations(self):
+        filter_names = tuple(self.filters.keys())
+        extended_annotations = defaultdict(list)
+
+        for annotated_filter_name, annotation_list in self.annotations.items():
+            for filter_name in filter_names:
+                if filter_name.startswith(annotated_filter_name + '.'):
+                    extended_annotations[filter_name].append(annotation_list[0])
+
+                    own_annotation = self.annotations.get(filter_name)
+                    if own_annotation:
+                        extended_annotations[filter_name].append(own_annotation[0])
+
+        self.annotations.update(dict(extended_annotations))
 
     @classmethod
     def _get_field(cls, base_model, field_name, get_related=False):
