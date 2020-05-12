@@ -399,24 +399,30 @@ class RQLFilterClass:
                 filter_path = node['path']
 
                 if select_data.get(filter_path, True):
-                    optimized_qs = self.optimize_field(
-                        OptimizationArgs(qs, select_data, filter_tree, node, filter_path),
-                    )
-
-                    optimization = node['qs']
-                    if optimized_qs is not None:
-                        qs = optimized_qs
-                    elif optimization:
-                        if isinstance(optimization, Annotation):
-                            qs = self.apply_annotations({filter_path}, qs)
-                        else:
-                            qs = optimization.apply(qs)
-
-                    qs = self.__apply_optimizations(
-                        OptimizationArgs(qs, select_data, node['fields']),
-                    )
+                    qs = self.__apply_field_optimizations(qs, data, node)
 
         return qs
+
+    def __apply_field_optimizations(self, qs, data, node):
+        select_data, filter_tree = data.select_data, data.filter_tree
+        filter_path = node['path']
+
+        optimized_qs = self.optimize_field(
+            OptimizationArgs(qs, select_data, filter_tree, node, filter_path),
+        )
+
+        optimization = node['qs']
+        if optimized_qs is not None:
+            qs = optimized_qs
+        elif optimization:
+            if isinstance(optimization, Annotation):
+                qs = self.apply_annotations({filter_path}, qs)
+            else:
+                qs = optimization.apply(qs)
+
+        return self.__apply_optimizations(
+            OptimizationArgs(qs, select_data, node['fields']),
+        )
 
     def _apply_ordering(self, qs, properties):
         if len(properties) == 0:
@@ -566,7 +572,7 @@ class RQLFilterClass:
             # Chains with Annotations are not considered
             if isinstance(qs, Annotation):
                 self.annotations[full_f_name] = [qs]
-            elif parent_qs and not(isinstance(parent_qs, Annotation)):
+            elif parent_qs and (not isinstance(parent_qs, Annotation)):
                 changed_qs = qs.rebuild(parent_qs)
 
         for index, filter_name_part in enumerate(filter_name_parts):
