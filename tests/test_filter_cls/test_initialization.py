@@ -141,7 +141,7 @@ def test_orm_field_type_is_unsupported():
     assert str(e.value) == 'Unsupported field type: publisher.'
 
 
-@pytest.mark.parametrize('filter_name', RESERVED_FILTER_NAMES)
+@pytest.mark.parametrize('filter_name', sorted(list(RESERVED_FILTER_NAMES)))
 def test_reserved_filter_name_is_used(filter_name):
     class Cls(RQLFilterClass):
         MODEL = Author

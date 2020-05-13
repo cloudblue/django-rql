@@ -34,7 +34,7 @@ class Annotation(DBOptimization):
         super(Annotation, self).__init__('None', **kwargs)
 
     def rebuild(self, parent_optimization=None):
-        return self.__class__(**self._extensions)
+        return self
 
     def apply(self, queryset):
         return queryset.annotate(**self._extensions)

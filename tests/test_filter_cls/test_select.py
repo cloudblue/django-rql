@@ -1,6 +1,6 @@
 import pytest
 from django.core.exceptions import FieldError
-from django.db.models import IntegerField, Value
+from django.db.models import CharField, IntegerField, Value
 
 from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
@@ -719,3 +719,73 @@ def test_qs_optimization_deep_various_nesting():
     assert qs._prefetch_related_lookups == (
         'author__publisher__authors', 'author__books',
     )
+
+
+@pytest.mark.django_db
+def test_annotations():
+    class AnnotationCls(SelectFilterCls):
+        FILTERS = (
+            {
+                'namespace': 'ns',
+                'source': 'author',
+                'qs': AN(ns=Value('abc', CharField(max_length=128))),
+                'filters': (
+                    'id',
+                    {
+                        'filter': 'ft',
+                        'source': 'id',
+                        'qs': AN(ns_ft=Value('abc', CharField(max_length=128))),
+                    },
+                ),
+            },
+            {
+                'filter': 'ft1',
+                'source': 'id',
+                'hidden': True,
+                'qs': AN(ft1=Value(1, IntegerField())),
+            },
+            {
+                'filter': 'ft2',
+                'dynamic': True,
+                'field': IntegerField(),
+                'qs': AN(ft2=Value(1, IntegerField())),
+            },
+            {
+                'filter': 'vns.ft',
+                'source': 'vns_ft',
+                'dynamic': True,
+                'field': IntegerField(),
+                'qs': AN(vns_ft=Value(1, IntegerField())),
+            },
+        )
+
+    qs = Book.objects.all()
+
+    instance = AnnotationCls(qs)
+    assert set(instance.filters.keys()) == set(instance.annotations.keys()) - {'ns'}
+    assert instance.annotations['ns'] == instance.annotations['ns.id']
+    assert instance.annotations['ns'] != instance.annotations['ns.ft']
+
+    _, qs = AnnotationCls(qs, instance=instance).apply_filters('')
+    assert set(qs.query.annotations.keys()) == {'ns', 'ns_ft', 'ft2', 'vns_ft'}
+    assert not list(qs)
+
+    _, qs = AnnotationCls(qs, instance=instance).apply_filters('ft1=3&ft2=5&vns.ft=3')
+    assert set(qs.query.annotations.keys()) == {'ns', 'ns_ft', 'ft1', 'ft2', 'vns_ft'}
+    assert not list(qs)
+
+
+def test_annotations_misconfiguration():
+    class AnnotationCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = (
+            {
+                'filter': 'ft',
+                'dynamic': True,
+                'field': IntegerField(),
+                'qs': AN(ft=Value(1, IntegerField())),
+            },
+        )
+
+    with pytest.raises(FieldError):
+        AnnotationCls(book_qs).apply_filters('ft=2')

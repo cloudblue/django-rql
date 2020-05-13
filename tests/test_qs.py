@@ -49,7 +49,11 @@ def test_base_apply():
 @pytest.mark.django_db
 def test_annotation_apply():
     Book.objects.create()
-    assert Annotation(abc=Value(1, IntegerField())).apply(default_qs).first().abc == 1
+
+    anno = Annotation(abc=Value(1, IntegerField()))
+    assert anno.apply(default_qs).first().abc == 1
+
+    assert anno.rebuild() == anno
 
 
 def test_sr_apply():
