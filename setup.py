@@ -17,7 +17,7 @@ setup(
 
     python_requires='>=3.5',
     zip_safe=True,
-    packages=find_packages(),
+    packages=find_packages(exclude=('tests',)),
     include_package_data=True,
     install_requires=read_file('requirements/dev.txt').splitlines(),
     tests_require=read_file('requirements/test.txt').splitlines(),
