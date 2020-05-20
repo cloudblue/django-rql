@@ -860,8 +860,7 @@ class RQLFilterClass:
 
         return db_value
 
-    @staticmethod
-    def _build_django_q(filter_item, django_lookup, filter_lookup, typed_value):
+    def _build_django_q(self, filter_item, django_lookup, filter_lookup, typed_value):
         kwargs = {'{}__{}'.format(filter_item['orm_route'], django_lookup): typed_value}
         return ~Q(**kwargs) if filter_lookup == FilterLookups.NE else Q(**kwargs)
 
