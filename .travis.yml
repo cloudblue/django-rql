@@ -1,0 +1,38 @@
+dist: trusty
+
+language: python
+matrix:
+  include:
+  - os: linux
+    python: 3.7
+    dist: xenial
+    sudo: true
+    env: BUILD=PYPI
+  - os: linux
+    python: 3.8
+    dist: xenial
+    sudo: true
+
+install:
+- pip install -r requirements/dev.txt
+- pip install -r requirements/test.txt
+- pip install pytest-cov
+
+script:
+- flake8
+- python setup.py test
+
+after_success:
+- bash <(curl -s https://codecov.io/bash)
+
+deploy:
+  skip_cleanup: true
+  provider: pypi
+  user: apslite
+  password:
+    secure: nzWd7Fqgi/K5YKqrAPkIBkgRImWQyQgD2/qP3fYksyJnIFWNcea5T4EKqQKXIPZHh1K0cRhT7mSjIfIrQ6H3XKM/eMTAlz6pbisG2cuu4ueUBjbxHCVCkwzBPgF7+DuCJUXJ/SHyoqMnTdAQo8fb8g69/UCmnUp37YoDO1YHXIMjFVkNc6PFS7nQElXnWkvWd1SpQgA1ZdWdwBzEnIiq+L6IFeTa83PH0Schkem/vR9Ql9CmuliovNt3yHfFaeIqLUgOmsfrwOtDVs0/SkcF+Gg5tNds7DHH2TR4fHco5s8F+n4FVgv2DUPlvBbOVvUH1RiRB8hdATetUxe1cU8fT1nPdJASLWS5E4b4knGLH53+bGxqPVezHxghbVYZHPXp7yI1zWX/Wtn9MBiAo9S3f+Tf8zTk5PIjAJLG/Sdn0RX8mLn89fsslku3enH/FknwPtG+xVYSzUlrd+yzHKnqYkKJzMjsBq/F5+shmYSDlnGdGv+Ga3xZSjIoXlphO5qpxR7vrGnLMxEPJC06+mPgPZp1qfDMyrei/IAPRP8qYPC+Vnj8yclH/UyBKT66z2UEP1z5Op99fUXi3W59x2zdVaLHYniNf16UqtrE5kc7gdLvVcH+NtbO716SAbvO5ql/JsYYTmDSoWEC9KWZS+4E7p7n45c8DEieg8Q5HThWF9Y=
+  on:
+    tags: true
+    all_branches: true
+    distributions: sdist
+    condition: "$BUILD = PYPI"
