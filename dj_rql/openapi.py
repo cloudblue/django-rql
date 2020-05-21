@@ -12,6 +12,7 @@ class RQLFilterDescriptionTemplate:
         '_render_search_inplace',
         '_render_ordering_inplace',
         '_render_null_inplace',
+        '_render_default_inplace',
     )
 
     @classmethod
@@ -77,6 +78,13 @@ class RQLFilterDescriptionTemplate:
             return cls._render_common_key_inplace(
                 base, 'null', ', '.join(sorted(null_values)),
             )
+
+        return base
+
+    @classmethod
+    def _render_default_inplace(cls, base, filter_item, filter_instance):
+        if filter_item.get('hidden', False):
+            return cls._render_common_key_inplace(base, 'default', '**hidden**',)
 
         return base
 
