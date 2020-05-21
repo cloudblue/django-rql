@@ -52,6 +52,12 @@ def test_description_null_overridden_render():
                      'null: NULL_ID, null()'
 
 
+def test_description_hidden_render():
+    result = RQLFilterDescriptionTemplate.render(*filter_data('select_author'))
+    assert result == '**Filter for: select_author**\n\n' \
+                     'lookups: eq, ne, like, ilike, in, out\ndefault: **hidden**'
+
+
 def test_description_custom_render():
     class Cls(RQLFilterDescriptionTemplate):
         IN_PLACE_RENDERERS = ('_render_custom_inplace',)

@@ -533,7 +533,7 @@ class RQLFilterClass:
             field = item.get('field')
             kwargs = {
                 prop: item.get(prop)
-                for prop in ('lookups', 'use_repr', 'null_values', 'distinct', 'openapi')
+                for prop in ('lookups', 'use_repr', 'null_values', 'distinct', 'openapi', 'hidden')
             }
 
             if 'sources' in item:
@@ -644,6 +644,7 @@ class RQLFilterClass:
         null_values = kwargs.get('null_values')
         distinct = kwargs.get('distinct')
         openapi = kwargs.get('openapi')
+        hidden = kwargs.get('hidden')
 
         possible_lookups = lookups or FilterTypes.default_field_filter_lookups(field)
         if not (field.null or cls._is_pk_field(field)):
@@ -655,6 +656,7 @@ class RQLFilterClass:
             'lookups': possible_lookups,
             'null_values': null_values or {RQL_NULL},
             'distinct': distinct or False,
+            'hidden': hidden or False,
         }
 
         if use_repr is not None:
