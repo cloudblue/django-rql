@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from django.db.models import CharField, IntegerField, Value
 from rest_framework import mixins
 from rest_framework.decorators import action

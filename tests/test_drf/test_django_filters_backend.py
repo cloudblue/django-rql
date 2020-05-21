@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 import pytest
 from django.http import QueryDict
 from django.utils.timezone import now

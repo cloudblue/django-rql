@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from uuid import uuid4
 
 from django.db import models

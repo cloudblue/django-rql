@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from django.db.models import IntegerField, CharField, AutoField, F
 
 from dj_rql.drf.fields import SelectField

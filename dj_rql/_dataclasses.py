@@ -1,3 +1,8 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
+
 class OptimizationArgs:
     def __init__(self, queryset, select_data, filter_tree, filter_node=None, filter_path=None):
         """

@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from datetime import date, datetime
 from functools import partial
 

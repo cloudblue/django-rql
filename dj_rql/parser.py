@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from lark import Lark
 from lark.exceptions import LarkError
 

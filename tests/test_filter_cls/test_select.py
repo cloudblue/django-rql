@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 import pytest
 from django.core.exceptions import FieldError
 from django.db.models import CharField, IntegerField, Value

@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from rest_framework.filters import BaseFilterBackend
 
 from dj_rql.drf._utils import get_query

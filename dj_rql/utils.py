@@ -1,3 +1,8 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
+
 def assert_filter_cls(filter_cls, filters, ordering_filters, search_filters):
     """ Helper function for testing of custom view rql filter classes.
 

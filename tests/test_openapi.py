@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from copy import copy
 
 from rest_framework.schemas.openapi import SchemaGenerator

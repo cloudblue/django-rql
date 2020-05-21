@@ -1,3 +1,8 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
+
 def get_book_filter_cls_ordering_data():
     return {
         'author.email',

@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from tests.dj_rf.models import Book
 from tests.dj_rf.view import apply_annotations
 

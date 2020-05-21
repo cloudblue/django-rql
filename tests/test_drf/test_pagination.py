@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from unittest import TestCase
 
 from rest_framework.pagination import PAGE_BREAK, PageLink

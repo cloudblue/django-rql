@@ -1,3 +1,8 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
+
 class RQLFilterError(Exception):
     """ Base class for RQL errors. """
     MESSAGE = 'RQL Filtering error.'

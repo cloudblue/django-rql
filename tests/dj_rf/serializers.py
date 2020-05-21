@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from rest_framework import serializers
 
 from dj_rql.drf.serializers import RQLMixin

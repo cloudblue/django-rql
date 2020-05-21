@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 from lark.exceptions import LarkError
 from rest_framework.pagination import LimitOffsetPagination, _positive_int
 from rest_framework.response import Response

@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 # flake8: noqa
 """
 RQL EBNF LALR(1) compatible grammar for standard Lark lexer.

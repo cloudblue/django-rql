@@ -1,3 +1,7 @@
+#
+#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#
+
 import pytest
 from django.db.models import IntegerField, Value, Prefetch
 
