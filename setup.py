@@ -17,7 +17,8 @@ setup(
     url='https://connect.cloud.im',
     description='Django RQL Filtering',
     long_description=read_file('README.md'),
-    license=read_file('LICENSE'),
+    long_description_content_type='text/markdown',
+    license='Apache License, Version 2.0',
 
     python_requires='>=3.5',
     zip_safe=True,
@@ -30,7 +31,7 @@ setup(
 
     keywords='django rql filter rest api',
     classifiers=[
-        'Development Status :: 2',
+        'Development Status :: 5 - Production/Stable',
         'Framework :: Django :: 1.11',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
