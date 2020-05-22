@@ -1,5 +1,4 @@
 dist: trusty
-
 language: python
 matrix:
   include:
@@ -12,32 +11,27 @@ matrix:
     python: 3.8
     dist: xenial
     sudo: true
-
 install:
 - pip install -r requirements/dev.txt
 - pip install -r requirements/test.txt
 - pip install pytest-cov
-
 script:
 - flake8
 - python setup.py test
 - sonar-scanner
-
 after_success:
 - bash <(curl -s https://codecov.io/bash)
-
 addons:
   sonarcloud:
-    organization: "cloudbluesonarcube"
+    organization: cloudbluesonarcube
     token:
       secure: VJcQOn8TekNPIEn/vnf4fHGZoHha1hoeIVGGT9sYHfqe6zjofbQqAaGO3HMVR7Oliqxe1GQkiw2g+J5YdnRSvqqt2B6EPRiJXJW2jF0irwZ+zsrs/h5LcnQvp6KcIEjC9XmYh3gtkL7GF4Afola0Co4kic7+G2icExKE9JZCfEPExIgjZ6tkx74i0sIbUpdVNas8ODiPwXYcia0DBBh/1NT6p0X4wduSsWEC98rkxWZEyqtMLgL9hkO8TyihnNxsPCpK+ocyAtVmBG0P52A7iGHOi3JjzxVOQXntXhutdJsFXs+wcnFZfKHZf5lwfSKuY45DBr6s5iXo7mWADau3TJ2WeKasK/Bs20iLu2yJArNVqCAKqyA92YBRltowxYlNt3ewK6NrMyETvK0GVzrnBet0jVBfWPztJYi5HdUQZjfHMOiFE4k2kX1sWWI3uSDMS03vppzwo3T+InaZoj/fJaqsOGXMSlkRyKWa8jeK6556pYKo784WdYthijR2sOxdLck19ZaeplI+t3Pre9mGPlKw1gn/TqCPfQaFstYwede4qk+OzPthfDJh/jSobQgHiGhq9C0vzAn+ftSAEYJupNRt33uX18NSf2nH6N9mBaBF7cuSZrWTKmR1D00f4laIv5w+hI/xVq079BJe9xdK0gtxfZcdGMUowILcA+i2PV4=
-
 deploy:
   skip_cleanup: true
   provider: pypi
-  user: __token__
+  user: apslite
   password:
-    secure: qPfFxfSP4iON3QclQ4y1YfUstJ48UMqvanDp7pl9kWtA6TCyUSl8IpGnrtrwheCyzB8tt99SATPJ/VaNeUzkrK9vb26v9vW3Y4aoLijWQe8hAYTsQdkn5ldGN+azjknhTOCpSRrZIDfJzdSzaFjf8M/GvEG+SB6IRT78+znmzH524UYDd3oxqwNihoBKZZ84Kbjb4KouckbPbdBUxVwj7UsM90Kn6Zu10n+EsePzEP5qwpDxTymOxASJM4JRIE6ztZw/szghrTymlUTxC+F1PU4UIwS7lJWXQAFNllAMyVetKnkPMmTR4k4EwoL19U8KI4aEC6B/0mkzYM10WUf5poLrAFOnv5fIgZP4EqYe/G4Ic+tDbE5Dx6wFFTmc87PUMeleBEz0hVIov6ogVGFfisk/U23nF2N8nqJPhe1k/yFph1uCr9ZbB9tuC62+xz6UW/PMkCrIbA+XT7K3oLs+T6aUW96khUL6w1OVQJ60qeBWUjLWjL2HuOhp6dE4DsrluYovkXuRGTXr9Dz1xMMzP/TTV7b9qjcVaAlSCYzk6XDue1QA/md9ZJUxv7dB49dyHT1XwHxR2iyRwi3WGPsOruPJto2xrirVT8mgaaGO7Xs4nz9DqeVBLcKCCw2hFwXr0yHtxNOspbt+iplQKPn+4aSGWyjwyzl5O0LP18JZNCM=
+    secure: Te8580Wu9vpNCA0UdcLvuBDJt62e5YT88xcB91okpmBdaf9y0bekZSiROOZWVho5h3yEh+0igeSkXJwkYBKTBqWFHgY8fmzzIXT1dqxK3x+3bXHF4b9NLMPUpxJ5vY+k47DOL/VMMzN3tB2jslmyfo4divJ+MIbZP2C7Yx+cJsTVd9fcRXfvnnH/XW1ZzUszbj0MfKBI5BAl4vUbdf4UUMHKIg3ElV0Hx4JkcDWeon7QW0JQ8A140nRdVOFrqrbKHurqceg8JvDcie9oN4cfEgJFGJVBW7TiYk3e/lIUrC/kBfoZHzNuxDFHVnKraYRBlJ3f4p5+gNeibtsa2J9T0oV4GBFGuDWDhpZh04McJ2jGKiN76pELqEtNK/fj3RiIKCcBxUKHLwwweXZexC+coOeuMvBIjqHXlwMCVdSBs4cnoi4RSH7ix8ztbIAeo8wVfJh0BAnTi9AP1vmxp0SCna5zt4osBkqUsU2x8dmjxjlPsYUHxvyrUmFhtvFHv67UD8/iK/r145Qs53cqcTdpTw9FTC+UFhiiB8x3C3n8VSU7eoFpIDtWfLnMS4gAaRdy4p8QcNa87VGBTOsy58gldlUO9mrNEfLwpziXFCtOo+HHov/DJBl3S5mV635l0QFeoatLsNxEmEDALEtDmLaAzAJeGWmF9VtkEKz6oKGS8j4=
   on:
     tags: true
     all_branches: true
