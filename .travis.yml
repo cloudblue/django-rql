@@ -28,6 +28,7 @@ addons:
       secure: VJcQOn8TekNPIEn/vnf4fHGZoHha1hoeIVGGT9sYHfqe6zjofbQqAaGO3HMVR7Oliqxe1GQkiw2g+J5YdnRSvqqt2B6EPRiJXJW2jF0irwZ+zsrs/h5LcnQvp6KcIEjC9XmYh3gtkL7GF4Afola0Co4kic7+G2icExKE9JZCfEPExIgjZ6tkx74i0sIbUpdVNas8ODiPwXYcia0DBBh/1NT6p0X4wduSsWEC98rkxWZEyqtMLgL9hkO8TyihnNxsPCpK+ocyAtVmBG0P52A7iGHOi3JjzxVOQXntXhutdJsFXs+wcnFZfKHZf5lwfSKuY45DBr6s5iXo7mWADau3TJ2WeKasK/Bs20iLu2yJArNVqCAKqyA92YBRltowxYlNt3ewK6NrMyETvK0GVzrnBet0jVBfWPztJYi5HdUQZjfHMOiFE4k2kX1sWWI3uSDMS03vppzwo3T+InaZoj/fJaqsOGXMSlkRyKWa8jeK6556pYKo784WdYthijR2sOxdLck19ZaeplI+t3Pre9mGPlKw1gn/TqCPfQaFstYwede4qk+OzPthfDJh/jSobQgHiGhq9C0vzAn+ftSAEYJupNRt33uX18NSf2nH6N9mBaBF7cuSZrWTKmR1D00f4laIv5w+hI/xVq079BJe9xdK0gtxfZcdGMUowILcA+i2PV4=
 deploy:
   skip_cleanup: true
+  skip_existing: true
   provider: pypi
   user: apslite
   password:
@@ -37,3 +38,4 @@ deploy:
     all_branches: true
     distributions: sdist
     condition: "$BUILD = PYPI"
+    repo: cloudblue/django-rql
