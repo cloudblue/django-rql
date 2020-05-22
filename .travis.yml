@@ -21,6 +21,7 @@ install:
 script:
 - flake8
 - python setup.py test
+- sonar-scanner
 
 after_success:
 - bash <(curl -s https://codecov.io/bash)
