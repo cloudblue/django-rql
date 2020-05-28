@@ -13,8 +13,8 @@ def read_file(name):
 
 setup(
     name='django-rql',
-    author='Ingram Micro',
-    url='https://connect.cloud.im',
+    author='CloudBlue',
+    url='https://connect.cloudblue.com',
     description='Django RQL Filtering',
     long_description=read_file('README.md'),
     long_description_content_type='text/markdown',
