@@ -14,7 +14,7 @@ from tests.test_parser.utils import SearchTransformer
 search_operators = [SearchOperators.LIKE, SearchOperators.I_LIKE]
 
 SEARCH_OKAY_VALUES = OK_VALUES[:]
-SEARCH_OKAY_VALUES.extend(['*v', 'v*', '*v*', '*v*v', '*v*v*', '"*v v*"'])
+SEARCH_OKAY_VALUES.extend(['*v', 'v*', '*v*', '*v*v', '*v*v*', '"*v v*"', 'v v'])
 
 
 def search_transform(operator, prop, value):
