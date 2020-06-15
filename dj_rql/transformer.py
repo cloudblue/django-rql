@@ -155,7 +155,8 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
         if props:
             for prop in props:
-                self._filtered_props.add(prop.replace('-', '').replace('+', ''))
+                if not prop.startswith('-'):
+                    self._filtered_props.add(prop.replace('+', ''))
 
         return Q()
 

@@ -85,7 +85,7 @@ QUOTED_VAL: /"[^"]*"/
     | /'[^']*'/
 UNQUOTED_VAL: NULL
     | EMPTY
-    | /[\w\-\*\+\\]/ /[\w\.\-\:\+\@\*\\]/*
+    | /[\w\-\*\+\\]/ /[\w\.\s\-\:\+\@\*\\]/*
 
 EMPTY: "empty()"
 NULL: "null()"
