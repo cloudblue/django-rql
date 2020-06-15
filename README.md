@@ -12,8 +12,9 @@ RQL (Resource query language) is designed for modern application development. It
 This is a query language fast and convenient database interaction. RQL was designed for use in URLs to request object-style data structures.
 
 
+[RQL Reference](https://connect.cloudblue.com/community/api/rql/)
+
 [RQL for Web](https://www.sitepen.com/blog/resource-query-language-a-query-language-for-the-web-nosql/)
-[RQL Reference](https://docs.cloudblue.com/oa/8.0/sdk/api/rest/rql/index.html)
 
 Notes
 -----
@@ -193,7 +194,7 @@ Development
 Testing
 =======
 
-1. Python 3.5+
+1. Python 3.6+
 0. Install dependencies `requirements/test.txt`
 0. `export PYTHONPATH=/your/path/to/django-rql/`
 
