@@ -29,12 +29,18 @@ class CompatibilityRQLFilterBackend(RQLFilterBackend):
     """
     @classmethod
     def get_query(cls, filter_instance, request, view):
-        query_string = cls.modify_initial_query(filter_instance, request, get_query(request))
+        try:
+            query_string = cls.modify_initial_query(filter_instance, request, get_query(request))
 
-        if not cls.is_old_syntax(filter_instance, request, query_string):
-            return query_string
+            if not cls.is_old_syntax(filter_instance, request, query_string):
+                return query_string
 
-        return cls.get_rql_query(filter_instance, request, query_string)
+            else:
+                return cls.get_rql_query(filter_instance, request, query_string)
+        except Exception:
+            raise RQLFilterParsingError(details={
+                'error': 'Bad filter query.',
+            })
 
     @classmethod
     def modify_initial_query(cls, filter_instance, request, query_string):
