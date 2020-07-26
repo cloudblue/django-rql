@@ -32,6 +32,11 @@ Currently supported operators
 0. Select (select)
 
 
+Quickstart
+==========
+Try to enrich your API filtering opportunities learning [Quickstart Guide][quickstart]
+
+
 Example
 =======
 ```python
@@ -207,3 +212,5 @@ Tests reports are generated in `tests/reports`.
 
 To generate HTML coverage reports use:
 `--cov-report html:tests/reports/cov_html`
+
+[quickstart]: ./docs/quickstart.md
