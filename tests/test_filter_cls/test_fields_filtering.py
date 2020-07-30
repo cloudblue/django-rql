@@ -197,6 +197,7 @@ def test_published_at():
     assert filter_field(filter_name, CO.NE, '2019-02-12T10:02') == [books[1]]
     assert filter_field(filter_name, CO.LE, '2020-01-01T00:00+08:00') == books
     assert filter_field(filter_name, CO.GT, '2000-12-12T00:21:00') == books
+    assert filter_field(filter_name, CO.GT, '2000-12-12') == books
 
 
 @pytest.mark.django_db
@@ -396,7 +397,7 @@ def test_date_field_fail(filter_name, bad_value):
 
 
 @pytest.mark.parametrize('bad_value', [
-    '2019-02-12', '0', 'date', '2019-02-12T27:00:00', '2019-02-12T21:00:00K',
+    '0', 'date', '2019-02-12T27:00:00', '2019-02-12T21:00:00K',
 ])
 @pytest.mark.parametrize('filter_name', ['published.at'])
 def test_datetime_field_fail(filter_name, bad_value):
