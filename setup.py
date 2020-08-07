@@ -27,12 +27,18 @@ setup(
     install_requires=read_file('requirements/dev.txt').splitlines(),
     tests_require=read_file('requirements/test.txt').splitlines(),
     setup_requires=['setuptools_scm', 'pytest-runner'],
+    extras_require={
+        "drf": read_file('requirements/extra.txt').splitlines(),
+    },
     use_scm_version=True,
 
     keywords='django rql filter rest api',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Framework :: Django :: 1.11',
+        'Framework :: Django :: 2.0',
+        'Framework :: Django :: 2.1',
+        'Framework :: Django :: 2.2',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: Apache Software License',
         'Operating System :: Unix',
