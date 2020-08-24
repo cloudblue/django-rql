@@ -45,11 +45,13 @@ class Annotation(DBOptimization):
 
 
 class SelectRelated(DBOptimization):
+    """Apply a ``select_related`` optimization to the queryset."""
     def apply(self, queryset):
         return queryset.select_related(*self._relations)
 
 
 class PrefetchRelated(DBOptimization):
+    """Apply a ``prefetch_related`` optimization to the queryset."""
     def apply(self, queryset):
         return queryset.prefetch_related(*self._relations)
 
