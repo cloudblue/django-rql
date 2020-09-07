@@ -28,7 +28,7 @@ setup(
     tests_require=read_file('requirements/test.txt').splitlines(),
     setup_requires=['setuptools_scm', 'pytest-runner'],
     extras_require={
-        "drf": read_file('requirements/extra.txt').splitlines(),
+        'drf': read_file('requirements/extra.txt').splitlines(),
     },
     use_scm_version=True,
 
