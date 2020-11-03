@@ -29,6 +29,14 @@ def test_reflecting_star_in_like(api_client, clear_cache):
 
 
 @pytest.mark.django_db
+def test_reflecting_20_and_minus(api_client, clear_cache):
+    books = [Book.objects.create(title='A  B-c0')]
+    response = api_client.get(reverse('book-list') + r'?like(title,*A%20 B-c0*)')
+    assert response.status_code == HTTP_200_OK
+    assert response.data == [{'id': books[0].pk}]
+
+
+@pytest.mark.django_db
 def test_list(api_client, clear_cache):
     books = [Book.objects.create() for _ in range(2)]
     response = api_client.get(reverse('book-list') + '?')

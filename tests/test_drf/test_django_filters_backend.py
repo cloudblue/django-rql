@@ -76,6 +76,20 @@ def test_old_syntax_filters(mocker):
         assert filter_instance.old_syntax_filters == {'t__in'}
 
 
+def test_bad_syntax_query(mocker):
+    query = 'limit=10&offset=0&in=(prop,(val1,val2))&in(prop.prop,(val))' \
+        '&ge=(created,2020-06-01T04:00:00Z)&le=(created,2020-06-24T03:59:59Z)'
+    request = mocker.MagicMock(
+        query_params=QueryDict(query),
+        _request=mocker.MagicMock(META={'QUERY_STRING': query}),
+    )
+    filter_instance = BooksFilterClass(Book.objects.none())
+    mocker.patch('dj_rql.drf.compat.DjangoFiltersRQLFilterBackend.is_old_syntax', return_value=True)
+
+    with pytest.raises(RQLFilterParsingError):
+        assert DjangoFiltersRQLFilterBackend.get_query(filter_instance, request, None)
+
+
 @pytest.mark.parametrize('query', (
     'select(books)&k__in=v,v', 'k__in=v,v&select(books)',
 ))

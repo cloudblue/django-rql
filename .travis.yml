@@ -1,0 +1,45 @@
+dist: trusty
+language: python
+matrix:
+  include:
+  - os: linux
+    python: 3.6
+    dist: xenial
+    sudo: true
+  - os: linux
+    python: 3.7
+    dist: xenial
+    sudo: true
+    env: BUILD=PYPI
+  - os: linux
+    python: 3.8
+    dist: xenial
+    sudo: true
+install:
+- pip install -r requirements/dev.txt
+- pip install -r requirements/test.txt
+- pip install pytest-cov
+script:
+- flake8
+- python setup.py test
+- sonar-scanner
+after_success:
+- bash <(curl -s https://codecov.io/bash)
+addons:
+  sonarcloud:
+    organization: cloudbluesonarcube
+    token:
+      secure: VJcQOn8TekNPIEn/vnf4fHGZoHha1hoeIVGGT9sYHfqe6zjofbQqAaGO3HMVR7Oliqxe1GQkiw2g+J5YdnRSvqqt2B6EPRiJXJW2jF0irwZ+zsrs/h5LcnQvp6KcIEjC9XmYh3gtkL7GF4Afola0Co4kic7+G2icExKE9JZCfEPExIgjZ6tkx74i0sIbUpdVNas8ODiPwXYcia0DBBh/1NT6p0X4wduSsWEC98rkxWZEyqtMLgL9hkO8TyihnNxsPCpK+ocyAtVmBG0P52A7iGHOi3JjzxVOQXntXhutdJsFXs+wcnFZfKHZf5lwfSKuY45DBr6s5iXo7mWADau3TJ2WeKasK/Bs20iLu2yJArNVqCAKqyA92YBRltowxYlNt3ewK6NrMyETvK0GVzrnBet0jVBfWPztJYi5HdUQZjfHMOiFE4k2kX1sWWI3uSDMS03vppzwo3T+InaZoj/fJaqsOGXMSlkRyKWa8jeK6556pYKo784WdYthijR2sOxdLck19ZaeplI+t3Pre9mGPlKw1gn/TqCPfQaFstYwede4qk+OzPthfDJh/jSobQgHiGhq9C0vzAn+ftSAEYJupNRt33uX18NSf2nH6N9mBaBF7cuSZrWTKmR1D00f4laIv5w+hI/xVq079BJe9xdK0gtxfZcdGMUowILcA+i2PV4=
+deploy:
+  skip_cleanup: true
+  skip_existing: true
+  provider: pypi
+  user: "__token__"
+  password:
+    secure: Wzg60u6udwzVIfquCwyge0x0VFPKMvfi0k/lavgJ4dAIpSRJeZESn9gTPnE8nwmDlK7LLezfHGVZnV94428zthzh3CmeLbMx+eD1l7s5/x0s/FJa6Y1AvO+q82N6AmjkstCFcyhliTL6c39X4sQUpN/CQb1Xo0la7qlooFjXf4UvRD3KTnLi4LbQZ5iAp7eLFFYyfRfP8k8IpCWBzt8vWPmQzL9V+xfS7lt4wk/VOeX0wyTNoSPoSnsTI5bBLc6KhxUweGMdIvGgpEL2QvJ3kL4nnAB31NJ6/wJhHp5busTzNruMFnRMwlIjjVIN6PIpjZ7G1qBP3o19vwLkpZ3DT3ALZexZoeBZtIxxmWoQr4i5D4OGeHRKVOHD7SOELOGp1jvmhMilkNtJwFjtozuBOoJSk0W+Ie1fimPK3WJkTjtJZ1vHf6K3cuV8Ejul7C2Qy9Y8qojyfcQY4EwVriZvRKaCnMfNal6swJrpdYoDIsnZFC8u5jTsWPJCiS60XZbcWv6X/i9kZD/R+OHyDZJ4T4fSVprZ4WQysAKUNoLjftCxGlvUz3ir+D20cRO378kdvNar8XzUhKcaUC5anm+8NvjAKxLEWxo5Eklegg+sBlBF/kJSOVVhJ/KrqHlisaX1UhsZs2Pl3MO+eXRGIrHoeRCoBBrulg9Kb6hYKx2l7b8=
+  on:
+    tags: true
+    all_branches: true
+    distributions: sdist
+    condition: "$BUILD = PYPI"
+    repo: cloudblue/django-rql

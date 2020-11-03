@@ -12,3 +12,5 @@ dist/
 
 tests/reports/
 .coverage
+
+docs/_build

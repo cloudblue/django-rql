@@ -3,6 +3,7 @@
 #
 
 from collections import defaultdict
+from datetime import datetime
 from uuid import uuid4
 
 from django.db.models import Q
@@ -38,12 +39,24 @@ iterable_types = (list, tuple)
 
 
 class RQLFilterClass:
+    """Base class for filter classes."""
+
     MODEL = None
+    """The model this filter is for."""
+
     FILTERS = None
+    """A list or tuple of filters definitions."""
+
     EXTENDED_SEARCH_ORM_ROUTES = tuple()
+
     DISTINCT = False
+    """If True, a `SELECT DISTINCT` will always be executed."""
+
     SELECT = False
+    """If True, this FilterClass supports the ``select`` operator."""
+
     OPENAPI_SPECIFICATION = RQLFilterClassSpecification
+    """Class for OpenAPI specifications generation."""
 
     def __init__(self, queryset, instance=None):
         self.queryset = queryset
@@ -354,6 +367,9 @@ class RQLFilterClass:
             })
 
         unquoted_value = self.remove_quotes(str_value)
+        if not unquoted_value:
+            return Q()
+
         if not unquoted_value.startswith(RQL_ANY_SYMBOL):
             unquoted_value = '*' + unquoted_value
 
@@ -802,10 +818,17 @@ class RQLFilterClass:
             dt = parse_date(val)
             if dt is None:
                 raise ValueError
+            return dt
+
         elif filter_type == FilterTypes.DATETIME:
             dt = parse_datetime(val)
             if dt is None:
-                raise ValueError
+                dt = parse_date(val)
+                if dt is None:
+                    raise ValueError
+
+                return datetime(year=dt.year, month=dt.month, day=dt.day)
+            return dt
 
         elif filter_type == FilterTypes.BOOLEAN:
             if val not in (RQL_FALSE, RQL_TRUE):

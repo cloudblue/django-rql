@@ -3,6 +3,7 @@ Django RQL
 ![pyversions](https://img.shields.io/pypi/pyversions/django-rql.svg)  [![PyPi Status](https://img.shields.io/pypi/v/django-rql.svg)](https://pypi.org/project/django-rql/) [![Docs](https://readthedocs.org/projects/django-rql/badge/?version=latest)](https://readthedocs.org/projects/django-rql) [![codecov](https://codecov.io/gh/cloudblue/django-rql/branch/master/graph/badge.svg)](https://codecov.io/gh/cloudblue/django-rql) [![Build Status](https://github.com/cloudblue/django-rql/workflows/Build%20Django-RQL%20library/badge.svg)](https://github.com/cloudblue/django-rql/actions) [![PyPI status](https://img.shields.io/pypi/status/django-rql.svg)](https://pypi.python.org/pypi/django-rql/) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=alert_status)](https://sonarcloud.io/dashboard?id=django-rql)
 
 
+
 `django-rql` is an Django application, that implements RQL filter backend for your web application.
 
 
@@ -214,3 +215,4 @@ Tests reports are generated in `tests/reports`.
 
 To generate HTML coverage reports use:
 `--cov-report html:tests/reports/cov_html`
+
