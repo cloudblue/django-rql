@@ -792,7 +792,7 @@ class RQLFilterClass:
         if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
             return val.replace(RQL_ANY_SYMBOL, '').replace(star_replacer, RQL_ANY_SYMBOL)
 
-        any_symbol_regex = '(.*?)'
+        any_symbol_regex = '(.*)'
         if val == RQL_ANY_SYMBOL:
             return any_symbol_regex
 
