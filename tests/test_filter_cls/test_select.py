@@ -6,6 +6,7 @@ import pytest
 from django.core.exceptions import FieldError
 from django.db.models import CharField, IntegerField, Value
 
+from dj_rql.drf.fields import SelectField
 from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.qs import AN, CH, PR, NPR, NSR, SR
@@ -793,3 +794,27 @@ def test_annotations_misconfiguration():
 
     with pytest.raises(FieldError):
         AnnotationCls(book_qs).apply_filters('ft=2')
+
+
+def test_deselect_namespace():
+    class Cls(SelectFilterCls):
+        FILTERS = (
+            {
+                'filter': 'ns.author',
+                'dynamic': True,
+                'qs': NSR('author'),
+                'field': SelectField(),
+            },
+            {
+                'namespace': 'ns2',
+                'source': 'author',
+                'qs': AN(ns=Value('abc', CharField(max_length=128))),
+                'filters': ('id',),
+            },
+        )
+
+    _, qs = Cls(book_qs).apply_filters('')
+    assert qs.query.select_related == {'author': {}}
+
+    _, qs = Cls(book_qs).apply_filters('select(-ns,-ns2)')
+    assert not qs.query.select_related

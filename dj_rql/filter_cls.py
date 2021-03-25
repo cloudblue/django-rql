@@ -595,15 +595,19 @@ class RQLFilterClass:
             elif parent_qs and (not isinstance(parent_qs, Annotation)):
                 changed_qs = qs.rebuild(parent_qs)
 
+        is_logical_namespace = len(filter_name_parts) > 1
+        path = ''
         for index, filter_name_part in enumerate(filter_name_parts):
+            path += filter_name_part
             current_select_tree.setdefault(filter_name_part, {
                 'hidden': hidden,
                 'fields': {},
                 'namespace': namespace or (index != last_filter_name_part_index),
                 'qs': changed_qs,
-                'path': full_f_name,
+                'path': path if is_logical_namespace else full_f_name,
             })
             current_select_tree = current_select_tree[filter_name_part]['fields']
+            path += '.'
 
         return current_select_tree, parent_qs if not qs else changed_qs
 
