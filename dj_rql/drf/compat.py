@@ -140,7 +140,11 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         if vc.get(' ') and no_quotes:
             return True
 
-        if vc.get('=') and no_quotes:
+        number_of_eqs = vc.get('=', 0)
+        if number_of_eqs >= 1 and vc.get('(', 0) == 0 and vc.get(';'):
+            return True
+
+        if number_of_eqs and no_quotes:
             return False
 
         if len(value) > 2 and value[2] == '=' and value[:2] in cls._RQL_COMPARISON_OPERATORS:

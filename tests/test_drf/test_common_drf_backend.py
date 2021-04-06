@@ -117,9 +117,9 @@ def test_distinct_sequence(api_client, clear_cache):
     with CaptureQueriesContext(connection) as context:
         api_client.get('{}?{}'.format(reverse('book-list'), 'status=planning'))
 
-        assert 'distinct' in context.captured_queries[1]['sql'].lower()
+        assert 'distinct' in context.captured_queries[0]['sql'].lower()
 
     with CaptureQueriesContext(connection) as context:
         api_client.get('{}?{}'.format(reverse('book-list'), 'title=abc'))
 
-        assert 'distinct' not in context.captured_queries[1]['sql'].lower()
+        assert 'distinct' not in context.captured_queries[0]['sql'].lower()

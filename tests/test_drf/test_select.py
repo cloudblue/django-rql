@@ -32,4 +32,4 @@ def test_complex(api_client, clear_cache):
     assert response.status_code == HTTP_200_OK
     assert 'author' not in response.data[0]
     assert 'author_ref' in response.data[0]
-    assert context.captured_queries[1]['sql'].count('JOIN') == 1
+    assert context.captured_queries[0]['sql'].count('JOIN') == 1
