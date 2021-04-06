@@ -1,10 +1,8 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 import pytest
-from django.db import connection
-from django.test.utils import CaptureQueriesContext
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 
@@ -26,10 +24,8 @@ def test_complex(api_client, clear_cache):
     book = Book.objects.create(author=author)
     Page.objects.create(book=book, number=1, content='text')
 
-    with CaptureQueriesContext(connection) as context:
-        response = api_client.get(reverse('select-list') + '?select(-author)')
+    response = api_client.get(reverse('select-list') + '?select(-author)')
 
     assert response.status_code == HTTP_200_OK
     assert 'author' not in response.data[0]
     assert 'author_ref' in response.data[0]
-    assert context.captured_queries[1]['sql'].count('JOIN') == 1

@@ -48,17 +48,19 @@ def test_compatibility_modify_initial_query(backend):
     ('k__in=ne=v', False),
     ('k__in=ne=v""', False),
     ('t__in=v', False),
-    # TODO: Check ('title__in=v,v', True),
     ('order_by=k&k__in=v', True),
     ('limit=10,offset=2', False),
     ('limit=10,eq(offset,2)', False),
     ('limit=10,eq(offset__in,2)', False),
     ('limit=10,eq(t__in,b)', False),
-    ('limit=10;k__in=2', True),
     ('limit=10;eq(t__in,b)', False),
     ('select(books)&k__in=v,v', True),
     ('k__in=v,v&select(books)', True),
     ('select(books)', False),
+    ('title__in=v,v', True),
+    ('limit=10;k__in=2', True),
+    ('(k=v;k=z)', False),
+    ('limit=10;k__in=2;k=y)', True),
 ))
 def test_old_syntax(mocker, query, expected):
     request = mocker.MagicMock(query_params=QueryDict(query))

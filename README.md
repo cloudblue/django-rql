@@ -196,7 +196,7 @@ Best Practices
 Development
 ===========
 
-1. Python 3.5+
+1. Python 3.6+
 0. Install dependencies `requirements/dev.txt` and `requirements/extra.txt`
 
 Testing

@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 import pytest
@@ -67,7 +67,7 @@ def test_list_pagination(api_client, clear_cache):
     response = api_client.get('{}?{}'.format(reverse('book-list'), query))
     assert response.status_code == HTTP_200_OK
     assert response.data == [{'id': books[1].pk}, {'id': books[2].pk}]
-    assert response._headers['content-range'][1] == 'items 1-2/5'
+    assert response.get('Content-Range') == 'items 1-2/5'
 
 
 @pytest.mark.django_db
@@ -77,7 +77,7 @@ def test_list_pagination_zero_limit(api_client, clear_cache):
     response = api_client.get('{}?{}'.format(reverse('book-list'), query))
     assert response.status_code == HTTP_200_OK
     assert response.data == []
-    assert response._headers['content-range'][1] == 'items 0-0/5'
+    assert response.get('Content-Range') == 'items 0-0/5'
 
 
 def test_rql_filter_cls_is_not_set():
@@ -117,9 +117,9 @@ def test_distinct_sequence(api_client, clear_cache):
     with CaptureQueriesContext(connection) as context:
         api_client.get('{}?{}'.format(reverse('book-list'), 'status=planning'))
 
-        assert 'distinct' in context.captured_queries[1]['sql'].lower()
+        assert 'distinct' in context.captured_queries[0]['sql'].lower()
 
     with CaptureQueriesContext(connection) as context:
         api_client.get('{}?{}'.format(reverse('book-list'), 'title=abc'))
 
-        assert 'distinct' not in context.captured_queries[1]['sql'].lower()
+        assert 'distinct' not in context.captured_queries[0]['sql'].lower()

@@ -1,2 +1,2 @@
 lark-parser==0.8.2
-Django>=2.2.16,<=3.0
+Django>=2.2.19
