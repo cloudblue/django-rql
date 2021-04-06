@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import defaultdict
@@ -291,48 +291,62 @@ class RQLFilterClass:
     def _build_select_data(self, select):
         select_data = {}
 
-        include_select, exclude_select = [], set()
+        include_select, exclude_select = self._prepare_selects(select)
         inclusions, exclusions = set(), set()
 
-        for select_prop in select:
-            is_included = (select_prop[0] != RQL_MINUS)
-            filter_name = select_prop[1:] \
-                if select_prop[0] in (RQL_MINUS, RQL_PLUS) \
-                else select_prop
+        select_data.update(
+            self._build_select_data_for_inclusions(include_select, inclusions, exclusions),
+        )
+        select_data.update(
+            self._build_select_data_for_exclusions(exclude_select, inclusions, exclusions),
+        )
 
-            if is_included:
-                include_select.append(filter_name)
-            else:
-                exclude_select.add(filter_name)
+        return select_data
+
+    def _build_select_data_for_inclusions(self, include_select, inclusions, exclusions):
+        select_data = {}
 
         for filter_name in include_select:
-            select_tree = self.select_tree
-            parent_parts = ''
-            filter_name_parts = filter_name.split('.')
-            last_filter_name_part_index = len(filter_name_parts) - 1
+            select_data.update(
+                self._build_select_data_for_inclusion(filter_name, inclusions, exclusions),
+            )
 
-            for index, part in enumerate(filter_name_parts):
-                if part not in select_tree:
-                    raise RQLFilterParsingError(details={
-                        'error': 'Bad select filter: {}.'.format(filter_name),
-                    })
+        return select_data
 
-                current_part = '{}.{}'.format(parent_parts, part) if parent_parts else part
+    def _build_select_data_for_inclusion(self, filter_name, inclusions, exclusions):
+        select_data = {}
 
-                inclusions.add(current_part)
-                select_data[current_part] = True
+        select_tree = self.select_tree
+        parent_parts = ''
+        filter_name_parts = filter_name.split('.')
+        last_filter_name_part_index = len(filter_name_parts) - 1
 
-                if index != last_filter_name_part_index:
-                    parent_parts = current_part
-                    select_tree = select_tree[part]['fields']
+        for index, part in enumerate(filter_name_parts):
+            if part not in select_tree:
+                raise RQLFilterParsingError(details={
+                    'error': 'Bad select filter: {}.'.format(filter_name),
+                })
 
-                elif parent_parts in self.default_exclusions:
-                    for neighbour_part in select_tree.keys():
-                        if neighbour_part != part:
-                            exclusions.add(
-                                '{}.{}'.format(parent_parts, neighbour_part),
-                            )
+            current_part = '{}.{}'.format(parent_parts, part) if parent_parts else part
 
+            inclusions.add(current_part)
+            select_data[current_part] = True
+
+            if index != last_filter_name_part_index:
+                parent_parts = current_part
+                select_tree = select_tree[part]['fields']
+
+            elif parent_parts in self.default_exclusions:
+                for neighbour_part in select_tree.keys():
+                    if neighbour_part != part:
+                        exclusions.add(
+                            '{}.{}'.format(parent_parts, neighbour_part),
+                        )
+
+        return select_data
+
+    def _build_select_data_for_exclusions(self, exclude_select, inclusions, exclusions):
+        select_data = {}
         real_exclude_select = exclude_select \
             .union(self.default_exclusions - inclusions) \
             .union(exclusions - inclusions)
@@ -359,6 +373,22 @@ class RQLFilterClass:
             select_data[filter_name] = False
 
         return select_data
+
+    @staticmethod
+    def _prepare_selects(select):
+        include_select, exclude_select = [], set()
+        for select_prop in select:
+            is_included = (select_prop[0] != RQL_MINUS)
+            filter_name = select_prop[1:] \
+                if select_prop[0] in (RQL_MINUS, RQL_PLUS) \
+                else select_prop
+
+            if is_included:
+                include_select.append(filter_name)
+            else:
+                exclude_select.add(filter_name)
+
+        return include_select, exclude_select
 
     def _build_q_for_search(self, operator, str_value):
         if operator != ComparisonOperators.EQ:
@@ -454,12 +484,7 @@ class RQLFilterClass:
 
         ordering_fields = []
         for prop in properties[0]:
-            if RQL_MINUS == prop[0]:
-                filter_name = prop[1:]
-                sign = RQL_MINUS
-            else:
-                filter_name = prop
-                sign = ''
+            filter_name, sign = self._get_filter_name_with_sign_for_ordering(prop)
             if filter_name not in self.ordering_filters:
                 raise RQLFilterParsingError(details={
                     'error': 'Bad ordering filter: {}.'.format(filter_name),
@@ -468,22 +493,36 @@ class RQLFilterClass:
             filters = self.filters[filter_name]
             if not isinstance(filters, list):
                 filters = [filters]
-            for f in filters:
-                if f.get('distinct'):
+            for filter_item in filters:
+                if filter_item.get('distinct'):
                     self._is_distinct = True
 
-                if f.get('custom'):
-                    ordering_name = self.build_name_for_custom_ordering(filter_name)
-                else:
-                    ordering_name = f['orm_route']
+                ordering_name = self._get_filter_ordering_name(filter_item, filter_name)
                 ordering_fields.append('{}{}'.format(sign, ordering_name))
 
         return qs.order_by(*ordering_fields)
 
+    @staticmethod
+    def _get_filter_name_with_sign_for_ordering(prop):
+        if RQL_MINUS == prop[0]:
+            filter_name = prop[1:]
+            sign = RQL_MINUS
+        else:
+            filter_name = prop
+            sign = ''
+
+        return filter_name, sign
+
+    def _get_filter_ordering_name(self, filter_item, filter_name):
+        if filter_item.get('custom'):
+            return self.build_name_for_custom_ordering(filter_name)
+
+        return filter_item['orm_route']
+
     def _build_filters(self, filters, filter_route='', orm_route='',
                        orm_model=None, select_tree=None, parent_qs=None):
         """ Converter of provided nested filter configuration to linear inner representation. """
-        model = orm_model or self.MODEL
+        _model = orm_model or self.MODEL
 
         if not orm_route:
             self.filters = {}
@@ -493,7 +532,7 @@ class RQLFilterClass:
             if isinstance(item, str):
                 field_filter_route = '{}{}'.format(filter_route, item)
                 field_orm_route = '{}{}'.format(orm_route, item)
-                field = self._get_field(model, item)
+                field = self._get_field(_model, item)
                 self._add_filter_item(
                     field_filter_route, self._build_mapped_item(field, field_orm_route),
                 )
@@ -511,7 +550,7 @@ class RQLFilterClass:
                 related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
 
                 related_model = self._get_field(
-                    model, orm_field_name, get_related=True,
+                    _model, orm_field_name, get_related=True,
                 ).related_model
 
                 qs = item.get('qs')
@@ -549,30 +588,33 @@ class RQLFilterClass:
 
             self._check_use_repr(item, field_filter_route)
             self._check_dynamic(item, field_filter_route, filter_route)
+            self._build_filters_for_common_item(item, field_filter_route, orm_route, _model)
 
-            field = item.get('field')
-            kwargs = {
-                prop: item.get(prop)
-                for prop in ('lookups', 'use_repr', 'null_values', 'distinct', 'openapi', 'hidden')
-            }
+    def _build_filters_for_common_item(self, item, field_filter_route, orm_route, orm_model):
+        filter_name = item['filter']
+        field = item.get('field')
+        kwargs = {
+            prop: item.get(prop)
+            for prop in ('lookups', 'use_repr', 'null_values', 'distinct', 'openapi', 'hidden')
+        }
 
-            if 'sources' in item:
-                items = []
-                for source in item['sources']:
-                    full_orm_route = '{}{}'.format(orm_route, source)
-                    field = field or self._get_field(model, source)
-                    items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
-                    self._check_search(item, field_filter_route, field)
-
-            else:
-                orm_field_name = item.get('source', filter_name)
-                full_orm_route = '{}{}'.format(orm_route, orm_field_name)
-                field = field or self._get_field(model, orm_field_name)
-                items = self._build_mapped_item(field, full_orm_route, **kwargs)
+        if 'sources' in item:
+            items = []
+            for source in item['sources']:
+                full_orm_route = '{}{}'.format(orm_route, source)
+                field = field or self._get_field(orm_model, source)
+                items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
                 self._check_search(item, field_filter_route, field)
 
-            self._add_filter_item(field_filter_route, items)
-            self._register_ordering_and_search(item, field_filter_route)
+        else:
+            orm_field_name = item.get('source', filter_name)
+            full_orm_route = '{}{}'.format(orm_route, orm_field_name)
+            field = field or self._get_field(orm_model, orm_field_name)
+            items = self._build_mapped_item(field, full_orm_route, **kwargs)
+            self._check_search(item, field_filter_route, field)
+
+        self._add_filter_item(field_filter_route, items)
+        self._register_ordering_and_search(item, field_filter_route)
 
     def _fill_select_tree(self, f_name, full_f_name, select_tree,
                           namespace=False, hidden=False, qs=None, parent_qs=None):
@@ -659,7 +701,10 @@ class RQLFilterClass:
 
     @staticmethod
     def _get_field_name_parts(field_name):
-        return field_name.split('.' if '.' in field_name else '__') if field_name else []
+        if not field_name:
+            return []
+
+        return field_name.split('.' if '.' in field_name else '__')
 
     @classmethod
     def _build_mapped_item(cls, field, field_orm_route, **kwargs):
@@ -819,25 +864,13 @@ class RQLFilterClass:
             return round(float(val), django_field.decimal_places)
 
         elif filter_type == FilterTypes.DATE:
-            dt = parse_date(val)
-            if dt is None:
-                raise ValueError
-            return dt
+            return cls._convert_date_value(val)
 
         elif filter_type == FilterTypes.DATETIME:
-            dt = parse_datetime(val)
-            if dt is None:
-                dt = parse_date(val)
-                if dt is None:
-                    raise ValueError
-
-                return datetime(year=dt.year, month=dt.month, day=dt.day)
-            return dt
+            return cls._convert_datetime_value(val)
 
         elif filter_type == FilterTypes.BOOLEAN:
-            if val not in (RQL_FALSE, RQL_TRUE):
-                raise ValueError
-            return val == RQL_TRUE
+            return cls._convert_boolean_value(val)
 
         if val == RQL_EMPTY:
             if (filter_type == FilterTypes.INT) or (not django_field.blank):
@@ -851,6 +884,30 @@ class RQLFilterClass:
             return val
 
         return cls._get_choices_field_db_value(val, choices, filter_type, use_repr)
+
+    @staticmethod
+    def _convert_date_value(value):
+        dt = parse_date(value)
+        if dt is None:
+            raise ValueError
+        return dt
+
+    @staticmethod
+    def _convert_datetime_value(value):
+        dt = parse_datetime(value)
+        if dt is None:
+            dt = parse_date(value)
+            if dt is None:
+                raise ValueError
+
+            return datetime(year=dt.year, month=dt.month, day=dt.day)
+        return dt
+
+    @staticmethod
+    def _convert_boolean_value(value):
+        if value not in (RQL_FALSE, RQL_TRUE):
+            raise ValueError
+        return value == RQL_TRUE
 
     @classmethod
     def _get_choices_field_db_value(cls, value, choices, filter_type, use_repr):

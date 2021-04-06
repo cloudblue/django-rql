@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import Counter
@@ -87,29 +87,11 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
 
         qp_all_filters = set()
         qp_old_filters = set()
-        for filter_name in request.query_params.keys():
-            select_not_in_filter = not cls._is_select_in_filter(filter_name)
-            if select_not_in_filter and \
-                    (not set(Counter(filter_name)).isdisjoint(cls._IMPOSSIBLE_PROP_SYMBOLS)):
-                return False
-
-            for v in request.query_params.getlist(filter_name):
-                if select_not_in_filter and not v:
-                    return True
-
-                if v in ('True', 'False'):
-                    return True
-
-                vc = Counter(v)
-                no_quotes = not (vc.get('"', 0) > 1 or vc.get("'", 0) > 1)
-                if vc.get(' ') and no_quotes:
-                    return True
-
-                if vc.get('=') and no_quotes:
-                    return False
-
-                if len(v) > 2 and v[2] == '=' and v[:2] in cls._RQL_COMPARISON_OPERATORS:
-                    return False
+        query_params = request.query_params
+        for filter_name in query_params.keys():
+            result = cls._filter_has_old_syntax(filter_name, query_params)
+            if result is not None:
+                return result
 
             qp_all_filters.add(filter_name)
             if cls._is_old_style_filter(filter_name):
@@ -131,6 +113,40 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         return True
 
     @classmethod
+    def _filter_has_old_syntax(cls, filter_name, query_params):
+        has_select = not cls._is_select_in_filter(filter_name)
+        if has_select and (not set(Counter(filter_name)).isdisjoint(cls._IMPOSSIBLE_PROP_SYMBOLS)):
+            return False
+
+        return cls._filter_value_has_old_syntax(filter_name, query_params, has_select)
+
+    @classmethod
+    def _filter_value_has_old_syntax(cls, filter_name, query_params, has_select):
+        for v in query_params.getlist(filter_name):
+            if has_select and not v:
+                return True
+
+            if v in ('True', 'False'):
+                return True
+
+            is_old = cls._filter_value_has_old_syntax_by_special_chars(v)
+            if is_old is not None:
+                return is_old
+
+    @classmethod
+    def _filter_value_has_old_syntax_by_special_chars(cls, value):
+        vc = Counter(value)
+        no_quotes = not (vc.get('"', 0) > 1 or vc.get("'", 0) > 1)
+        if vc.get(' ') and no_quotes:
+            return True
+
+        if vc.get('=') and no_quotes:
+            return False
+
+        if len(value) > 2 and value[2] == '=' and value[:2] in cls._RQL_COMPARISON_OPERATORS:
+            return False
+
+    @classmethod
     def get_rql_query(cls, filter_instance, request, query_string):
         filter_value_pairs = []
 
@@ -141,36 +157,37 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
 
             one_filter_value_pairs = []
             for value in request.query_params.getlist(filter_name):
-                if not value:
-                    continue
-
-                if filter_name in (RQL_LIMIT_PARAM, RQL_OFFSET_PARAM):
-                    one_filter_value_pairs.append('{}={}'.format(filter_name, value))
-                    continue
-
-                if filter_name in cls.RESERVED_ORDERING_WORDS:
-                    one_filter_value_pairs.append('{}({})'.format(RQL_ORDERING_OPERATOR, value))
-                    continue
-
-                f_item = filter_instance.get_filter_base_item(filter_name)
-                if f_item and (not f_item.get('custom', False)):
-                    if FilterTypes.field_filter_type(f_item['field']) == FilterTypes.BOOLEAN:
-                        value = cls._convert_bool_value(value)
-
-                if not cls._is_old_style_filter(filter_name):
-                    one_filter_value_pairs.append(
-                        '{}={}'.format(filter_name, cls._add_quotes_to_value(value)),
-                    )
-
-                else:
-                    one_filter_value_pairs.append(
-                        cls._convert_filter_to_rql(filter_name, value),
-                    )
+                name_value_pair = cls._get_one_filter_value_pair(
+                    filter_instance, filter_name, value,
+                )
+                if name_value_pair is not None:
+                    one_filter_value_pairs.append(name_value_pair)
 
             if one_filter_value_pairs:
                 filter_value_pairs.append('&'.join(one_filter_value_pairs))
 
         return '&'.join(filter_value_pairs) if filter_value_pairs else ''
+
+    @classmethod
+    def _get_one_filter_value_pair(cls, filter_instance, filter_name, value):
+        if not value:
+            return
+
+        if filter_name in (RQL_LIMIT_PARAM, RQL_OFFSET_PARAM):
+            return '{}={}'.format(filter_name, value)
+
+        if filter_name in cls.RESERVED_ORDERING_WORDS:
+            return '{}({})'.format(RQL_ORDERING_OPERATOR, value)
+
+        f_item = filter_instance.get_filter_base_item(filter_name)
+        is_nc_item = f_item and (not f_item.get('custom', False))
+        if is_nc_item and FilterTypes.field_filter_type(f_item['field']) == FilterTypes.BOOLEAN:
+            value = cls._convert_bool_value(value)
+
+        if not cls._is_old_style_filter(filter_name):
+            return '{}={}'.format(filter_name, cls._add_quotes_to_value(value))
+
+        return cls._convert_filter_to_rql(filter_name, value)
 
     @staticmethod
     def _is_select_in_filter(filter_name):

@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from django.db.models import Q
@@ -20,17 +20,17 @@ class BaseRQLTransformer(Transformer):
     @classmethod
     def _extract_comparison(cls, args):
         if len(args) == 2:
-            # id=1
+            # Notation: id=1
             operation = ComparisonOperators.EQ
             prop_index = 0
             value_index = 1
         elif args[0].data == 'comp_term':
-            # eq(id,1)
+            # Notation: eq(id,1)
             operation = cls._get_value(args[0])
             prop_index = 1
             value_index = 2
         else:
-            # id=eq=1
+            # Notation: id=eq=1
             operation = cls._get_value(args[1])
             prop_index = 0
             value_index = 2
