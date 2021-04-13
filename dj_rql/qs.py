@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import namedtuple
@@ -74,9 +74,10 @@ class _NestedOptimizationMixin:
         parent_relation = real_parent_optimization.main_relation
         assert isinstance(parent_relation, str), 'Only simple parent relations are supported.'
 
-        parent_type = self._PR \
-            if isinstance(real_parent_optimization, PrefetchRelated) \
-            else self._SR
+        if isinstance(real_parent_optimization, PrefetchRelated):
+            parent_type = self._PR
+        else:
+            parent_type = self._SR
 
         return self._rebuild_nested(
             _ParentData(real_parent_optimization, parent_relation, parent_type),
@@ -90,7 +91,7 @@ class _NestedOptimizationMixin:
 
     @staticmethod
     def _join_relation(parent_relation, relation):
-        return '{}__{}'.format(parent_relation, relation)
+        return '{0}__{1}'.format(parent_relation, relation)
 
 
 class NestedPrefetchRelated(_NestedOptimizationMixin, PrefetchRelated):
@@ -122,8 +123,8 @@ class NestedSelectRelated(_NestedOptimizationMixin, SelectRelated):
 
 class Chain(_NestedOptimizationMixin, DBOptimization):
     def __init__(self, *relations, **extensions):
-        assert all(isinstance(rel, DBOptimization) for rel in relations), \
-            'Wrong Chain() optimization configuration.'
+        e = 'Wrong Chain() optimization configuration.'
+        assert all(isinstance(rel, DBOptimization) for rel in relations), e
 
         super(Chain, self).__init__(*relations, **extensions)
 

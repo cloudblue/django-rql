@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from django.db import models
@@ -190,7 +190,7 @@ class LogicalOperators:
 
     @staticmethod
     def get_grammar_key(key):
-        return '{}_op'.format(key)
+        return '{0}_op'.format(key)
 
 
 class SearchOperators:

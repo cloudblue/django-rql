@@ -2,9 +2,9 @@ import os
 import sys
 from datetime import datetime
 
-from setuptools_scm import get_version
-
 import django
+
+from setuptools_scm import get_version
 
 
 sys.path.insert(0, os.path.abspath('..'))
@@ -15,7 +15,7 @@ django.setup()
 # -- Project information -----------------------------------------------------
 
 project = 'django-rql'
-copyright = '{}, CloudBlue Inc.'.format(datetime.now().year)
+copyright = '{0}, CloudBlue Inc.'.format(datetime.now().year)
 author = 'CloudBlue'
 
 # The full version, including alpha/beta/rc tags

@@ -5,6 +5,7 @@
 import pytest
 
 from dj_rql.utils import assert_filter_cls
+
 from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import BooksFilterClass
 

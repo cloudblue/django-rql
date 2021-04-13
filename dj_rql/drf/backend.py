@@ -1,10 +1,10 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-from rest_framework.filters import BaseFilterBackend
-
 from dj_rql.drf._utils import get_query
+
+from rest_framework.filters import BaseFilterBackend
 
 
 class FilterCache:
@@ -61,7 +61,7 @@ class RQLFilterBackend(BaseFilterBackend):
 
     @staticmethod
     def _get_filter_instance(filter_class, queryset, view):
-        qual_name = '{}.{}'.format(view.basename, filter_class.__name__)
+        qual_name = '{0}.{1}'.format(view.basename, filter_class.__name__)
 
         filter_instance = FilterCache.CACHE.get(qual_name)
         if filter_instance:

@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 
@@ -23,7 +23,7 @@ def _is_filter_subset(main_dct, subset_dct):
     subset_keys = set(subset_dct.keys())
 
     for key, value in subset_dct.items():
-        assert key in main_dct, 'Filter `{}` is not set ({}).'.format(key, value)
+        assert key in main_dct, 'Filter `{0}` is not set ({1}).'.format(key, value)
         main_dct_value = main_dct[key]
 
         if isinstance(value, dict):
@@ -31,14 +31,21 @@ def _is_filter_subset(main_dct, subset_dct):
                 try:
                     _is_filter_subset(main_dct_value, value)
                 except AssertionError as e:
-                    raise AssertionError("Wrong filter `{}` configuration: {}".format(key, str(e)))
+                    raise AssertionError(
+                        "Wrong filter `{0}` configuration: {1}".format(key, str(e)),
+                    )
+
         elif isinstance(value, list):
-            assert len(value) == len(main_dct_value), \
-                "Filter `{}` data doesn't match ({}).".format(key, value)
+            e = "Filter `{0}` data doesn't match ({1}).".format(key, value)
+            assert len(value) == len(main_dct_value), e
+
             for m_dict, s_dict in zip(main_dct_value, value):
                 _is_filter_subset(m_dict, s_dict)
+
         else:
-            assert main_dct[key] == value, "{} != {}".format(main_dct[key], value)
-            assert {'orm_route', 'lookups'}.issubset(subset_keys), \
-                "assertion data must contain `orm_route` and `lookups`."
+            assert main_dct[key] == value, "{0} != {1}".format(main_dct[key], value)
+
+            e = "assertion data must contain `orm_route` and `lookups`."
+            assert {'orm_route', 'lookups'}.issubset(subset_keys), e
+
             assert 'field' in main_keys

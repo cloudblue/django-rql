@@ -1,12 +1,13 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from copy import copy
 from numbers import Number
 
-from dj_rql.constants import FilterLookups, RQL_NULL, RQL_ORDERING_OPERATOR, RQL_SEARCH_PARAM, \
-    FilterTypes
+from dj_rql.constants import (
+    FilterLookups, FilterTypes, RQL_NULL, RQL_ORDERING_OPERATOR, RQL_SEARCH_PARAM,
+)
 
 
 class RQLFilterDescriptionTemplate:
@@ -88,7 +89,7 @@ class RQLFilterDescriptionTemplate:
     @classmethod
     def _render_default_inplace(cls, base, filter_item, filter_instance):
         if filter_item.get('hidden', False):
-            return cls._render_common_key_inplace(base, 'default', '**hidden**',)
+            return cls._render_common_key_inplace(base, 'default', '**hidden**')
 
         return base
 
