@@ -1,22 +1,24 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from datetime import date, datetime
 from functools import partial
 
-import pytest
-from django.db.models import Q
-
 from dj_rql._dataclasses import FilterArgs
 from dj_rql.constants import (
     ComparisonOperators as CO,
     DjangoLookups,
-    SearchOperators,
     RQL_EMPTY,
     RQL_NULL,
+    SearchOperators,
 )
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
+
+from django.db.models import Q
+
+import pytest
+
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Page, Publisher
 from tests.test_filter_cls.utils import book_qs, create_books
@@ -63,8 +65,8 @@ def test_title():
         Book.objects.create(title=''),
     ]
     assert filter_field(filter_name, CO.EQ, books[0].title) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, '"{}"'.format(books[0].title)) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, "'{}'".format(books[0].title)) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, '"{0}"'.format(books[0].title)) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, "'{0}'".format(books[0].title)) == [books[0]]
     assert filter_field(filter_name, CO.EQ, 'N') == []
     assert filter_field(filter_name, CO.NE, books[0].title) == [books[1], books[2], books[3]]
     assert filter_field(filter_name, CO.EQ, RQL_NULL) == [books[2]]
@@ -407,7 +409,7 @@ def test_datetime_field_fail(filter_name, bad_value):
 @pytest.mark.parametrize('bad_operator', [CO.GT, CO.LE])
 @pytest.mark.parametrize('filter_name,value', [
     ('amazon_rating', '1.23'), ('page.number', '5'),
-    ('int_choice_field_repr', 'I'), ('str_choice_field_repr', 'I')
+    ('int_choice_field_repr', 'I'), ('str_choice_field_repr', 'I'),
 ])
 def test_field_lookup_fail(filter_name, value, bad_operator):
     assert_filter_field_lookup_error(filter_name, bad_operator, value)
@@ -463,12 +465,12 @@ def test_empty_value_fail(filter_name):
 def test_searching_q_ok(value, db_lookup, db_value):
     cls = BooksFilterClass(book_qs)
 
-    for v in (value, '"{}"'.format(value)):
+    for v in (value, '"{0}"'.format(value)):
         like_q = cls.build_q_for_filter(FilterArgs('title', SearchOperators.LIKE, v))
-        assert like_q.children[0] == ('title__{}'.format(db_lookup), db_value)
+        assert like_q.children[0] == ('title__{0}'.format(db_lookup), db_value)
 
     i_like_q = cls.build_q_for_filter(FilterArgs('title', SearchOperators.I_LIKE, value))
-    assert i_like_q.children[0] == ('title__i{}'.format(db_lookup), db_value)
+    assert i_like_q.children[0] == ('title__i{0}'.format(db_lookup), db_value)
 
 
 @pytest.mark.django_db

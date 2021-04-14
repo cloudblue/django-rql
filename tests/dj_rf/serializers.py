@@ -1,11 +1,12 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
+
+from dj_rql.drf.serializers import RQLMixin
 
 from rest_framework import serializers
 
-from dj_rql.drf.serializers import RQLMixin
-from tests.dj_rf.models import Publisher, Author, Page, Book
+from tests.dj_rf.models import Author, Book, Page, Publisher
 
 
 class PublisherReferenceSerializer(RQLMixin, serializers.ModelSerializer):

@@ -1,15 +1,16 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from unittest import TestCase
+
+from dj_rql.drf import RQLContentRangeLimitOffsetPagination
+from dj_rql.exceptions import RQLFilterParsingError
 
 from rest_framework.pagination import PAGE_BREAK, PageLink
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
-from dj_rql.exceptions import RQLFilterParsingError
-from dj_rql.drf import RQLContentRangeLimitOffsetPagination
 
 factory = APIRequestFactory()
 
@@ -205,12 +206,14 @@ class TestRQLLimitOffsetPagination(TestCase):
 
     def test_rql_operators(self):
         limit, offset = 1, 2
-        request = Request(factory.get('/?search=0&limit=eq={},eq(offset,{})'.format(limit, offset)))
+        request = Request(
+            factory.get('/?search=0&limit=eq={0},eq(offset,{1})'.format(limit, offset)),
+        )
         queryset = self.paginate_queryset(request)
         assert queryset == [3]
 
     def assert_rql_parsing_error(self, query):
-        request = Request(factory.get('/?{}'.format(query)))
+        request = Request(factory.get('/?{0}'.format(query)))
         with self.assertRaises(RQLFilterParsingError) as e:
             self.paginate_queryset(request)
         assert e.exception.details['error'] == 'Limit and offset are set incorrectly.'

@@ -3,9 +3,10 @@
 #
 
 from django.conf.urls import include, re_path
+
 from rest_framework.routers import SimpleRouter
 
-from tests.dj_rf.view import DjangoFiltersViewSet, DRFViewSet, SelectViewSet, NoFilterClsViewSet
+from tests.dj_rf.view import DRFViewSet, DjangoFiltersViewSet, NoFilterClsViewSet, SelectViewSet
 
 
 router = SimpleRouter()

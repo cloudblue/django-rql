@@ -1,10 +1,10 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-import pytest
-
 from dj_rql.utils import assert_filter_cls
+
+import pytest
 
 from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import BooksFilterClass
@@ -63,5 +63,7 @@ def test_mismatch_for_fields():
     with pytest.raises(AssertionError) as e:
         assert_filter_cls(BooksFilterClass, mismatch, set(), set())
 
-    assert str(e.value) == "Wrong filter `id` configuration: assertion data " \
-                           "must contain `orm_route` and `lookups`."
+    assert str(e.value) == (
+        "Wrong filter `id` configuration: assertion data "
+        "must contain `orm_route` and `lookups`."
+    )

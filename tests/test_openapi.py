@@ -1,12 +1,13 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from copy import copy
 
+from dj_rql.openapi import RQLFilterClassSpecification, RQLFilterDescriptionTemplate
+
 from rest_framework.schemas.openapi import SchemaGenerator
 
-from dj_rql.openapi import RQLFilterClassSpecification, RQLFilterDescriptionTemplate
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Book
 
@@ -39,27 +40,35 @@ def test_description_common_render():
 
 def test_description_search_render():
     result = RQLFilterDescriptionTemplate.render(*filter_data('str_choice_field'))
-    assert result == '**Filter for: str_choice_field**\n\nlookups: ' \
-                     'eq, ne, like, ilike, in, out\nsearch: true'
+    assert result == (
+        '**Filter for: str_choice_field**\n\nlookups: '
+        'eq, ne, like, ilike, in, out\nsearch: true'
+    )
 
 
 def test_description_ordering_render():
     result = RQLFilterDescriptionTemplate.render(*filter_data('int_choice_field'))
-    assert result == '**Filter for: int_choice_field**\n\nlookups: ' \
-                     'eq, ne, ge, gt, le, lt, in, out\nordering: true'
+    assert result == (
+        '**Filter for: int_choice_field**\n\nlookups: '
+        'eq, ne, ge, gt, le, lt, in, out\nordering: true'
+    )
 
 
 def test_description_null_overridden_render():
     result = RQLFilterDescriptionTemplate.render(*filter_data('title'))
-    assert result == '**Filter for: title**\n\n' \
-                     'lookups: eq, ne, like, ilike, null, in, out\nsearch: true\n' \
-                     'null: NULL_ID, null()'
+    assert result == (
+        '**Filter for: title**\n\n'
+        'lookups: eq, ne, like, ilike, null, in, out\nsearch: true\n'
+        'null: NULL_ID, null()'
+    )
 
 
 def test_description_hidden_render():
     result = RQLFilterDescriptionTemplate.render(*filter_data('select_author'))
-    assert result == '**Filter for: select_author**\n\n' \
-                     'lookups: eq, ne, like, ilike, in, out\ndefault: **hidden**'
+    assert result == (
+        '**Filter for: select_author**\n\n'
+        'lookups: eq, ne, like, ilike, in, out\ndefault: **hidden**'
+    )
 
 
 def test_description_custom_render():

@@ -1,15 +1,16 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-
-import pytest
-from django.core.exceptions import FieldError
-from django.db.models import CharField, IntegerField, Value
 
 from dj_rql.drf.fields import SelectField
 from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
-from dj_rql.qs import AN, CH, PR, NPR, NSR, SR
+from dj_rql.qs import AN, CH, NPR, NSR, PR, SR
+
+from django.core.exceptions import FieldError
+from django.db.models import CharField, IntegerField, Value
+
+import pytest
 
 from tests.dj_rf.models import Author, Book
 from tests.test_filter_cls.utils import book_qs
@@ -152,7 +153,7 @@ def test_init_hidden():
                     {
                         'namespace': 'vn',
                         'source': 'publisher',
-                        'filters': ('id',)
+                        'filters': ('id',),
                     },
                 ),
             },
@@ -353,7 +354,7 @@ def test_signs_select():
     class Cls(SelectFilterCls):
         FILTERS = tuple(
             {
-                'filter': 'ft{}'.format(i),
+                'filter': 'ft{0}'.format(i),
                 'source': 'id',
             }
             for i in range(1, 5)
@@ -464,7 +465,7 @@ def test_bad_select_conf_excluded_then_included():
             {
                 'namespace': 'ns',
                 'source': 'author',
-                'filters': ('id',)
+                'filters': ('id',),
             },
         )
 
@@ -509,7 +510,7 @@ def test_select_complex():
                         'namespace': 'ns1',
                         'source': 'publisher',
                         'hidden': False,
-                        'filters': ('id',)
+                        'filters': ('id',),
                     },
                 ),
             },
@@ -567,7 +568,7 @@ def test_qs_optimization_full_tree():
             {
                 'filter': 'ft1',
                 'source': 'id',
-                'qs': SR('author')
+                'qs': SR('author'),
             },
             {
                 'filter': 'ft2',

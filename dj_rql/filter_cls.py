@@ -1014,7 +1014,7 @@ class RQLFilterClass:
 
         else:
             e = "{0}: common filters can't have 'field' set.".format(filter_name)
-            assert not filter_item.get('custom', False) and field is None
+            assert not filter_item.get('custom', False) and field is None, e
 
     @staticmethod
     def _check_search(filter_item, filter_name, field):

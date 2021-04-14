@@ -1,17 +1,19 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from functools import partial
 
-import pytest
-from django.core.exceptions import FieldError
-from django.db.models import Q, IntegerField
-from django.utils.timezone import now
-
 from dj_rql.constants import FilterLookups, ListOperators, RQL_NULL
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError
 from dj_rql.filter_cls import RQLFilterClass
+
+from django.core.exceptions import FieldError
+from django.db.models import IntegerField, Q
+from django.utils.timezone import now
+
+import pytest
+
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
 from tests.test_filter_cls.utils import book_qs, create_books
@@ -37,7 +39,7 @@ def test_lookup_error():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('comparison_tpl', ['eq(title,{})', 'title=eq={}', 'title={}'])
+@pytest.mark.parametrize('comparison_tpl', ['eq(title,{0})', 'title=eq={0}', 'title={0}'])
 def test_comparison(comparison_tpl):
     title = 'book'
     books = [
@@ -48,7 +50,7 @@ def test_comparison(comparison_tpl):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('searching_tpl', ['like(title,*{}*)', 'ilike(title,*{})'])
+@pytest.mark.parametrize('searching_tpl', ['like(title,*{0}*)', 'ilike(title,*{0})'])
 def test_searching(searching_tpl):
     title = 'book'
     books = [
@@ -62,8 +64,8 @@ def test_searching(searching_tpl):
 @pytest.mark.parametrize('operator', ['&', ','])
 def test_and(operator):
     email, title = 'george@martin.com', 'book'
-    comp1 = 'title={}'.format(title)
-    comp2 = 'eq(author.email,{})'.format(email)
+    comp1 = 'title={0}'.format(title)
+    comp2 = 'eq(author.email,{0})'.format(email)
     query = '{comp1}{op}{comp2}'.format(comp1=comp1, op=operator, comp2=comp2)
 
     authors = [
@@ -82,8 +84,8 @@ def test_and(operator):
 @pytest.mark.parametrize('operator', ['|', ';'])
 def test_or(operator):
     email, title = 'george@martin.com', 'book'
-    comp1 = 'title={}'.format(title)
-    comp2 = 'eq(author.email,{})'.format(email)
+    comp1 = 'title={0}'.format(title)
+    comp2 = 'eq(author.email,{0})'.format(email)
     query = '({comp1}{op}{comp2})'.format(comp1=comp1, op=operator, comp2=comp2)
 
     authors = [
@@ -104,7 +106,7 @@ def test_not():
         Book.objects.create(title=title),
         Book.objects.create(title='another'),
     ]
-    assert apply_filters('not(title={})'.format(title)) == [books[1]]
+    assert apply_filters('not(title={0})'.format(title)) == [books[1]]
 
 
 @pytest.mark.django_db
@@ -158,8 +160,8 @@ def test_out():
 @pytest.mark.django_db
 def test_null():
     books = create_books()
-    assert apply_filters('title={}'.format(RQL_NULL)) == books
-    assert apply_filters('title=ne={}'.format(RQL_NULL)) == []
+    assert apply_filters('title={0}'.format(RQL_NULL)) == books
+    assert apply_filters('title=ne={0}'.format(RQL_NULL)) == []
 
 
 @pytest.mark.django_db
@@ -170,8 +172,8 @@ def test_null_with_in_or():
     books[0].title = title
     books[0].save(update_fields=['title'])
 
-    assert apply_filters('in(title,({},{}))'.format(title, RQL_NULL)) == books
-    assert apply_filters('or(title=eq={},eq(title,{}))'.format(title, RQL_NULL)) == books
+    assert apply_filters('in(title,({0},{1}))'.format(title, RQL_NULL)) == books
+    assert apply_filters('or(title=eq={0},eq(title,{1}))'.format(title, RQL_NULL)) == books
 
 
 @pytest.mark.django_db
@@ -183,8 +185,8 @@ def test_null_on_foreign_key_pk():
     ]
     books = [Book.objects.create(author=author) for author in authors]
 
-    assert apply_filters('author.publisher.id={}'.format(RQL_NULL)) == [books[1]]
-    assert apply_filters('ne(author.publisher.id,{})'.format(RQL_NULL)) == [books[0]]
+    assert apply_filters('author.publisher.id={0}'.format(RQL_NULL)) == [books[1]]
+    assert apply_filters('ne(author.publisher.id,{0})'.format(RQL_NULL)) == [books[0]]
 
 
 @pytest.mark.django_db
@@ -216,8 +218,8 @@ def test_ordering_by_several_filters():
     books = [Book.objects.create(author=author, published_at=now()) for author in authors]
     books.append(Book.objects.create(published_at=now()))
 
-    assert apply_filters('ordering(author.email,-published.at)') == \
-        list(book_qs.order_by('author__email', '-published_at'))
+    expected = list(book_qs.order_by('author__email', '-published_at'))
+    assert apply_filters('ordering(author.email,-published.at)') == expected
 
 
 @pytest.mark.django_db
@@ -229,8 +231,9 @@ def test_ordering_by_empty_value():
 def test_several_ordering_operations():
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters('ordering(d_id)&ordering(author.email)')
-    assert e.value.details['error'] == \
-        'Bad ordering filter: query can contain only one ordering operation.'
+
+    expected = 'Bad ordering filter: query can contain only one ordering operation.'
+    assert e.value.details['error'] == expected
 
 
 def test_bad_ordering_filter():
@@ -271,7 +274,7 @@ def test_custom_filter_list_lookup_ok(operator):
 
     books = [Book.objects.create() for _ in range(2)]
     assert list(
-        CustomCls(book_qs).apply_filters('{}(has_list_lookup,(1,2))'.format(operator))[1]
+        CustomCls(book_qs).apply_filters('{0}(has_list_lookup,(1,2))'.format(operator))[1],
     ) == [books[1]]
 
 
@@ -282,7 +285,7 @@ def test_custom_filter_list_lookup_fail(operator):
             return Q(id__gte=2)
 
     with pytest.raises(RQLFilterLookupError) as e:
-        CustomCls(book_qs).apply_filters('{}(no_list_lookup,(1,2))'.format(operator))
+        CustomCls(book_qs).apply_filters('{0}(no_list_lookup,(1,2))'.format(operator))
     assert e.value.details['lookup'] == operator
 
 
@@ -293,7 +296,7 @@ def test_custom_filter_ordering():
             return 'id'
 
         def assert_ordering(self, filter_name, expected):
-            assert list(self.apply_filters('ordering({})'.format(filter_name))[1]) == expected
+            assert list(self.apply_filters('ordering({0})'.format(filter_name))[1]) == expected
 
     books = create_books()
 
@@ -313,15 +316,15 @@ def test_custom_filter_search_ok(mocker):
         }]
 
         def assert_search(self, value, expected):
-            assert list(self.apply_filters('search={}'.format(value))[1]) == expected
+            assert list(self.apply_filters('search={0}'.format(value))[1]) == expected
 
         @classmethod
         def side_effect(cls, data):
             django_lookup = data.django_lookup
             return Q(**{
-                'title__{}'.format(django_lookup): cls._get_searching_typed_value(
+                'title__{0}'.format(django_lookup): cls._get_searching_typed_value(
                     django_lookup, data.str_value,
-                )
+                ),
             })
 
     build_q_for_custom_filter_patch = mocker.patch.object(
@@ -363,7 +366,7 @@ def test_extended_search_ok():
         EXTENDED_SEARCH_ORM_ROUTES = ['title']
 
         def assert_search(self, value, expected):
-            assert list(self.apply_filters('search={}'.format(value))[1]) == expected
+            assert list(self.apply_filters('search={0}'.format(value))[1]) == expected
 
     books = [
         Book.objects.create(title='book'),
@@ -390,7 +393,7 @@ def test_extended_search_fail():
 @pytest.mark.django_db
 @pytest.mark.parametrize('select', ('title,+page,-rating.blog_int', '', 'title'))
 def test_select(select):
-    assert apply_filters('select({})'.format(select)) == []
+    assert apply_filters('select({0})'.format(select)) == []
 
 
 @pytest.mark.django_db

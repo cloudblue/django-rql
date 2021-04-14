@@ -1,16 +1,19 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-
-import pytest
-from django.core.exceptions import FieldDoesNotExist
 
 from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.utils import assert_filter_cls
+
+from django.core.exceptions import FieldDoesNotExist
+
+import pytest
+
 from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book
+
 
 empty_qs = Author.objects.none()
 
@@ -145,7 +148,7 @@ def test_orm_field_type_is_unsupported():
     assert str(e.value) == 'Unsupported field type: publisher.'
 
 
-@pytest.mark.parametrize('filter_name', sorted(list(RESERVED_FILTER_NAMES)))
+@pytest.mark.parametrize('filter_name', sorted(RESERVED_FILTER_NAMES))
 def test_reserved_filter_name_is_used(filter_name):
     class Cls(RQLFilterClass):
         MODEL = Author
@@ -156,7 +159,7 @@ def test_reserved_filter_name_is_used(filter_name):
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
-    assert str(e.value) == "'{}' is a reserved filter name.".format(filter_name)
+    assert str(e.value) == "'{0}' is a reserved filter name.".format(filter_name)
 
 
 def test_bad_use_repr_and_ordering():
@@ -199,7 +202,7 @@ def test_bad_option_in_namespace(option):
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
-    assert str(e.value) == "title: '{}' is not supported by namespaces.".format(option)
+    assert str(e.value) == "title: '{0}' is not supported by namespaces.".format(option)
 
 
 def test_bad_item_structure():
@@ -222,7 +225,7 @@ def test_bad_dynamic_in_namespace():
             'filters': [{
                 'filter': 'a',
                 'dynamic': True,
-            }]
+            }],
         }]
 
     with pytest.raises(AssertionError) as e:
