@@ -1,11 +1,13 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from uuid import uuid4
 
 from django.db import models
+
 from django_fsm import FSMField
+
 from model_utils import Choices
 
 

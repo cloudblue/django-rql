@@ -1,15 +1,16 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from functools import partial
 
-import pytest
+from dj_rql.constants import ComparisonOperators as CompOp
+from dj_rql.parser import RQLParser
 
 from lark.exceptions import LarkError
 
-from dj_rql.constants import ComparisonOperators as CompOp
-from dj_rql.parser import RQLParser
+import pytest
+
 from tests.test_parser.constants import FAIL_PROPS, FAIL_VALUES, OK_PROPS, OK_VALUES
 from tests.test_parser.utils import ComparisonTransformer
 
@@ -55,8 +56,10 @@ def test_comparison_value_fail(operator, prop, value, func):
 
 
 def test_comparison_order():
-    assert base_cmp_transform(CompOp.EQ, CompOp.LE, CompOp.GT) != \
-        alias_cmp_transform(CompOp.LE, CompOp.EQ, CompOp.GT)
+    r1 = base_cmp_transform(CompOp.EQ, CompOp.LE, CompOp.GT)
+    r2 = alias_cmp_transform(CompOp.LE, CompOp.EQ, CompOp.GT)
+
+    assert r1 != r2
 
 
 @pytest.mark.parametrize('prop', OK_PROPS)

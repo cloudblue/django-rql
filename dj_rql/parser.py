@@ -1,12 +1,12 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-
-from lark import Lark
-from lark.exceptions import LarkError
 
 from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.grammar import RQL_GRAMMAR
+
+from lark import Lark
+from lark.exceptions import LarkError
 
 
 class RQLLarkParser(Lark):

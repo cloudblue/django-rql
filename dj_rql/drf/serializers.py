@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import OrderedDict
@@ -14,7 +14,7 @@ class RQLMixin:
     def apply_rql_select(self):
         rql_select = self._get_field_rql_select(self)
 
-        setattr(self, 'rql_select', rql_select)
+        self.rql_select = rql_select
         deeper_rql_select = self._get_deeper_rql_select()
 
         for field_name, is_included in rql_select['select'].items():
@@ -47,8 +47,12 @@ class RQLMixin:
         return self._deeper_rql_select
 
     def _get_field_rql_select(self, field):
-        if field.parent and getattr(field.parent, 'many', False) \
-                and isinstance(field, field.parent.child.__class__):
+        take_parent = bool(
+            field.parent and getattr(field.parent, 'many', False) and isinstance(
+                field, field.parent.child.__class__,
+            ),
+        )
+        if take_parent:
             rql_field = field.parent
         else:
             rql_field = field

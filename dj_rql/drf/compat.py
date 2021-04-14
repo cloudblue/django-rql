@@ -7,17 +7,18 @@ from collections import Counter
 from dj_rql.constants import (
     ComparisonOperators as CO,
     DjangoLookups as DJL,
-    FilterTypes, RQL_NULL,
-    SearchOperators as SO,
+    FilterTypes,
     RQL_ANY_SYMBOL,
     RQL_FALSE,
     RQL_LIMIT_PARAM,
+    RQL_NULL,
     RQL_OFFSET_PARAM,
     RQL_ORDERING_OPERATOR,
     RQL_TRUE,
+    SearchOperators as SO,
 )
-from dj_rql.drf.backend import RQLFilterBackend
 from dj_rql.drf._utils import get_query
+from dj_rql.drf.backend import RQLFilterBackend
 from dj_rql.exceptions import RQLFilterParsingError
 
 
@@ -178,10 +179,10 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
             return
 
         if filter_name in (RQL_LIMIT_PARAM, RQL_OFFSET_PARAM):
-            return '{}={}'.format(filter_name, value)
+            return '{0}={1}'.format(filter_name, value)
 
         if filter_name in cls.RESERVED_ORDERING_WORDS:
-            return '{}({})'.format(RQL_ORDERING_OPERATOR, value)
+            return '{0}({1})'.format(RQL_ORDERING_OPERATOR, value)
 
         f_item = filter_instance.get_filter_base_item(filter_name)
         is_nc_item = f_item and (not f_item.get('custom', False))
@@ -189,7 +190,7 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
             value = cls._convert_bool_value(value)
 
         if not cls._is_old_style_filter(filter_name):
-            return '{}={}'.format(filter_name, cls._add_quotes_to_value(value))
+            return '{0}={1}'.format(filter_name, cls._add_quotes_to_value(value))
 
         return cls._convert_filter_to_rql(filter_name, value)
 
@@ -202,13 +203,13 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         filter_base, lookup = cls._get_filter_and_lookup(filter_name)
 
         if lookup == DJL.IN:
-            return 'in({},({}))'.format(
+            return 'in({0},({1}))'.format(
                 filter_base, ','.join(cls._add_quotes_to_value(v) for v in value.split(',') if v),
             )
 
         if lookup == DJL.NULL:
             operator = CO.EQ if cls._convert_bool_value(value) == 'true' else CO.NE
-            return '{}={}={}'.format(filter_base, operator, RQL_NULL)
+            return '{0}={1}={2}'.format(filter_base, operator, RQL_NULL)
 
         if lookup in (DJL.GT, DJL.GTE, DJL.LT, DJL.LTE):
             if lookup == DJL.GTE:
@@ -217,18 +218,19 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
                 operator = CO.LE
             else:
                 operator = lookup
-            return '{}={}={}'.format(filter_base, operator, value)
+            return '{0}={1}={2}'.format(filter_base, operator, value)
 
         operator = SO.I_LIKE if lookup[0] == 'i' else SO.LIKE
-        if lookup in (DJL.CONTAINS, DJL.I_CONTAINS, DJL.ENDSWITH, DJL.I_ENDSWITH) and \
-                value[0] != RQL_ANY_SYMBOL:
+
+        lookups = (DJL.CONTAINS, DJL.I_CONTAINS, DJL.ENDSWITH, DJL.I_ENDSWITH)
+        if lookup in lookups and value[0] != RQL_ANY_SYMBOL:
             value = RQL_ANY_SYMBOL + value
 
-        if lookup in (DJL.CONTAINS, DJL.I_CONTAINS, DJL.STARTSWITH, DJL.I_STARTSWITH) and \
-                value[-1] != RQL_ANY_SYMBOL:
+        lookups = (DJL.CONTAINS, DJL.I_CONTAINS, DJL.STARTSWITH, DJL.I_STARTSWITH)
+        if lookup in lookups and value[-1] != RQL_ANY_SYMBOL:
             value += RQL_ANY_SYMBOL
 
-        return '{}({},{})'.format(operator, filter_base, cls._add_quotes_to_value(value))
+        return '{0}({1},{2})'.format(operator, filter_base, cls._add_quotes_to_value(value))
 
     @classmethod
     def _convert_bool_value(cls, value):
@@ -243,7 +245,7 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
     def _add_quotes_to_value(cls, value):
         for quote in ('"', "'"):
             if quote not in value:
-                return '{q}{}{q}'.format(value, q=quote)
+                return '{q}{0}{q}'.format(value, q=quote)
 
         cls._conversion_error()
 
@@ -262,7 +264,7 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
             if cls._is_old_style_filter(filter_name):
                 similar_to_old_syntax_filters.add(filter_name)
 
-        setattr(filter_instance, 'old_syntax_filters', similar_to_old_syntax_filters)
+        filter_instance.old_syntax_filters = similar_to_old_syntax_filters
         return similar_to_old_syntax_filters
 
     @classmethod

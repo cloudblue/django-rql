@@ -6,10 +6,6 @@ from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
 
-from django.db.models import Q
-from django.utils.dateparse import parse_date, parse_datetime
-from lark.exceptions import LarkError
-
 from dj_rql._dataclasses import FilterArgs, OptimizationArgs
 from dj_rql.constants import (
     ComparisonOperators,
@@ -17,23 +13,29 @@ from dj_rql.constants import (
     FilterLookups,
     FilterTypes,
     ListOperators,
-    SearchOperators,
     RESERVED_FILTER_NAMES,
     RQL_ANY_SYMBOL,
     RQL_EMPTY,
     RQL_FALSE,
     RQL_MINUS,
-    RQL_PLUS,
     RQL_NULL,
+    RQL_PLUS,
     RQL_SEARCH_PARAM,
     RQL_TRUE,
     SUPPORTED_FIELD_TYPES,
+    SearchOperators,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterValueError, RQLFilterParsingError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.parser import RQLParser
 from dj_rql.qs import Annotation
 from dj_rql.transformer import RQLToDjangoORMTransformer
+
+from django.db.models import Q
+from django.utils.dateparse import parse_date, parse_datetime
+
+from lark.exceptions import LarkError
+
 
 iterable_types = (list, tuple)
 
@@ -47,7 +49,7 @@ class RQLFilterClass:
     FILTERS = None
     """A list or tuple of filters definitions."""
 
-    EXTENDED_SEARCH_ORM_ROUTES = tuple()
+    EXTENDED_SEARCH_ORM_ROUTES = ()
 
     DISTINCT = False
     """If True, a `SELECT DISTINCT` will always be executed."""
@@ -72,10 +74,12 @@ class RQLFilterClass:
 
     def _default_init(self):
         assert self.MODEL, 'Model must be set for Filter Class.'
-        assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, \
-            'List of filters must be set for Filter Class.'
-        assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), \
-            'Extended search ORM routes must be iterable.'
+
+        e = 'List of filters must be set for Filter Class.'
+        assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, e
+
+        e = 'Extended search ORM routes must be iterable.'
+        assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), e
 
         self.filters = {}
         self.ordering_filters = set()
@@ -106,7 +110,7 @@ class RQLFilterClass:
         :rtype: django.db.models.Q
         """
         raise RQLFilterParsingError(details={
-            'error': 'Filter logic is not implemented: {}.'.format(data.filter_name),
+            'error': 'Filter logic is not implemented: {0}.'.format(data.filter_name),
         })
 
     def build_name_for_custom_ordering(self, filter_name):
@@ -117,7 +121,7 @@ class RQLFilterClass:
         :rtype: str
         """
         raise RQLFilterParsingError(details={
-            'error': 'Ordering logic is not implemented: {}.'.format(filter_name),
+            'error': 'Ordering logic is not implemented: {0}.'.format(filter_name),
         })
 
     def optimize_field(self, data):
@@ -196,17 +200,17 @@ class RQLFilterClass:
                 qs = qs.distinct()
 
         if request:
-            setattr(request, 'rql_ast', rql_ast)
+            request.rql_ast = rql_ast
 
         if self.SELECT:
             select_data = self._build_select_data(select_filters)
             qs = self._apply_optimizations(qs, select_data)
 
             if request:
-                setattr(request, 'rql_select', {
+                request.rql_select = {
                     'depth': 0,
                     'select': select_data,
-                })
+                }
 
         self.queryset = qs
 
@@ -238,9 +242,11 @@ class RQLFilterClass:
         filter_item = self.filters[filter_name]
         available_lookups = base_item.get('lookups', set())
         if list_operator:
-            list_filter_lookup = FilterLookups.IN \
-                if list_operator == ListOperators.IN \
-                else FilterLookups.OUT
+            if list_operator == ListOperators.IN:
+                list_filter_lookup = FilterLookups.IN
+            else:
+                list_filter_lookup = FilterLookups.OUT
+
             if list_filter_lookup not in available_lookups:
                 raise RQLFilterLookupError(**self._get_error_details(
                     filter_name, list_filter_lookup, str_value,
@@ -324,10 +330,10 @@ class RQLFilterClass:
         for index, part in enumerate(filter_name_parts):
             if part not in select_tree:
                 raise RQLFilterParsingError(details={
-                    'error': 'Bad select filter: {}.'.format(filter_name),
+                    'error': 'Bad select filter: {0}.'.format(filter_name),
                 })
 
-            current_part = '{}.{}'.format(parent_parts, part) if parent_parts else part
+            current_part = '{0}.{1}'.format(parent_parts, part) if parent_parts else part
 
             inclusions.add(current_part)
             select_data[current_part] = True
@@ -340,16 +346,15 @@ class RQLFilterClass:
                 for neighbour_part in select_tree.keys():
                     if neighbour_part != part:
                         exclusions.add(
-                            '{}.{}'.format(parent_parts, neighbour_part),
+                            '{0}.{1}'.format(parent_parts, neighbour_part),
                         )
 
         return select_data
 
     def _build_select_data_for_exclusions(self, exclude_select, inclusions, exclusions):
         select_data = {}
-        real_exclude_select = exclude_select \
-            .union(self.default_exclusions - inclusions) \
-            .union(exclusions - inclusions)
+        real_exclude_select = exclude_select.union(self.default_exclusions - inclusions)
+        real_exclude_select = real_exclude_select.union(exclusions - inclusions)
 
         for filter_name in real_exclude_select:
             if filter_name in inclusions:
@@ -364,7 +369,7 @@ class RQLFilterClass:
             for index, part in enumerate(filter_name_parts):
                 if part not in select_tree:
                     raise RQLFilterParsingError(details={
-                        'error': 'Bad select filter: -{}.'.format(filter_name),
+                        'error': 'Bad select filter: -{0}.'.format(filter_name),
                     })
 
                 if index != last_filter_name_part_index:
@@ -377,11 +382,9 @@ class RQLFilterClass:
     @staticmethod
     def _prepare_selects(select):
         include_select, exclude_select = [], set()
-        for select_prop in select:
-            is_included = (select_prop[0] != RQL_MINUS)
-            filter_name = select_prop[1:] \
-                if select_prop[0] in (RQL_MINUS, RQL_PLUS) \
-                else select_prop
+        for s_prop in select:
+            is_included = (s_prop[0] != RQL_MINUS)
+            filter_name = s_prop[1:] if s_prop[0] in (RQL_MINUS, RQL_PLUS) else s_prop
 
             if is_included:
                 include_select.append(filter_name)
@@ -393,7 +396,7 @@ class RQLFilterClass:
     def _build_q_for_search(self, operator, str_value):
         if operator != ComparisonOperators.EQ:
             raise RQLFilterParsingError(details={
-                'error': 'Bad search filter: {}.'.format(operator),
+                'error': 'Bad search filter: {0}.'.format(operator),
             })
 
         unquoted_value = self.remove_quotes(str_value)
@@ -487,7 +490,7 @@ class RQLFilterClass:
             filter_name, sign = self._get_filter_name_with_sign_for_ordering(prop)
             if filter_name not in self.ordering_filters:
                 raise RQLFilterParsingError(details={
-                    'error': 'Bad ordering filter: {}.'.format(filter_name),
+                    'error': 'Bad ordering filter: {0}.'.format(filter_name),
                 })
 
             filters = self.filters[filter_name]
@@ -498,7 +501,7 @@ class RQLFilterClass:
                     self._is_distinct = True
 
                 ordering_name = self._get_filter_ordering_name(filter_item, filter_name)
-                ordering_fields.append('{}{}'.format(sign, ordering_name))
+                ordering_fields.append('{0}{1}'.format(sign, ordering_name))
 
         return qs.order_by(*ordering_fields)
 
@@ -530,8 +533,8 @@ class RQLFilterClass:
 
         for item in filters:
             if isinstance(item, str):
-                field_filter_route = '{}{}'.format(filter_route, item)
-                field_orm_route = '{}{}'.format(orm_route, item)
+                field_filter_route = '{0}{1}'.format(filter_route, item)
+                field_orm_route = '{0}{1}'.format(orm_route, item)
                 field = self._get_field(_model, item)
                 self._add_filter_item(
                     field_filter_route, self._build_mapped_item(field, field_orm_route),
@@ -541,13 +544,15 @@ class RQLFilterClass:
 
             if 'namespace' in item:
                 for option in ('filter', 'dynamic', 'custom'):
-                    assert option not in item, \
-                        "{}: '{}' is not supported by namespaces.".format(item['namespace'], option)
+                    e = "{0}: '{1}' is not supported by namespaces.".format(
+                        item['namespace'], option,
+                    )
+                    assert option not in item, e
 
                 namespace = item['namespace']
-                related_filter_route = '{}{}'.format(filter_route, namespace)
+                related_filter_route = '{0}{1}'.format(filter_route, namespace)
                 orm_field_name = item.get('source', namespace)
-                related_orm_route = '{}{}__'.format(orm_route, orm_field_name)
+                related_orm_route = '{0}{1}__'.format(orm_route, orm_field_name)
 
                 related_model = self._get_field(
                     _model, orm_field_name, get_related=True,
@@ -570,7 +575,7 @@ class RQLFilterClass:
 
             assert 'filter' in item, "All extended filters must have set 'filter' set."
             filter_name = item['filter']
-            field_filter_route = '{}{}'.format(filter_route, filter_name)
+            field_filter_route = '{0}{1}'.format(filter_route, filter_name)
 
             self._fill_select_tree(
                 filter_name, field_filter_route, select_tree,
@@ -601,14 +606,14 @@ class RQLFilterClass:
         if 'sources' in item:
             items = []
             for source in item['sources']:
-                full_orm_route = '{}{}'.format(orm_route, source)
+                full_orm_route = '{0}{1}'.format(orm_route, source)
                 field = field or self._get_field(orm_model, source)
                 items.append(self._build_mapped_item(field, full_orm_route, **kwargs))
                 self._check_search(item, field_filter_route, field)
 
         else:
             orm_field_name = item.get('source', filter_name)
-            full_orm_route = '{}{}'.format(orm_route, orm_field_name)
+            full_orm_route = '{0}{1}'.format(orm_route, orm_field_name)
             field = field or self._get_field(orm_model, orm_field_name)
             items = self._build_mapped_item(field, full_orm_route, **kwargs)
             self._check_search(item, field_filter_route, field)
@@ -654,8 +659,9 @@ class RQLFilterClass:
         return current_select_tree, parent_qs if not qs else changed_qs
 
     def _add_filter_item(self, filter_name, item):
-        assert filter_name not in RESERVED_FILTER_NAMES, \
-            "'{}' is a reserved filter name.".format(filter_name)
+        e = "'{0}' is a reserved filter name.".format(filter_name)
+        assert filter_name not in RESERVED_FILTER_NAMES, e
+
         self.filters[filter_name] = item
 
     def _register_ordering_and_search(self, item, field_filter_route):
@@ -694,8 +700,9 @@ class RQLFilterClass:
         for index, part in enumerate(field_name_parts, start=1):
             current_field = cls._get_model_field(current_model, part)
             if index == field_name_parts_length:
-                assert get_related or isinstance(current_field, SUPPORTED_FIELD_TYPES), \
-                    'Unsupported field type: {}.'.format(field_name)
+                e = 'Unsupported field type: {0}.'.format(field_name)
+                assert get_related or isinstance(current_field, SUPPORTED_FIELD_TYPES), e
+
                 return current_field
             current_model = current_field.related_model
 
@@ -804,7 +811,7 @@ class RQLFilterClass:
             elif sep_count == 2 and val[0] == RQL_ANY_SYMBOL == val[-1]:
                 pattern = 'CONTAINS'
 
-        return getattr(DjangoLookups, '{}{}'.format(prefix, pattern))
+        return getattr(DjangoLookups, '{0}{1}'.format(prefix, pattern))
 
     @classmethod
     def _get_typed_value(cls, filter_name, filter_lookup, str_value, django_field,
@@ -827,7 +834,7 @@ class RQLFilterClass:
     def _reflect_like_value(cls, str_value):
         star_replacer = uuid4().hex
         return '\\'.join(
-            v.replace(r'\{}'.format(RQL_ANY_SYMBOL), star_replacer)
+            v.replace(r'\{0}'.format(RQL_ANY_SYMBOL), star_replacer)
             for v in cls.remove_quotes(str_value).split(r'\\')
         ), star_replacer
 
@@ -835,7 +842,7 @@ class RQLFilterClass:
     def _get_searching_typed_value(cls, django_lookup, str_value):
         val, star_replacer = cls._reflect_like_value(str_value)
 
-        if '{}{}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in val:
+        if '{0}{1}'.format(RQL_ANY_SYMBOL, RQL_ANY_SYMBOL) in val:
             raise ValueError
 
         if django_lookup not in (DjangoLookups.REGEX, DjangoLookups.I_REGEX):
@@ -846,8 +853,8 @@ class RQLFilterClass:
             return any_symbol_regex
 
         new_val = val
-        new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{}'.format(new_val)
-        new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{}$'.format(new_val)
+        new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{0}'.format(new_val)
+        new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{0}$'.format(new_val)
         return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex).replace(
             star_replacer, RQL_ANY_SYMBOL,
         )
@@ -951,7 +958,7 @@ class RQLFilterClass:
         return db_value
 
     def _build_django_q(self, filter_item, django_lookup, filter_lookup, typed_value):
-        kwargs = {'{}__{}'.format(filter_item['orm_route'], django_lookup): typed_value}
+        kwargs = {'{0}__{1}'.format(filter_item['orm_route'], django_lookup): typed_value}
         return ~Q(**kwargs) if filter_lookup == FilterLookups.NE else Q(**kwargs)
 
     @staticmethod
@@ -989,25 +996,29 @@ class RQLFilterClass:
 
     @staticmethod
     def _check_use_repr(filter_item, filter_name):
-        assert not (filter_item.get('use_repr') and filter_item.get('ordering')), \
-            "{}: 'use_repr' and 'ordering' can't be used together.".format(filter_name)
-        assert not (filter_item.get('use_repr') and filter_item.get('search')), \
-            "{}: 'use_repr' and 'search' can't be used together.".format(filter_name)
+        e = "{0}: 'use_repr' and 'ordering' can't be used together.".format(filter_name)
+        assert not (filter_item.get('use_repr') and filter_item.get('ordering')), e
+
+        e = "{0}: 'use_repr' and 'search' can't be used together.".format(filter_name)
+        assert not (filter_item.get('use_repr') and filter_item.get('search')), e
 
     @staticmethod
     def _check_dynamic(filter_item, filter_name, filter_route):
         field = filter_item.get('field')
         if filter_item.get('dynamic', False):
-            assert filter_route == '', \
-                "{}: dynamic filters are not supported in namespaces.".format(filter_name)
-            assert field is not None, \
-                "{}: dynamic filters must have 'field' set.".format(filter_name)
+            e = "{0}: dynamic filters are not supported in namespaces.".format(filter_name)
+            assert filter_route == '', e
+
+            e = "{0}: dynamic filters must have 'field' set.".format(filter_name)
+            assert field is not None, e
+
         else:
-            assert not filter_item.get('custom', False) and field is None, \
-                "{}: common filters can't have 'field' set.".format(filter_name)
+            e = "{0}: common filters can't have 'field' set.".format(filter_name)
+            assert not filter_item.get('custom', False) and field is None, e
 
     @staticmethod
     def _check_search(filter_item, filter_name, field):
         is_non_string_field_type = FilterTypes.field_filter_type(field) != FilterTypes.STRING
-        assert not (filter_item.get('search') and is_non_string_field_type), \
-            "{}: 'search' can be applied only to text filters.".format(filter_name)
+
+        e = "{0}: 'search' can be applied only to text filters.".format(filter_name)
+        assert not (filter_item.get('search') and is_non_string_field_type), e

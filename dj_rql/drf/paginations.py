@@ -1,15 +1,16 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-
-from lark.exceptions import LarkError
-from rest_framework.pagination import LimitOffsetPagination, _positive_int
-from rest_framework.response import Response
 
 from dj_rql.drf._utils import get_query
 from dj_rql.exceptions import RQLFilterParsingError
 from dj_rql.parser import RQLParser
 from dj_rql.transformer import RQLLimitOffsetTransformer
+
+from lark.exceptions import LarkError
+
+from rest_framework.pagination import LimitOffsetPagination, _positive_int
+from rest_framework.response import Response
 
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
@@ -26,7 +27,7 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
     def paginate_queryset(self, queryset, request, view=None):
         rql_ast = None
         try:
-            rql_ast = getattr(request, 'rql_ast')
+            rql_ast = request.rql_ast
         except AttributeError:
             query = get_query(request)
             if query:
@@ -76,7 +77,7 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
 
     def get_paginated_response(self, data):
         length = len(data) - 1 if data else 0
-        content_range = "items {}-{}/{}".format(
+        content_range = 'items {0}-{1}/{2}'.format(
             self.offset, self.offset + length, self.count,
         )
-        return Response(data, headers={"Content-Range": content_range})
+        return Response(data, headers={'Content-Range': content_range})

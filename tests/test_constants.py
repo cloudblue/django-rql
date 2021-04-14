@@ -1,10 +1,10 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-import pytest
-
 from dj_rql.constants import FilterLookups, FilterTypes
+
+import pytest
 
 
 def test_field_filter_type():

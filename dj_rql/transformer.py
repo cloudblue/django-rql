@@ -2,30 +2,31 @@
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-from django.db.models import Q
-from lark import Transformer, Tree
-
 from dj_rql._dataclasses import FilterArgs
 from dj_rql.constants import (
     ComparisonOperators,
     ListOperators,
     LogicalOperators,
-    RQL_PLUS,
     RQL_LIMIT_PARAM,
     RQL_OFFSET_PARAM,
+    RQL_PLUS,
 )
+
+from django.db.models import Q
+
+from lark import Transformer, Tree
 
 
 class BaseRQLTransformer(Transformer):
     @classmethod
     def _extract_comparison(cls, args):
         if len(args) == 2:
-            # Notation: id=1
+            # Notation: id=1  # noqa: E800
             operation = ComparisonOperators.EQ
             prop_index = 0
             value_index = 1
         elif args[0].data == 'comp_term':
-            # Notation: eq(id,1)
+            # Notation: eq(id,1)  # noqa: E800
             operation = cls._get_value(args[0])
             prop_index = 1
             value_index = 2
@@ -46,8 +47,9 @@ class BaseRQLTransformer(Transformer):
     def sign_prop(self, args):
         if len(args) == 2:
             # has sign
-            return '{}{}'.format(self._get_value(args[0]), self._get_value(args[1])) \
-                .lstrip(RQL_PLUS)  # Plus is not needed in ordering
+            return '{0}{1}'.format(
+                self._get_value(args[0]), self._get_value(args[1]),
+            ).lstrip(RQL_PLUS)  # Plus is not needed in ordering
         return self._get_value(args[0])
 
     def term(self, args):

@@ -1,12 +1,14 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-
-import pytest
-from lark.exceptions import LarkError
 
 from dj_rql.constants import SearchOperators
 from dj_rql.parser import RQLParser
+
+from lark.exceptions import LarkError
+
+import pytest
+
 from tests.test_parser.constants import FAIL_PROPS, FAIL_VALUES, OK_PROPS, OK_VALUES
 from tests.test_parser.utils import SearchTransformer
 

@@ -2,12 +2,11 @@
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-from __future__ import absolute_import, unicode_literals
-
 from django.conf.urls import include, re_path
+
 from rest_framework.routers import SimpleRouter
 
-from tests.dj_rf.view import DjangoFiltersViewSet, DRFViewSet, SelectViewSet, NoFilterClsViewSet
+from tests.dj_rf.view import DRFViewSet, DjangoFiltersViewSet, NoFilterClsViewSet, SelectViewSet
 
 
 router = SimpleRouter()

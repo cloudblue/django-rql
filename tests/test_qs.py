@@ -1,22 +1,24 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-
-import pytest
-from django.db.models import IntegerField, Value, Prefetch
 
 from dj_rql.qs import (
     Annotation,
     Chain,
     DBOptimization,
-    PrefetchRelated,
-    NestedPrefetchRelated,
-    NestedSelectRelated,
-    SelectRelated,
     NPR,
     NSR,
+    NestedPrefetchRelated,
+    NestedSelectRelated,
+    PrefetchRelated,
+    SelectRelated,
     _NestedOptimizationMixin,
 )
+
+from django.db.models import IntegerField, Prefetch, Value
+
+import pytest
+
 from tests.dj_rf.models import Book
 
 

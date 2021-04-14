@@ -1,11 +1,12 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-import pytest
-from rest_framework.test import APIClient
-
 from dj_rql.drf.backend import FilterCache
+
+import pytest
+
+from rest_framework.test import APIClient
 
 
 @pytest.fixture
