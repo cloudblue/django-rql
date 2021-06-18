@@ -391,8 +391,8 @@ custom
 
 Sometimes you may want to apply your specific filtering logic for a filter.
 
-To do so, you have to set the ``custom`` property for that filter to True and
-override the ``build_q_for_custom_filter`` method of your filter class.
+To do so, you have to set the ``custom`` property for that filter to True, define available ``lookups``
+and override the ``build_q_for_custom_filter`` method of your filter class.
 
 .. code-block:: python
 
@@ -402,6 +402,7 @@ override the ``build_q_for_custom_filter`` method of your filter class.
         FILTERS = (
             {
                 'filter': 'title',
+                'lookups': {FilterLookups.EQ, FilterLookups.IN},
                 'custom': True,
             },
         )
