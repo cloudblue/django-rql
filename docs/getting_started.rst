@@ -64,9 +64,20 @@ define ``MODEL`` property and add supported ``FILTERS`` for class:
         )
 
 
-
 Using simple strings in ``FILTERS`` property you can define what fields are available for filtering. 
 In example above you allow filtering only by ``id`` and ``name`` filter.
+
+If you have a pretty simple model and want everything out of the box (all filters with search and ordering), there is even a simpler automated way!
+All you have to do is inherit from ``dj_rql.filter_cls.AutoRQLFilterClass``:
+
+.. code-block:: python
+
+    from dj_rql.filter_cls import AutoRQLFilterClass
+
+
+    class ProductFilters(AutoRQLFilterClass):
+        MODEL = Product
+
 
 
 Use your RQL filter class in your views

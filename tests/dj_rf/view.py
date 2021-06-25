@@ -5,6 +5,7 @@
 from dj_rql.drf.backend import RQLFilterBackend
 from dj_rql.drf.compat import DjangoFiltersRQLFilterBackend
 from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
+from dj_rql.filter_cls import AutoRQLFilterClass
 
 from django.db.models import CharField, IntegerField, Value
 
@@ -57,3 +58,15 @@ class SelectViewSet(mixins.RetrieveModelMixin, DRFViewSet):
 
 class NoFilterClsViewSet(DRFViewSet):
     rql_filter_class = None
+
+
+class AutoViewSet(DRFViewSet):
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
+
+    @property
+    def rql_filter_class(self):
+        class Cls(AutoRQLFilterClass):
+            MODEL = Book
+
+        return Cls

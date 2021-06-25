@@ -3,7 +3,7 @@
 #
 
 from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
-from dj_rql.filter_cls import RQLFilterClass
+from dj_rql.filter_cls import AutoRQLFilterClass, RQLFilterClass
 from dj_rql.utils import assert_filter_cls
 
 from django.core.exceptions import FieldDoesNotExist
@@ -11,7 +11,7 @@ from django.core.exceptions import FieldDoesNotExist
 import pytest
 
 from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
-from tests.dj_rf.filters import BooksFilterClass
+from tests.dj_rf.filters import AUTHOR_FILTERS, BooksFilterClass
 from tests.dj_rf.models import Author, Book
 
 
@@ -92,7 +92,8 @@ def test_building_filters():
     }
 
     assert_filter_cls(
-        BooksFilterClass, expected_sub_dct,
+        BooksFilterClass,
+        expected_sub_dct,
         get_book_filter_cls_ordering_data(),
         get_book_filter_cls_search_data(),
     )
@@ -106,7 +107,16 @@ def test_bad_filter_configuration():
 def test_model_is_not_set():
     with pytest.raises(AssertionError) as e:
         RQLFilterClass(empty_qs)
-    assert str(e.value) == 'Model must be set for Filter Class.'
+    assert str(e.value) == 'Django model must be set for Filter Class.'
+
+
+def test_is_not_django_model():
+    class Cls(RQLFilterClass):
+        MODEL = BooksFilterClass
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == 'Django model must be set for Filter Class.'
 
 
 def test_wrong_extended_search_setup():
@@ -118,15 +128,26 @@ def test_wrong_extended_search_setup():
     assert str(e.value) == 'Extended search ORM routes must be iterable.'
 
 
-@pytest.mark.parametrize('filters', [None, {}, set()])
-def test_fields_are_not_set(filters):
+@pytest.mark.parametrize('filters', [{}, set()])
+def test_wrong_filters_type(filters):
     class Cls(RQLFilterClass):
         MODEL = Author
         FILTERS = filters
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
-    assert str(e.value) == 'List of filters must be set for Filter Class.'
+    assert str(e.value) == 'Wrong filter settings type for Filter Class.'
+
+
+@pytest.mark.parametrize('filters', [(), []])
+def test_filters_are_not_set(filters):
+    class Cls(RQLFilterClass):
+        MODEL = Author
+        FILTERS = filters
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == 'At least one filter must be set for Filter Class.'
 
 
 def test_orm_path_misconfiguration():
@@ -287,3 +308,81 @@ def test_get_field():
             return cls._get_field(*args)
 
     assert Cls.get_field(Book, '') is None
+
+
+def _default_expected_book_auto_filters():
+    return {
+        'id': {'orm_route': 'id', 'lookups': FL.numeric()},
+        'title': {'orm_route': 'title', 'lookups': FL.string(), 'null_values': {RQL_NULL}},
+        'current_price': {
+            'orm_route': 'current_price', 'lookups': FL.numeric(), 'null_values': {RQL_NULL},
+        },
+        'written': {'orm_route': 'written', 'lookups': FL.numeric()},
+        'status': {'orm_route': 'status', 'lookups': FL.string(with_null=False)},
+        'published_at': {'orm_route': 'published_at', 'lookups': FL.numeric()},
+        'blog_rating': {'orm_route': 'blog_rating', 'lookups': FL.numeric()},
+        'amazon_rating': {'orm_route': 'amazon_rating', 'lookups': FL.numeric()},
+        'publishing_url': {'orm_route': 'publishing_url', 'lookups': FL.string()},
+        'int_choice_field': {
+            'orm_route': 'int_choice_field', 'lookups': FL.numeric(with_null=False),
+        },
+        'str_choice_field': {
+            'orm_route': 'str_choice_field', 'lookups': FL.string(with_null=False),
+        },
+        'github_stars': {'orm_route': 'github_stars', 'lookups': FL.numeric()},
+        'fsm_field': {'orm_route': 'fsm_field', 'lookups': FL.string()},
+    }
+
+
+def test_auto_building_filters():
+    class Cls(AutoRQLFilterClass):
+        MODEL = Book
+
+    expected_sub_dct = _default_expected_book_auto_filters()
+    assert len(Cls(empty_qs).filters) == len(expected_sub_dct)
+
+    assert_filter_cls(
+        Cls,
+        expected_sub_dct,
+        set(expected_sub_dct.keys()),
+        {
+            'title',
+            'status',
+            'publishing_url',
+            'str_choice_field',
+            'fsm_field',
+        },
+    )
+
+
+def test_auto_filtering_override():
+    class Cls(AutoRQLFilterClass):
+        MODEL = Book
+        EXCLUDE_FILTERS = ('id', 'fsm_field')
+        FILTERS = (
+            'title',
+            {
+                'namespace': 'author',
+                'filters': AUTHOR_FILTERS,
+            },
+        )
+
+    expected_sub_dct = _default_expected_book_auto_filters()
+    del expected_sub_dct['id']
+    del expected_sub_dct['fsm_field']
+    expected_sub_dct.update({
+        'author.is_male': {'orm_route': 'author__is_male', 'lookups': FL.boolean()},
+        'author.email': {'orm_route': 'author__email', 'lookups': FL.string()},
+        'author.publisher.id': {
+            'orm_route': 'author__publisher__id',
+            'lookups': FL.numeric(),
+        },
+    })
+
+    assert len(Cls(empty_qs).filters) == len(expected_sub_dct)
+    assert_filter_cls(
+        Cls,
+        expected_sub_dct,
+        set(expected_sub_dct.keys()) - {'title', 'author.is_male', 'author.publisher.id'},
+        {'status', 'publishing_url', 'str_choice_field', 'author.email'},
+    )
