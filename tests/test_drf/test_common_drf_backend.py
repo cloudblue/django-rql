@@ -126,3 +126,12 @@ def test_distinct_sequence(api_client, clear_cache):
         api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=abc'))
 
         assert 'distinct' not in context.captured_queries[0]['sql'].lower()
+
+
+@pytest.mark.django_db
+def test_list_filtering_for_auto(api_client, clear_cache):
+    books = [Book.objects.create() for _ in range(2)]
+    query = 'id={0}'.format(books[0].pk)
+    response = api_client.get('{0}?{1}'.format(reverse('auto-list'), query))
+    assert response.status_code == HTTP_200_OK
+    assert response.data == [{'id': books[0].pk}]

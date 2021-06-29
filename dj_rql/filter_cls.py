@@ -31,7 +31,7 @@ from dj_rql.parser import RQLParser
 from dj_rql.qs import Annotation
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
-from django.db.models import Q
+from django.db.models import Model, Q
 from django.utils.dateparse import parse_date, parse_datetime
 
 from lark.exceptions import LarkError
@@ -70,16 +70,25 @@ class RQLFilterClass:
         if instance:
             self._init_from_class(instance)
         else:
-            self._default_init()
+            self._validate_init()
+            self._default_init(self._get_init_filters())
 
-    def _default_init(self):
-        assert self.MODEL, 'Model must be set for Filter Class.'
+    def _validate_init(self):
+        e = 'Django model must be set for Filter Class.'
+        assert self.MODEL and issubclass(self.MODEL, Model), e
 
-        e = 'List of filters must be set for Filter Class.'
-        assert isinstance(self.FILTERS, iterable_types) and self.FILTERS, e
+        e = 'Wrong filter settings type for Filter Class.'
+        assert (self.FILTERS is None) or isinstance(self.FILTERS, iterable_types), e
 
         e = 'Extended search ORM routes must be iterable.'
         assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), e
+
+    def _get_init_filters(self):
+        return self.FILTERS
+
+    def _default_init(self, filters):
+        e = 'At least one filter must be set for Filter Class.'
+        assert filters, e
 
         self.filters = {}
         self.ordering_filters = set()
@@ -88,7 +97,7 @@ class RQLFilterClass:
         self.default_exclusions = set()
         self.annotations = {}
 
-        self._build_filters(self.FILTERS)
+        self._build_filters(filters)
         self._extend_annotations()
 
     def _init_from_class(self, instance):
@@ -1022,3 +1031,29 @@ class RQLFilterClass:
 
         e = "{0}: 'search' can be applied only to text filters.".format(filter_name)
         assert not (filter_item.get('search') and is_non_string_field_type), e
+
+
+class AutoRQLFilterClass(RQLFilterClass):
+    """Filter class that automatically collects filters for simple model fields."""
+
+    EXCLUDE_FILTERS = ()
+    """This class will collect all simple model fields except the ones in this field."""
+
+    def _get_init_filters(self):
+        described_filters = tuple(self.FILTERS) if self.FILTERS else ()
+
+        filters = tuple(
+            {
+                'filter': f.name,
+                'ordering': True,
+                'search': FilterTypes.field_filter_type(f) == FilterTypes.STRING,
+            }
+            for f in self.MODEL._meta.get_fields()
+            if isinstance(f, SUPPORTED_FIELD_TYPES) and (
+                f.name not in self.EXCLUDE_FILTERS
+            ) and (
+                f.name not in described_filters
+            )
+        )
+
+        return described_filters + filters

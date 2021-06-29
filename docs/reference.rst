@@ -64,10 +64,14 @@ Exceptions
    :members:
 
 
-Filter class
+Filter classes
 ------------
 
 .. autoclass:: dj_rql.filter_cls.RQLFilterClass
+   :members:
+
+
+.. autoclass:: dj_rql.filter_cls.AutoRQLFilterClass
    :members:
 
 
