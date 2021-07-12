@@ -76,3 +76,58 @@ class Page(models.Model):
 
     number = models.IntegerField(null=True)
     book = models.ForeignKey(Book, related_name='pages', on_delete=models.CASCADE)
+
+
+class FKRelated1(models.Model):
+    pass
+
+
+class FKRelated2(models.Model):
+    related21 = models.ForeignKey(FKRelated1, null=True, on_delete=models.PROTECT)
+
+
+class OneTOneRelated(models.Model):
+    pass
+
+
+class ManyToManyRelated(models.Model):
+    pass
+
+
+class AutoMain(models.Model):
+    common_int = models.IntegerField(default=0)
+    common_str = models.CharField(max_length=32, null=True)
+
+    self = models.ForeignKey('self', null=True, on_delete=models.SET_NULL, related_name='parent')
+    related1 = models.ForeignKey(FKRelated1, null=True, on_delete=models.CASCADE, related_name='+')
+    related2 = models.ForeignKey(FKRelated2, on_delete=models.CASCADE, related_name='autos')
+
+    one_to_one = models.OneToOneField(OneTOneRelated, on_delete=models.CASCADE)
+    many_to_many = models.ManyToManyField(ManyToManyRelated)
+
+
+class ReverseFKRelated(models.Model):
+    auto1 = models.ForeignKey(AutoMain, on_delete=models.CASCADE, related_name='reverse_OtM')
+    auto2 = models.ForeignKey(AutoMain, on_delete=models.CASCADE, related_name='+')
+
+
+class ReverseOneToOneRelated(models.Model):
+    auto = models.OneToOneField(
+        AutoMain, null=True, on_delete=models.SET_NULL, related_name='reverse_OtO',
+    )
+
+
+class ReverseManyToManyRelated(models.Model):
+    auto = models.ManyToManyField(AutoMain, related_name='+')
+
+
+class ReverseManyToManyTroughRelated(models.Model):
+    auto = models.ManyToManyField(
+        AutoMain, through='Through', through_fields=('mtm', 'auto'), related_name='reverse_MtM'
+    )
+
+
+class Through(models.Model):
+    auto = models.ForeignKey(AutoMain, on_delete=models.CASCADE)
+    mtm = models.ForeignKey(ReverseManyToManyTroughRelated, on_delete=models.CASCADE)
+    common_int = models.IntegerField(default=0)

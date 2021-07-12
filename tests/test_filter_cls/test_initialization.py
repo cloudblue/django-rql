@@ -3,7 +3,7 @@
 #
 
 from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
-from dj_rql.filter_cls import AutoRQLFilterClass, RQLFilterClass
+from dj_rql.filter_cls import AutoRQLFilterClass, NestedAutoRQLFilterClass, RQLFilterClass
 from dj_rql.utils import assert_filter_cls
 
 from django.core.exceptions import FieldDoesNotExist
@@ -12,7 +12,7 @@ import pytest
 
 from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import AUTHOR_FILTERS, BooksFilterClass
-from tests.dj_rf.models import Author, Book
+from tests.dj_rf.models import Author, AutoMain, Book
 
 
 empty_qs = Author.objects.none()
@@ -386,3 +386,12 @@ def test_auto_filtering_override():
         set(expected_sub_dct.keys()) - {'title', 'author.is_male', 'author.publisher.id'},
         {'status', 'publishing_url', 'str_choice_field', 'author.email'},
     )
+
+
+def test_nested_auto_building_filters():
+    class Cls(NestedAutoRQLFilterClass):
+        MODEL = AutoMain
+        DEPTH = 5
+
+    result = Cls(AutoMain.objects.all())
+    print(1)

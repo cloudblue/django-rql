@@ -1057,3 +1057,56 @@ class AutoRQLFilterClass(RQLFilterClass):
         )
 
         return described_filters + filters
+
+
+class NestedAutoRQLFilterClass(AutoRQLFilterClass):
+    """
+    Filter class that automatically collects filters for all model fields with
+    specified depth for related models.
+    """
+    SELECT = True
+
+    DEPTH = 1
+    """
+    Specifies how deep model relations will be traversed.
+    If `DEPTH = 0` this class behaves as `AutoRQLFilterClass`.
+    """
+
+    def _get_init_filters(self):
+        if self.DEPTH == 0:
+            return super()._get_init_filters()
+
+        described_filters = tuple(self.FILTERS) if self.FILTERS else ()
+        filters = []
+
+        depth = 0
+        models = [(self.MODEL, None)]
+
+        while depth <= self.DEPTH and models:
+            related_models = []
+            for model, prefix in models:
+                for field in model._meta.get_fields():
+                    field_name = field.name
+                    if prefix:
+                        rel_f_name = '.'.join((prefix, field_name))
+                    else:
+                        rel_f_name = field_name
+
+                    if rel_f_name in self.EXCLUDE_FILTERS or rel_f_name in described_filters:
+                        continue
+
+                    if field.is_relation:
+                        related_models.append((field.related_model, rel_f_name))
+                        continue
+
+                    if isinstance(field, SUPPORTED_FIELD_TYPES):
+                        filters.append({
+                            'filter': rel_f_name,
+                            'ordering': True,
+                            'search': FilterTypes.field_filter_type(field) == FilterTypes.STRING,
+                        })
+
+            depth += 1
+            models = related_models
+
+        return filters
