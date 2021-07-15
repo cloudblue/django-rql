@@ -28,11 +28,12 @@ from dj_rql.constants import (
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.parser import RQLParser
-from dj_rql.qs import Annotation
+from dj_rql.qs import Annotation, NPR, NSR
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
-from django.db.models import Model, Q
+from django.db.models import ForeignKey, ManyToManyField, Model, OneToOneField, OneToOneRel, Q
 from django.utils.dateparse import parse_date, parse_datetime
+from django.utils.functional import cached_property
 
 from lark.exceptions import LarkError
 
@@ -1040,8 +1041,7 @@ class AutoRQLFilterClass(RQLFilterClass):
     """This class will collect all simple model fields except the ones in this field."""
 
     def _get_init_filters(self):
-        described_filters = tuple(self.FILTERS) if self.FILTERS else ()
-
+        described_filters = self._described_filters
         filters = tuple(
             {
                 'filter': f.name,
@@ -1057,6 +1057,10 @@ class AutoRQLFilterClass(RQLFilterClass):
         )
 
         return described_filters + filters
+
+    @cached_property
+    def _described_filters(self):
+        return tuple(self.FILTERS) if self.FILTERS else ()
 
 
 class NestedAutoRQLFilterClass(AutoRQLFilterClass):
@@ -1076,37 +1080,90 @@ class NestedAutoRQLFilterClass(AutoRQLFilterClass):
         if self.DEPTH == 0:
             return super()._get_init_filters()
 
-        described_filters = tuple(self.FILTERS) if self.FILTERS else ()
-        filters = []
-
         depth = 0
-        models = [(self.MODEL, None)]
+        global_namespace = []
+        iterator = [(self.MODEL, global_namespace, None, None)]
 
-        while depth <= self.DEPTH and models:
-            related_models = []
-            for model, prefix in models:
-                for field in model._meta.get_fields():
-                    field_name = field.name
-                    if prefix:
-                        rel_f_name = '.'.join((prefix, field_name))
-                    else:
-                        rel_f_name = field_name
-
-                    if rel_f_name in self.EXCLUDE_FILTERS or rel_f_name in described_filters:
-                        continue
-
-                    if field.is_relation:
-                        related_models.append((field.related_model, rel_f_name))
-                        continue
-
-                    if isinstance(field, SUPPORTED_FIELD_TYPES):
-                        filters.append({
-                            'filter': rel_f_name,
-                            'ordering': True,
-                            'search': FilterTypes.field_filter_type(field) == FilterTypes.STRING,
-                        })
-
+        while depth <= self.DEPTH and iterator:
+            iterator = self._iter_models_to_get_filters(depth, iterator)
             depth += 1
-            models = related_models
 
-        return filters
+        return self._described_filters + tuple(global_namespace)
+
+    def _iter_models_to_get_filters(self, depth, iterator):
+        related_models = []
+
+        for model_data in iterator:
+            related_models.extend(self._iter_model_to_get_filters(depth, model_data))
+
+        return related_models
+
+    def _iter_model_to_get_filters(self, depth, model_data):
+        model, namespace, circular_related_name, prefix = model_data
+        through_models = set()
+        model_related_models = []
+
+        for field in model._meta.get_fields():
+            rel_f_name = self._get_relative_field_name(field, circular_related_name, prefix)
+            if not rel_f_name:
+                continue
+
+            if field.is_relation:
+                if self._is_through_field(field):
+                    through_models.add(field.through)
+
+                relation_data = self._add_relation_to_iterated_models(depth, field, namespace)
+                model_related_models.append(relation_data + (rel_f_name,))
+                continue
+
+            if isinstance(field, SUPPORTED_FIELD_TYPES):
+                namespace.append({
+                    'filter': field.name,
+                    'ordering': True,
+                    'search': FilterTypes.field_filter_type(field) == FilterTypes.STRING,
+                })
+
+        return [i for i in model_related_models if i[0] not in through_models]
+
+    def _add_relation_to_iterated_models(self, depth, field, namespace):
+        if isinstance(field, (ForeignKey, ManyToManyField)):
+            circular_related_name = field.remote_field.name
+        else:
+            circular_related_name = field.field.name
+
+        field_name = field.name
+        qs = None
+        if isinstance(field, (ForeignKey, OneToOneField, OneToOneRel)):
+            qs = NSR(field_name)
+        elif not self._is_through_field(field):
+            qs = NPR(field_name)
+
+        namespace_filters = []
+        if depth < self.DEPTH:
+            namespace.append({
+                'namespace': field_name,
+                'filters': namespace_filters,
+                'qs': qs,
+            })
+
+        return field.related_model, namespace_filters, circular_related_name
+
+    def _get_relative_field_name(self, field, circular_related_name, prefix):
+        field_name = field.name
+        if circular_related_name and field_name == circular_related_name:
+            # This is needed to avoid circular dependencies
+            return
+
+        if prefix:
+            rel_f_name = '.'.join((prefix, field_name))
+        else:
+            rel_f_name = field_name
+
+        if rel_f_name in self.EXCLUDE_FILTERS or rel_f_name in self._described_filters:
+            return
+
+        return rel_f_name
+
+    @staticmethod
+    def _is_through_field(field):
+        return getattr(field, 'through', None)

@@ -14,7 +14,6 @@ from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_se
 from tests.dj_rf.filters import AUTHOR_FILTERS, BooksFilterClass
 from tests.dj_rf.models import Author, AutoMain, Book
 
-
 empty_qs = Author.objects.none()
 
 
@@ -388,10 +387,146 @@ def test_auto_filtering_override():
     )
 
 
-def test_nested_auto_building_filters():
+def test_nested_auto_building_filters_depth_0():
     class Cls(NestedAutoRQLFilterClass):
         MODEL = AutoMain
-        DEPTH = 5
+        DEPTH = 0
 
-    result = Cls(AutoMain.objects.all())
-    print(1)
+    assert set(Cls(AutoMain.objects.all()).filters.keys()) == {'id', 'common_int', 'common_str'}
+
+
+def test_nested_auto_building_filters_depth_1_check_structure():
+    class Cls(NestedAutoRQLFilterClass):
+        MODEL = AutoMain
+
+    assert set(Cls(AutoMain.objects.all()).filters.keys()) == {
+        'id',
+        'common_int',
+        'common_str',
+        'parent.id',
+        'parent.common_int',
+        'parent.common_str',
+        'self.id',
+        'self.common_int',
+        'self.common_str',
+        'related1.id',
+        'related2.id',
+        'one_to_one.id',
+        'many_to_many.id',
+        'reverse_OtM.id',
+        'reverse_OtO.id',
+        'reverse_MtM.id',
+    }
+
+
+@pytest.mark.django_db
+def test_nested_auto_building_filters_depth_2_check_select():
+    class Cls(NestedAutoRQLFilterClass):
+        MODEL = AutoMain
+        DEPTH = 2
+
+    filter_cls = Cls(AutoMain.objects.all())
+    assert set(filter_cls.filters.keys()) == {
+        'common_int',
+        'common_str',
+        'id',
+        'many_to_many.id',
+        'one_to_one.id',
+        'parent.common_int',
+        'parent.common_str',
+        'parent.id',
+        'parent.many_to_many.id',
+        'parent.one_to_one.id',
+        'parent.parent.common_int',
+        'parent.parent.common_str',
+        'parent.parent.id',
+        'parent.related1.id',
+        'parent.related2.id',
+        'parent.reverse_MtM.id',
+        'parent.reverse_OtM.id',
+        'parent.reverse_OtO.id',
+        'related1.r.id',
+        'related1.id',
+        'related2.id',
+        'related2.related21.id',
+        'reverse_MtM.id',
+        'reverse_MtM.through.common_int',
+        'reverse_MtM.through.id',
+        'reverse_OtM.auto2.common_int',
+        'reverse_OtM.auto2.common_str',
+        'reverse_OtM.auto2.id',
+        'reverse_OtM.id',
+        'reverse_OtO.id',
+        'self.common_int',
+        'self.common_str',
+        'self.id',
+        'self.many_to_many.id',
+        'self.one_to_one.id',
+        'self.related1.id',
+        'self.related2.id',
+        'self.reverse_MtM.id',
+        'self.reverse_OtM.id',
+        'self.reverse_OtO.id',
+        'self.self.common_int',
+        'self.self.common_str',
+        'self.self.id',
+    }
+
+    _, qs = filter_cls.apply_filters('')
+    assert qs.query.select_related == {
+        'reverse_OtO': {},
+        'self': {
+            'reverse_OtO': {},
+            'self': {},
+            'related1': {},
+            'related2': {},
+            'one_to_one': {},
+        },
+        'related1': {},
+        'related2': {
+            'related21': {},
+        },
+        'one_to_one': {},
+    }
+    assert set(qs._prefetch_related_lookups) == {
+        'parent',
+        'parent__parent',
+        'parent__reverse_OtM',
+        'parent__reverse_OtO',
+        'parent__through',
+        'parent__related1',
+        'parent__related2',
+        'parent__one_to_one',
+        'parent__many_to_many',
+        'reverse_OtM',
+        'reverse_OtM__auto2',
+        'through',
+        'self__reverse_OtM',
+        'self__through',
+        'self__many_to_many',
+        'related1__r',
+        'many_to_many',
+    }
+    assert list(qs.all()) == []
+
+
+def test_nested_auto_building_filters_depth_3_described_and_exclusions():
+    class Cls(NestedAutoRQLFilterClass):
+        MODEL = AutoMain
+        DEPTH = 3
+        EXCLUDE_FILTERS = ('common_int', 'parent.parent', 'related1')
+        FILTERS = ({
+            'filter': 'random',
+            'source': 'id',
+        },)
+
+    filter_set = set(Cls(AutoMain.objects.all()).filters.keys())
+
+    assert {
+        'random',
+        'common_str',
+        'self.self.self.common_int',
+        'self.self.self.common_str',
+        'self.self.self.id',
+    }.issubset(filter_set)
+    assert {'parent.parent.id', 'related1.id', 'common_int'}.isdisjoint(filter_set)

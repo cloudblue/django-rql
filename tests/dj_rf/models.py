@@ -83,7 +83,7 @@ class FKRelated1(models.Model):
 
 
 class FKRelated2(models.Model):
-    related21 = models.ForeignKey(FKRelated1, null=True, on_delete=models.PROTECT)
+    related21 = models.ForeignKey(FKRelated1, null=True, on_delete=models.PROTECT, related_name='r')
 
 
 class OneTOneRelated(models.Model):
@@ -123,7 +123,7 @@ class ReverseManyToManyRelated(models.Model):
 
 class ReverseManyToManyTroughRelated(models.Model):
     auto = models.ManyToManyField(
-        AutoMain, through='Through', through_fields=('mtm', 'auto'), related_name='reverse_MtM'
+        AutoMain, through='Through', through_fields=('mtm', 'auto'), related_name='reverse_MtM',
     )
 
 
