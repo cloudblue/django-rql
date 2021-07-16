@@ -18,7 +18,7 @@ class RandomFk(models.Model):
 class Publisher(models.Model):
     name = models.CharField(max_length=20, null=True)
 
-    fk1 = models.ForeignKey(RandomFk, on_delete=models.SET_NULL, null=True)
+    fk1 = models.ForeignKey(RandomFk, on_delete=models.SET_NULL, null=True, related_name='r')
     fk2 = models.ForeignKey(RandomFk, on_delete=models.SET_NULL, null=True)
 
 
@@ -48,7 +48,7 @@ class Book(models.Model):
     blog_rating = models.BigIntegerField(null=True, choices=BLOG_RATING_CHOICES)
     github_stars = models.PositiveIntegerField(null=True)
     amazon_rating = models.FloatField(null=True)
-    current_price = models.DecimalField(null=True, decimal_places=4)
+    current_price = models.DecimalField(null=True, decimal_places=4, max_digits=20)
 
     written = models.DateField(null=True)
     published_at = models.DateTimeField(null=True)
