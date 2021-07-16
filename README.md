@@ -180,6 +180,55 @@ Notes
 3. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices) is added
 
 
+Helpers
+================================
+There is a Django command `generate_rql_class` to decrease development and integration efforts for filtering.
+This command automatically generates a filter class for a given model with all relations and all optimizations (!) to the specified depth.
+
+Example
+-------
+```commandline
+django-admin generate_rql_class --settings=tests.dj_rf.settings tests.dj_rf.models.Publisher --depth=1 --exclude=authors,fk2
+```
+This command for the model `Publisher` from tests package will produce the following output to stdout:
+```python
+from tests.dj_rf.models import Publisher
+
+from dj_rql.filter_cls import RQLFilterClass
+from dj_rql.qs import NPR, NSR
+
+
+class PublisherFilters(RQLFilterClass):
+    MODEL = Publisher
+    SELECT = True
+    EXCLUDE_FILTERS = ['authors', 'fk2']
+    FILTERS = [
+    {
+        "filter": "id",
+        "ordering": True,
+        "search": False
+    },
+    {
+        "filter": "name",
+        "ordering": True,
+        "search": True
+    },
+    {
+        "namespace": "fk1",
+        "filters": [
+            {
+                "filter": "id",
+                "ordering": True,
+                "search": False
+            }
+        ],
+        "qs": NSR('fk1')
+    }
+]
+
+```
+
+
 Django Rest Framework Extensions
 ================================
 1. Pagination (limit, offset)

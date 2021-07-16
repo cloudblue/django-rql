@@ -398,8 +398,10 @@ def test_nested_auto_building_filters_depth_0():
 def test_nested_auto_building_filters_depth_1_check_structure():
     class Cls(NestedAutoRQLFilterClass):
         MODEL = AutoMain
+        SELECT = False
 
-    assert set(Cls(AutoMain.objects.all()).filters.keys()) == {
+    filter_cls = Cls(AutoMain.objects.all())
+    assert set(filter_cls.filters.keys()) == {
         'id',
         'common_int',
         'common_str',
@@ -417,6 +419,10 @@ def test_nested_auto_building_filters_depth_1_check_structure():
         'reverse_OtO.id',
         'reverse_MtM.id',
     }
+
+    _, qs = filter_cls.apply_filters('')
+    assert not qs.query.select_related
+    assert not qs._prefetch_related_lookups
 
 
 @pytest.mark.django_db

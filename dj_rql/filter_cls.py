@@ -1116,12 +1116,11 @@ class NestedAutoRQLFilterClass(AutoRQLFilterClass):
                 model_related_models.append(relation_data + (rel_f_name,))
                 continue
 
-            if isinstance(field, SUPPORTED_FIELD_TYPES):
-                namespace.append({
-                    'filter': field.name,
-                    'ordering': True,
-                    'search': FilterTypes.field_filter_type(field) == FilterTypes.STRING,
-                })
+            namespace.append({
+                'filter': field.name,
+                'ordering': True,
+                'search': FilterTypes.field_filter_type(field) == FilterTypes.STRING,
+            })
 
         return [i for i in model_related_models if i[0] not in through_models]
 
@@ -1131,19 +1130,12 @@ class NestedAutoRQLFilterClass(AutoRQLFilterClass):
         else:
             circular_related_name = field.field.name
 
-        field_name = field.name
-        qs = None
-        if isinstance(field, (ForeignKey, OneToOneField, OneToOneRel)):
-            qs = NSR(field_name)
-        elif not self._is_through_field(field):
-            qs = NPR(field_name)
-
         namespace_filters = []
         if depth < self.DEPTH:
             namespace.append({
-                'namespace': field_name,
+                'namespace': field.name,
                 'filters': namespace_filters,
-                'qs': qs,
+                'qs': self._get_field_optimization(field),
             })
 
         return field.related_model, namespace_filters, circular_related_name
@@ -1154,15 +1146,21 @@ class NestedAutoRQLFilterClass(AutoRQLFilterClass):
             # This is needed to avoid circular dependencies
             return
 
-        if prefix:
-            rel_f_name = '.'.join((prefix, field_name))
-        else:
-            rel_f_name = field_name
-
+        rel_f_name = '.'.join((prefix, field_name)) if prefix else field_name
         if rel_f_name in self.EXCLUDE_FILTERS or rel_f_name in self._described_filters:
             return
 
         return rel_f_name
+
+    def _get_field_optimization(self, field):
+        if not self.SELECT:
+            return
+
+        if isinstance(field, (ForeignKey, OneToOneField, OneToOneRel)):
+            return NSR(field.name)
+
+        if not self._is_through_field(field):
+            return NPR(field.name)
 
     @staticmethod
     def _is_through_field(field):

@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'tests.dj_rf',
+    'dj_rql',
 ]
 
 MIDDLEWARE = [
@@ -53,3 +54,5 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
+
+SILENCED_SYSTEM_CHECKS = ['models.W042', 'fields.W903', 'fields.E005']
