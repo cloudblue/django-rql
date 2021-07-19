@@ -75,6 +75,10 @@ Filter classes
    :members:
 
 
+.. autoclass:: dj_rql.filter_cls.NestedAutoRQLFilterClass
+   :members:
+
+
 DB optimization
 ---------------
 
