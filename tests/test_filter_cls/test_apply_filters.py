@@ -5,7 +5,7 @@
 from functools import partial
 
 from dj_rql.constants import FilterLookups, ListOperators, RQL_NULL
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError
+from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.filter_cls import RQLFilterClass
 
 from django.core.exceptions import FieldError
@@ -341,6 +341,57 @@ def test_custom_filter_search_ok(mocker):
     CustomCls(book_qs).assert_search('o', books)
 
     assert build_q_for_custom_filter_patch.call_count == 3
+
+
+@pytest.mark.django_db
+def test_test_custom_filter_with_type_ok():
+    class CustomWithFieldCLS(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [
+            {
+                'filter': 'int_field',
+                'custom': True,
+                'field': IntegerField(),
+                'lookups': {FilterLookups.EQ},
+            },
+        ]
+
+        def build_q_for_custom_filter(self, data):
+            if data.filter_name == 'int_field':
+                from django.db.models import Q
+                return Q(**{f'int_choice_field__{data.django_lookup}': data.str_value})
+            return super().build_q_for_custom_filter(data)
+
+    book_1, _ = (
+        Book.objects.create(title='book', int_choice_field=1),
+        Book.objects.create(title='another', int_choice_field=2),
+    )
+
+    _, qs = CustomWithFieldCLS(book_qs).apply_filters('int_field=1')
+
+    assert qs.get() == book_1
+
+
+def test_test_custom_filter_with_type_fail():
+    class CustomWithFieldCLS(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [
+            {
+                'filter': 'int_field',
+                'custom': True,
+                'field': IntegerField(),
+                'lookups': {FilterLookups.EQ},
+            },
+        ]
+
+        def build_q_for_custom_filter(self, data):
+            pass
+
+    with pytest.raises(RQLFilterValueError) as e:
+        CustomWithFieldCLS(book_qs).apply_filters('int_field=string')
+
+    assert e.value.args[0] == 'RQL Value error.'
+    assert e.value.details == {'filter': 'int_field', 'lookup': 'eq', 'value': 'string'}
 
 
 @pytest.mark.django_db

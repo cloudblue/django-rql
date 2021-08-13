@@ -268,6 +268,16 @@ class RQLFilterClass:
         )
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
 
+        django_field = base_item.get('field')
+        use_repr = base_item.get('use_repr', False)
+
+        typed_value = None
+        if django_field is not None:
+            typed_value = self._get_typed_value(
+                filter_name, filter_lookup, str_value, django_field,
+                use_repr, null_values, django_lookup,
+            )
+
         if base_item.get('custom'):
             return self.build_q_for_custom_filter(FilterArgs(
                 filter_name,
@@ -277,14 +287,6 @@ class RQLFilterClass:
                 filter_lookup=filter_lookup,
                 django_lookup=django_lookup,
             ))
-
-        django_field = base_item['field']
-        use_repr = base_item.get('use_repr', False)
-
-        typed_value = self._get_typed_value(
-            filter_name, filter_lookup, str_value, django_field,
-            use_repr, null_values, django_lookup,
-        )
 
         if not isinstance(filter_item, iterable_types):
             return self._build_django_q(filter_item, django_lookup, filter_lookup, typed_value)

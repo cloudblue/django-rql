@@ -156,6 +156,8 @@ class ModelFilterClass(RQLFilterClass):
         'lookups': {FilterLookups.EQ, FilterLookups.IN, FilterLookups.I_LIKE},
         'ordering': True,
         'search': True,
+         # Optional ORM field for query parameter value validation
+        'field': IntegerField(), 
 
         'custom_data': [1],
     }]
@@ -195,7 +197,7 @@ This command for the model `Publisher` from tests package will produce the follo
 from tests.dj_rf.models import Publisher
 
 from dj_rql.filter_cls import RQLFilterClass
-from dj_rql.qs import NPR, NSR
+from dj_rql.qs import NSR
 
 
 class PublisherFilters(RQLFilterClass):
