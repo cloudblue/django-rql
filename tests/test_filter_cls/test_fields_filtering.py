@@ -410,6 +410,7 @@ def test_datetime_field_fail(filter_name, bad_value):
 @pytest.mark.parametrize('filter_name,value', [
     ('amazon_rating', '1.23'), ('page.number', '5'),
     ('int_choice_field_repr', 'I'), ('str_choice_field_repr', 'I'),
+    ('select_author', 'value'),
 ])
 def test_field_lookup_fail(filter_name, value, bad_operator):
     assert_filter_field_lookup_error(filter_name, bad_operator, value)

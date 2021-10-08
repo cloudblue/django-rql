@@ -25,6 +25,7 @@ from dj_rql.constants import (
     SUPPORTED_FIELD_TYPES,
     SearchOperators,
 )
+from dj_rql.drf.fields import SelectField
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.parser import RQLParser
@@ -266,9 +267,14 @@ class RQLFilterClass:
         filter_lookup = self._get_filter_lookup(
             filter_name, operator, str_value, available_lookups, null_values,
         )
+        django_field = base_item.get('field')
+        if django_field and isinstance(django_field, SelectField):
+            raise RQLFilterLookupError(**self._get_error_details(
+                filter_name, filter_lookup, str_value,
+            ))
+
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
 
-        django_field = base_item.get('field')
         use_repr = base_item.get('use_repr', False)
 
         typed_value = None
