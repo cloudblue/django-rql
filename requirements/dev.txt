@@ -1,2 +1,2 @@
-lark-parser==0.8.2
+lark-parser==0.11.0
 Django>=2.2.19
