@@ -202,7 +202,11 @@ class RQLFilterClass:
                 qs = rql_transformer.transform(rql_ast)
             except LarkError as e:
                 # Lark reraises it's errors, but the original ones are needed
-                raise e.orig_exc
+                original_error = e.orig_exc
+                if not isinstance(original_error, (AssertionError, LarkError)):
+                    raise original_error
+
+                raise RQLFilterParsingError()
 
             qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
             select_filters = rql_transformer.select_filters
