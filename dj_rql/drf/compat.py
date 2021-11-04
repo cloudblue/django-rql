@@ -39,9 +39,7 @@ class CompatibilityRQLFilterBackend(RQLFilterBackend):
             else:
                 return cls.get_rql_query(filter_instance, request, query_string)
         except Exception:
-            raise RQLFilterParsingError(details={
-                'error': 'Bad filter query.',
-            })
+            raise RQLFilterParsingError()
 
     @classmethod
     def modify_initial_query(cls, filter_instance, request, query_string):
@@ -251,7 +249,7 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
 
     @staticmethod
     def _conversion_error():
-        raise RQLFilterParsingError(details={'error': 'Bad filter query.'})
+        raise RQLFilterParsingError()
 
     @classmethod
     def _get_filters_similar_to_old_syntax(cls, filter_instance):

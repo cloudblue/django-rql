@@ -16,6 +16,10 @@ class RQLFilterParsingError(RQLFilterError):
     """ Parsing errors are raised only at query parsing time. """
     MESSAGE = 'RQL Parsing error.'
 
+    def __init__(self, **kwargs):
+        kwargs.setdefault('details', {'error': 'Bad filter query.'})
+        super().__init__(**kwargs)
+
 
 class RQLFilterLookupError(RQLFilterError):
     """ Lookup error is raised when provided lookup is not supported by the associated filter. """

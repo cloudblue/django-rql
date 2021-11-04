@@ -25,10 +25,11 @@ def apply_filters(query):
     return list(q)
 
 
-def test_parsing_error():
-    bad_query = 'q='
+@pytest.mark.parametrize('bad_query', ['q=', '(select(stats.attributes))&select(stats.attributes)'])
+def test_parsing_error(bad_query):
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(bad_query)
+
     assert e.value.details['error'] == 'Bad filter query.'
 
 
@@ -174,6 +175,12 @@ def test_null_with_in_or():
 
     assert apply_filters('in(title,({0},{1}))'.format(title, RQL_NULL)) == books
     assert apply_filters('or(title=eq={0},eq(title,{1}))'.format(title, RQL_NULL)) == books
+
+
+@pytest.mark.django_db
+def test_non_select_for_select_field():
+    with pytest.raises(RQLFilterLookupError):
+        apply_filters('select_author=abc')
 
 
 @pytest.mark.django_db

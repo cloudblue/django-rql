@@ -15,9 +15,7 @@ class RQLLarkParser(Lark):
             rql_ast = RQLParser.parse(query)
             return rql_ast
         except LarkError:
-            raise RQLFilterParsingError(details={
-                'error': 'Bad filter query.',
-            })
+            raise RQLFilterParsingError()
 
 
 RQLParser = RQLLarkParser(RQL_GRAMMAR, parser='lalr', start='start')
