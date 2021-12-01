@@ -21,18 +21,22 @@ class OptimizationArgs:
 
 
 class FilterArgs:
-    def __init__(self, filter_name, operator, str_value, list_operator=None, **kwargs):
+    def __init__(self, filter_name, operator, str_value, list_operator=None,
+                 namespace=None, **kwargs):
         """
         :param str filter_name: Full filter name (f.e. ns1.ns2.filter1)
         :param str operator: RQL operator (f.e. eq, like, etc.)
         :param str str_value: Raw value from RQL query
         :param str or None list_operator: This is filled only if operation is done within IN or OUT
+        :param list or None namespace: List of namespaces
         :param dict kwargs: Other auxiliary data (f.e. to ease custom filtering)
         """
-        self.filter_name = filter_name
+        self.filter_basename = filter_name
+        self.filter_name = '.'.join((namespace or []) + [filter_name])
         self.operator = operator
         self.str_value = str_value
         self.list_operator = list_operator
+        self.namespace = namespace
 
         self.filter_lookup = kwargs.get('filter_lookup')
         self.django_lookup = kwargs.get('django_lookup')

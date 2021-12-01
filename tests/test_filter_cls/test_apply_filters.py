@@ -159,6 +159,93 @@ def test_out():
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize('filter_string', (
+    't(author.email={email},title=null())',
+    't(search={email})',
+    't(ge(published.at,{published_at}))',
+    't(author.publisher.id={publisher_id})',
+    'title=null()&t(author.email={email})',
+    't(author=t(email={email}))',
+    'author=t(email={email},is_male=true)',
+    'author=t(publisher=t(id={publisher_id}))',
+    'author=t(email={email},ne(is_male,false))',
+    'ne(author,t(email={second_book_email},is_male=true))',
+    'and(author=t(email={email}),author=t(is_male=true))',
+    'and(title=null(),author=t(is_male=true,publisher=t(id={publisher_id})))',
+    'in(author.email,({email}))',
+    'in(author,(t(publisher.id=null()),t(email={email})))',
+    'out(author,(t(email={second_book_email})))',
+))
+def test_tuple(filter_string):
+    books = create_books()
+    comp_filter = filter_string.format(
+        email=books[0].author.email,
+        published_at=books[0].published_at.date(),
+        publisher_id=books[0].author.publisher.id,
+        second_book_email=books[1].author.email,
+    )
+    assert apply_filters(comp_filter) == [books[0]]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('filter_string', (
+    'author=t(like=1)',
+    'author=t(ilike=1)',
+    'author=t(in=1)',
+    'author=t(out=1)',
+    'author=t(eq=1)',
+    'author=t(ne=1)',
+    'author=t(and=1)',
+    'author=t(or=1)',
+    'author=t(limit=1)',
+    'author=t(offset=1)',
+))
+def test_tuple_syntax_terms_not_fail(filter_string):
+    books = create_books()
+    assert apply_filters(filter_string) == books
+
+
+@pytest.mark.parametrize('filter_string', (
+    't()',
+    't(1=1)',
+    'author=t(t(t(name=1))'
+    'author=t(male)',
+    'author=t(test=in(male,(true,false)))',
+    'in(t(is_male=true),(author))',
+    'select(t(author.publisher))',
+    'author=t(limit(email))',
+    'author=t(offset(email))',
+    'author=t(select(email))',
+    'author=t(ordering(email))',
+    'author=t(and(a=1,b=2))',
+    'author=t(or(a=1,b=2))',
+    'author=t(not(a=1))',
+    'author=t(search(x,term))',
+    'auhtor=t(select(+test))',
+))
+def test_tuple_parse_error(filter_string):
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters(filter_string)
+
+    expected = 'Bad filter query.'
+    assert e.value.details['error'] == expected
+
+
+def test_tuple_search_inside_namespace():
+    with pytest.raises(RQLFilterLookupError) as e:
+        apply_filters('author=t(search=term)')
+
+    expected = 'Filter "search" can be applied only on top level.'
+    assert e.value.details['error'] == expected
+
+
+def test_tuple_lookup_error():
+    with pytest.raises(RQLFilterLookupError) as e:
+        apply_filters('author=t(ge(email,1))')
+    assert e.value.details == {'filter': 'author.email', 'lookup': 'ge', 'value': '1'}
+
+
+@pytest.mark.django_db
 def test_null():
     books = create_books()
     assert apply_filters('title={0}'.format(RQL_NULL)) == books
