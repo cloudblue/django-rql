@@ -1,6 +1,7 @@
 #
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
+from cachetools import LRUCache
 
 from dj_rql.constants import FilterLookups, RQL_NULL
 from dj_rql.drf.fields import SelectField
@@ -189,3 +190,5 @@ class BooksFilterClass(RQLFilterClass):
 
 class SelectBooksFilterClass(BooksFilterClass):
     SELECT = True
+    QUERIES_CACHE_BACKEND = LRUCache
+    QUERIES_CACHE_SIZE = 100

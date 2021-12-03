@@ -2,7 +2,7 @@
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.drf.backend import FilterCache
+from dj_rql.drf.backend import RQLFilterBackend, _FilterClassCache
 
 import pytest
 
@@ -18,4 +18,5 @@ def api_client():
 
 @pytest.fixture
 def clear_cache():
-    FilterCache.clear()
+    _FilterClassCache.clear()
+    RQLFilterBackend._CACHES = {}
