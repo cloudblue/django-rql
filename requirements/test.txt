@@ -6,6 +6,7 @@ pytest-django==4.4.0
 pytest-mock==3.6.1
 pytest-deadfixtures==2.2.1
 pytest-randomly==3.10.1
+pytz==2021.3
 django-fsm==2.7.1
 django-model-utils==4.1.1
 djangorestframework==3.12.4

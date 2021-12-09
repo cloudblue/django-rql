@@ -81,14 +81,24 @@ def test_current_price():
     filter_name = 'current_price'
     books = [
         Book.objects.create(current_price=5.23),
-        Book.objects.create(current_price=0.0121),
+        Book.objects.create(current_price=1.5554),
+        Book.objects.create(current_price=222.5556),
+        Book.objects.create(current_price=-35.4567),
+        Book.objects.create(current_price=0.0123),
     ]
     assert filter_field(filter_name, CO.EQ, books[0].current_price) == [books[0]]
-    assert filter_field(filter_name, CO.EQ, 5.2300123) == [books[0]]
+    assert filter_field(filter_name, CO.EQ, 1.55549) == [books[1]]
+    assert filter_field(filter_name, CO.EQ, 222.55567) == [books[2]]
+    assert filter_field(filter_name, CO.EQ, -35.456789) == [books[3]]
+    assert filter_field(filter_name, CO.EQ, 0.0123456) == [books[4]]
     assert filter_field(filter_name, CO.EQ, 2) == []
-    assert filter_field(filter_name, CO.NE, books[1].current_price) == [books[0]]
-    assert filter_field(filter_name, CO.LE, books[0].current_price) == books
-    assert filter_field(filter_name, CO.GT, books[1].current_price) == [books[0]]
+    assert filter_field(filter_name, CO.GT, books[1].current_price) == [books[0], books[2]]
+    assert filter_field(filter_name, CO.NE, books[1].current_price) == [
+        books[0], books[2], books[3], books[4],
+    ]
+    assert filter_field(filter_name, CO.LE, books[0].current_price) == [
+        books[0], books[1], books[3], books[4],
+    ]
 
 
 @pytest.mark.django_db

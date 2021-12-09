@@ -1,7 +1,7 @@
 #
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-
+import decimal
 from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
@@ -37,7 +37,6 @@ from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.functional import cached_property
 
 from lark.exceptions import LarkError
-
 
 iterable_types = (list, tuple)
 
@@ -847,7 +846,7 @@ class RQLFilterClass:
 
             typed_value = cls._convert_value(django_field, str_value, use_repr=use_repr)
             return typed_value
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, decimal.InvalidOperation):
             raise RQLFilterValueError(**cls._get_error_details(
                 filter_name, filter_lookup, str_value,
             ))
@@ -890,7 +889,10 @@ class RQLFilterClass:
             return float(val)
 
         elif filter_type == FilterTypes.DECIMAL:
-            return round(float(val), django_field.decimal_places)
+            if '.' in val:
+                integer_part, fractional_part = val.split('.', 1)
+                val = integer_part + '.' + fractional_part[:django_field.decimal_places]
+            return decimal.Decimal(val)
 
         elif filter_type == FilterTypes.DATE:
             return cls._convert_date_value(val)
