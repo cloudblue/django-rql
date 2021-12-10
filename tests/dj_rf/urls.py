@@ -2,7 +2,8 @@
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
 
-from django.conf.urls import include, re_path
+from django.conf.urls import include
+from django.urls import re_path
 
 from rest_framework.routers import SimpleRouter
 
