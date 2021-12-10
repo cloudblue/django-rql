@@ -1,7 +1,9 @@
 #
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
+
 import decimal
+import re
 from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
@@ -873,11 +875,25 @@ class RQLFilterClass:
         if val == RQL_ANY_SYMBOL:
             return any_symbol_regex
 
-        new_val = val
+        new_val = cls._escape_regex_special_symbols(val)
         new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{0}'.format(new_val)
         new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{0}$'.format(new_val)
         return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex).replace(
             star_replacer, RQL_ANY_SYMBOL,
+        )
+
+    @staticmethod
+    def _escape_regex_special_symbols(str_value):
+        """Returns escaped string
+
+        Current like/ilike protocol (* in any place) implementation requires to execute regex.
+        Input string could be a not valid (braces not balanced db error)
+        or misinterpreted (symbols range). Regex is not supported by RQL so we can safely
+        escape redundant special symbols.
+        """
+        return (
+            re.escape(str_value)
+            .replace(r'\{0}'.format(RQL_ANY_SYMBOL), RQL_ANY_SYMBOL)
         )
 
     @classmethod
