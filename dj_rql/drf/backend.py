@@ -35,21 +35,24 @@ class RQLFilterBackend(BaseFilterBackend):
         filter_instance = self._get_filter_instance(filter_class, queryset, view)
         query = self.get_query(filter_instance, request, view)
 
-        def apply_filters_lazy():
-            return filter_instance.apply_filters(query, request, view)
-
-        if filter_class.QUERIES_CACHE_BACKEND and request.method in ('GET', 'HEAD', 'OPTIONS'):
+        can_query_be_cached = all((
+            filter_class.QUERIES_CACHE_BACKEND,
+            filter_class.QUERIES_CACHE_SIZE,
+            request.method in ('GET', 'HEAD', 'OPTIONS'),
+        ))
+        if can_query_be_cached:
             # We must use the combination of queryset and query to make a cache key as
             #  queryset can already contain some filters (e.x. based on authentication)
-            cache_key = hash(str(queryset.query) + query)
+            cache_key = str(queryset.query) + query
 
             query_cache = self._get_or_init_cache(filter_class, view)
             filters_result = query_cache.get(cache_key)
             if not filters_result:
-                filters_result = apply_filters_lazy()
+                filters_result = filter_instance.apply_filters(query, request, view)
                 query_cache[cache_key] = filters_result
+
         else:
-            filters_result = apply_filters_lazy()
+            filters_result = filter_instance.apply_filters(query, request, view)
 
         rql_ast, queryset = filters_result
 
@@ -57,7 +60,7 @@ class RQLFilterBackend(BaseFilterBackend):
         if queryset.select_data:
             request.rql_select = queryset.select_data
 
-        return queryset
+        return queryset.all()
 
     def get_schema_operation_parameters(self, view):
         spec = []
@@ -84,14 +87,14 @@ class RQLFilterBackend(BaseFilterBackend):
 
     @classmethod
     def _get_or_init_cache(cls, filter_class, view):
-        qual_name = cls._get_filter_cls_qual_name(filter_class, view)
+        qual_name = cls._get_filter_cls_qual_name(view)
         return cls._CACHES.setdefault(
             qual_name, filter_class.QUERIES_CACHE_BACKEND(int(filter_class.QUERIES_CACHE_SIZE)),
         )
 
     @classmethod
     def _get_filter_instance(cls, filter_class, queryset, view):
-        qual_name = cls._get_filter_cls_qual_name(filter_class, view)
+        qual_name = cls._get_filter_cls_qual_name(view)
 
         filter_instance = _FilterClassCache.CACHE.get(qual_name)
         if filter_instance:
@@ -102,5 +105,5 @@ class RQLFilterBackend(BaseFilterBackend):
         return filter_instance
 
     @staticmethod
-    def _get_filter_cls_qual_name(filter_class, view):
-        return '{0}.{1}'.format(view.basename, filter_class.__name__)
+    def _get_filter_cls_qual_name(view):
+        return '{0}.{1}'.format(view.__class__.__module__, view.__class__.__name__)

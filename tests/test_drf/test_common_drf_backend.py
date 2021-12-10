@@ -103,7 +103,7 @@ def test_filter_cls_cache(api_client, clear_cache):
     response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=F'))
     assert response.data == [{'id': books[0].pk}]
 
-    expected_cache_key = 'book.BooksFilterClass'
+    expected_cache_key = 'tests.dj_rf.view.DRFViewSet'
     assert expected_cache_key in _FilterClassCache.CACHE
     cache_item_id = id(_FilterClassCache.CACHE[expected_cache_key])
 
@@ -118,15 +118,16 @@ def test_filter_cls_cache(api_client, clear_cache):
 
 
 @pytest.mark.django_db
-def test_query_cache(api_client, clear_cache):
+def test_query_cache(api_client, clear_cache, django_assert_num_queries):
     books = [
         Book.objects.create(title='F'),
         Book.objects.create(title='G'),
     ]
 
     for _ in range(4):
-        response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=F'))
-        assert response.data == [{'id': books[0].pk}]
+        with django_assert_num_queries(2):
+            response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=F'))
+            assert response.data == [{'id': books[0].pk}]
 
         response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=X'))
         assert response.data == []
@@ -136,12 +137,12 @@ def test_query_cache(api_client, clear_cache):
         assert 'id' not in response.data[0]
 
     caches = RQLFilterBackend._CACHES
-    assert isinstance(caches['book.BooksFilterClass'], LFUCache)
-    assert caches['book.BooksFilterClass'].currsize == 2
-    assert caches['book.BooksFilterClass'].maxsize == 20
-    assert isinstance(caches['select.SelectBooksFilterClass'], LRUCache)
-    assert caches['select.SelectBooksFilterClass'].currsize == 1
-    assert caches['select.SelectBooksFilterClass'].maxsize == 100
+    assert isinstance(caches['tests.dj_rf.view.DRFViewSet'], LFUCache)
+    assert caches['tests.dj_rf.view.DRFViewSet'].currsize == 2
+    assert caches['tests.dj_rf.view.DRFViewSet'].maxsize == 20
+    assert isinstance(caches['tests.dj_rf.view.SelectViewSet'], LRUCache)
+    assert caches['tests.dj_rf.view.SelectViewSet'].currsize == 1
+    assert caches['tests.dj_rf.view.SelectViewSet'].maxsize == 100
 
 
 @pytest.mark.django_db

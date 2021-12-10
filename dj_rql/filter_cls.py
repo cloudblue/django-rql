@@ -6,8 +6,6 @@ from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
 
-from cachetools import LFUCache
-
 from dj_rql._dataclasses import FilterArgs, OptimizationArgs
 from dj_rql.constants import (
     ComparisonOperators,
@@ -64,8 +62,8 @@ class RQLFilterClass:
     OPENAPI_SPECIFICATION = RQLFilterClassSpecification
     """Class for OpenAPI specifications generation."""
 
-    QUERIES_CACHE_BACKEND = LFUCache
-    """Class for query caching (can be `None`)."""
+    QUERIES_CACHE_BACKEND = None
+    """Class for query caching."""
 
     QUERIES_CACHE_SIZE = 20
     """Default number of cached queries."""

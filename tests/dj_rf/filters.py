@@ -1,7 +1,7 @@
 #
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
-from cachetools import LRUCache
+from cachetools import LFUCache, LRUCache
 
 from dj_rql.constants import FilterLookups, RQL_NULL
 from dj_rql.drf.fields import SelectField
@@ -35,6 +35,7 @@ PAGE_FILTERS = [{
 
 class BooksFilterClass(RQLFilterClass):
     MODEL = Book
+    QUERIES_CACHE_BACKEND = LFUCache
     FILTERS = ['id', {
         'filter': 'title',
         'null_values': {RQL_NULL, 'NULL_ID'},
