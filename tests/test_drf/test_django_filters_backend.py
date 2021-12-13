@@ -64,6 +64,9 @@ def test_compatibility_modify_initial_query(backend):
     ('limit=10;k__in=2', True),
     ('(k=v;k=z)', False),
     ('limit=10;k__in=2;k=y)', True),
+    ('t(email=1)', False),
+    ('author=t(email=email)', False),
+    ('k__in=v&t(auhtor=1)', False),
 ))
 def test_old_syntax(mocker, query, expected):
     request = mocker.MagicMock(query_params=QueryDict(query))

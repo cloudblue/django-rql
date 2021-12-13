@@ -16,6 +16,7 @@ start: term?
 
 term: expr_term
     | logical
+    | tuple
     
 expr_term: comp
     | listing
@@ -59,9 +60,10 @@ _signed_props: _L_BRACE _R_BRACE
     | _L_BRACE sign_prop (_COMMA sign_prop)* _R_BRACE
     
 val: prop
+    | tuple
     | QUOTED_VAL
     | UNQUOTED_VAL
-    
+
 prop: comp_term
     | logical_term
     | list_term
@@ -70,6 +72,8 @@ prop: comp_term
     | select_term
     | PROP
     
+tuple: _TUPLE _L_BRACE (comp|searching) (_COMMA (comp|searching))* _R_BRACE
+
 !sign_prop: ["+"|"-"] prop
     
 !comp_term: "eq" | "ne" | "gt" | "ge" | "lt" | "le"
@@ -93,6 +97,7 @@ NULL: "null()"
 _AND: "and"
 _OR: "or"
 _NOT: "not"
+_TUPLE: "t"
 
 _COMMA: ","
 _L_BRACE: "("

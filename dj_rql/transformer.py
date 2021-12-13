@@ -42,6 +42,10 @@ class BaseRQLTransformer(Transformer):
     def _get_value(obj):
         while isinstance(obj, Tree):
             obj = obj.children[0]
+
+        if isinstance(obj, Q):
+            return obj
+
         return obj.value
 
     def sign_prop(self, args):
@@ -72,12 +76,46 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         They are applied later in FilterCls. This is done on purpose, because transformer knows
         nothing about the mappings between filter names and orm fields.
     """
+    NAMESPACE_PROVIDERS = ('comp', 'listing')
+    NAMESPACE_FILLERS = ('prop',)
+    NAMESPACE_ACTIVATORS = ('tuple',)
+
     def __init__(self, filter_cls_instance):
         self._filter_cls_instance = filter_cls_instance
 
         self._ordering = []
         self._select = []
         self._filtered_props = set()
+
+        self._namespace = []
+        self._active_namespace = 0
+
+        self.__visit_tokens__ = False
+
+    def _push_namespace(self, tree):
+        if tree.data in self.NAMESPACE_PROVIDERS:
+            self._namespace.append(None)
+        elif tree.data in self.NAMESPACE_ACTIVATORS:
+            self._active_namespace = len(self._namespace)
+        elif (tree.data in self.NAMESPACE_FILLERS
+                and self._namespace
+                and self._namespace[-1] is None):
+            self._namespace[-1] = self._get_value(tree)
+
+    def _pop_namespace(self, tree):
+        if tree.data in self.NAMESPACE_PROVIDERS:
+            self._namespace.pop()
+        elif tree.data in self.NAMESPACE_ACTIVATORS:
+            self._active_namespace -= 1
+
+    def _get_current_namespace(self):
+        return self._namespace[:self._active_namespace]
+
+    def _transform_tree(self, tree):
+        self._push_namespace(tree)
+        ret_value = super()._transform_tree(tree)
+        self._pop_namespace(tree)
+        return ret_value
 
     @property
     def ordering_filters(self):
@@ -94,9 +132,19 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     def comp(self, args):
         prop, operation, value = self._extract_comparison(args)
-        self._filtered_props.add(prop)
 
-        return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, value))
+        if isinstance(value, Q):
+            if operation == ComparisonOperators.EQ:
+                return value
+            else:
+                return ~value
+
+        filter_args = FilterArgs(prop, operation, value, namespace=self._get_current_namespace())
+        self._filtered_props.add(filter_args.filter_name)
+        return self._filter_cls_instance.build_q_for_filter(filter_args)
+
+    def tuple(self, args):
+        return Q(*args)
 
     def logical(self, args):
         operation = args[0].data
@@ -119,10 +167,17 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
         q = Q()
         for value_tree in args[2:]:
-            field_q = self._filter_cls_instance.build_q_for_filter(FilterArgs(
-                prop, f_op, self._get_value(value_tree),
-                list_operator=operation,
-            ))
+            value = self._get_value(value_tree)
+            if isinstance(value, Q):
+                if f_op == ComparisonOperators.EQ:
+                    field_q = value
+                else:
+                    field_q = ~value
+            else:
+                field_q = self._filter_cls_instance.build_q_for_filter(FilterArgs(
+                    prop, f_op, value,
+                    list_operator=operation,
+                ))
             if operation == ListOperators.IN:
                 q |= field_q
             else:
@@ -135,9 +190,9 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
     def searching(self, args):
         # like, ilike
         operation, prop, val = tuple(self._get_value(args[index]) for index in range(3))
-        self._filtered_props.add(prop)
-
-        return self._filter_cls_instance.build_q_for_filter(FilterArgs(prop, operation, val))
+        filter_args = FilterArgs(prop, operation, val, namespace=self._get_current_namespace())
+        self._filtered_props.add(filter_args.filter_name)
+        return self._filter_cls_instance.build_q_for_filter(filter_args)
 
     def ordering(self, args):
         props = args[1:]

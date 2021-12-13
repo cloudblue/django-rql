@@ -242,6 +242,12 @@ class RQLFilterClass:
         """
         filter_name, operator, str_value = data.filter_name, data.operator, data.str_value
         list_operator = data.list_operator
+        filter_basename, namespace = data.filter_basename, data.namespace
+
+        if namespace and filter_basename == RQL_SEARCH_PARAM:
+            raise RQLFilterLookupError(details={
+                'error': f'Filter "{filter_basename}" can be applied only on top level.',
+            })
 
         if filter_name == RQL_SEARCH_PARAM:
             return self._build_q_for_search(operator, str_value)
