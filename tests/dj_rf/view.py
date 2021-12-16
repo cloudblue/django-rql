@@ -68,5 +68,6 @@ class AutoViewSet(DRFViewSet):
     def rql_filter_class(self):
         class Cls(AutoRQLFilterClass):
             MODEL = Book
+            QUERIES_CACHE_BACKEND = None
 
         return Cls

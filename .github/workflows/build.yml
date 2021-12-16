@@ -49,7 +49,7 @@ jobs:
     - name: Wait sonar to process report
       uses: jakejarvis/wait-action@master
       with:
-        time: '60s'
+        time: '120s'
     - name: SonarQube Quality Gate check
       uses: sonarsource/sonarqube-quality-gate-action@master
       timeout-minutes: 5

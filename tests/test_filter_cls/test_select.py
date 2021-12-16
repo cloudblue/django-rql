@@ -294,9 +294,10 @@ def test_apply_rql_select_not_applied_non_select_cls():
         )
 
     request = _Request()
-    Cls(book_qs).apply_filters('select(+hidden)', request)
-    assert hasattr(request, 'rql_ast')
+    _, qs = Cls(book_qs).apply_filters('select(+hidden)', request)
+    assert not hasattr(request, 'rql_ast')
     assert not hasattr(request, 'rql_select')
+    assert not hasattr(qs, 'rql_select')
 
 
 def test_apply_rql_select_applied_no_request():
@@ -305,11 +306,9 @@ def test_apply_rql_select_applied_no_request():
 
 
 def test_apply_rql_select_applied_no_query():
-    request = _Request()
+    _, qs = SelectFilterCls(book_qs).apply_filters('')
 
-    SelectFilterCls(book_qs).apply_filters('', request)
-    assert hasattr(request, 'rql_ast')
-    assert request.rql_select == {'depth': 0, 'select': {}}
+    assert qs.select_data == {'depth': 0, 'select': {}}
 
 
 def test_default_exclusion_included():
@@ -326,9 +325,8 @@ def test_default_exclusion_included():
             },
         )
 
-    request = _Request()
-    Cls(book_qs).apply_filters('select(-ft2)', request)
-    assert request.rql_select['select'] == {'ft1': False, 'ft2': False}
+    _, qs = Cls(book_qs).apply_filters('select(-ft2)')
+    assert qs.select_data['select'] == {'ft1': False, 'ft2': False}
 
 
 def test_default_exclusion_overridden():
@@ -346,8 +344,8 @@ def test_default_exclusion_overridden():
         )
 
     request = _Request()
-    Cls(book_qs).apply_filters('select(-ft2,ft1)', request)
-    assert request.rql_select['select'] == {'ft1': True, 'ft2': False}
+    _, qs = Cls(book_qs).apply_filters('select(-ft2,ft1)', request)
+    assert qs.select_data['select'] == {'ft1': True, 'ft2': False}
 
 
 def test_signs_select():
@@ -360,9 +358,8 @@ def test_signs_select():
             for i in range(1, 5)
         )
 
-    request = _Request()
-    Cls(book_qs).apply_filters('select(ft1,+ft2,-ft3)', request)
-    assert request.rql_select['select'] == {'ft1': True, 'ft2': True, 'ft3': False}
+    _, qs = Cls(book_qs).apply_filters('select(ft1,+ft2,-ft3)')
+    assert qs.select_data['select'] == {'ft1': True, 'ft2': True, 'ft3': False}
 
 
 def test_bad_select_prop_top_level_include_select():
@@ -476,10 +473,8 @@ def test_bad_select_conf_excluded_then_included():
 
 
 def test_exclude_ok():
-    request = _Request()
-
-    SelectFilterCls(book_qs).apply_filters('select(-id)', request)
-    assert request.rql_select == {'depth': 0, 'select': {'id': False}}
+    _, qs = SelectFilterCls(book_qs).apply_filters('select(-id)')
+    assert qs.select_data == {'depth': 0, 'select': {'id': False}}
 
 
 def test_select_complex():
@@ -546,9 +541,8 @@ def test_select_complex():
             },
         )
 
-    request = _Request()
-    Cls(book_qs).apply_filters('select(ns2.ns2.id,ft1,ns1,ns1.ft1,ns2.ft2)', request)
-    assert request.rql_select['select'] == {
+    _, qs = Cls(book_qs).apply_filters('select(ns2.ns2.id,ft1,ns1,ns1.ft1,ns2.ft2)')
+    assert qs.select_data['select'] == {
         'ft1': True,
         'ns1': True,
         'ns1.ft1': True,

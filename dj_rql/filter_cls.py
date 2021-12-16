@@ -63,6 +63,12 @@ class RQLFilterClass:
     OPENAPI_SPECIFICATION = RQLFilterClassSpecification
     """Class for OpenAPI specifications generation."""
 
+    QUERIES_CACHE_BACKEND = None
+    """Class for query caching."""
+
+    QUERIES_CACHE_SIZE = 20
+    """Default number of cached queries."""
+
     def __init__(self, queryset, instance=None):
         self.queryset = queryset
         self._is_distinct = self.DISTINCT
@@ -194,11 +200,11 @@ class RQLFilterClass:
         self._view = view
 
         rql_ast, qs, select_filters = None, self.queryset, []
+        qs.select_data = None
 
         if query:
             rql_ast = RQLParser.parse_query(query)
             rql_transformer = RQLToDjangoORMTransformer(self)
-
             try:
                 qs = rql_transformer.transform(rql_ast)
             except LarkError as e:
@@ -215,21 +221,17 @@ class RQLFilterClass:
             if self._is_distinct:
                 qs = qs.distinct()
 
-        if request:
-            request.rql_ast = rql_ast
+            qs.select_data = None
 
         if self.SELECT:
             select_data = self._build_select_data(select_filters)
             qs = self._apply_optimizations(qs, select_data)
-
-            if request:
-                request.rql_select = {
-                    'depth': 0,
-                    'select': select_data,
-                }
+            qs.select_data = {
+                'depth': 0,
+                'select': select_data,
+            }
 
         self.queryset = qs
-
         self._request = None
         self._view = None
 

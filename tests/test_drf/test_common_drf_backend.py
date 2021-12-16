@@ -1,8 +1,10 @@
 #
 #  Copyright © 2021 Ingram Micro Inc. All rights reserved.
 #
+from cachetools import LFUCache, LRUCache
 
-from dj_rql.drf import FilterCache, RQLFilterBackend
+from dj_rql.drf import RQLFilterBackend
+from dj_rql.drf.backend import _FilterClassCache
 
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
@@ -91,28 +93,56 @@ def test_rql_filter_cls_is_not_set():
 
 
 @pytest.mark.django_db
-def test_cache(api_client, clear_cache):
+def test_filter_cls_cache(api_client, clear_cache):
     books = [
         Book.objects.create(title='F'),
         Book.objects.create(title='G'),
     ]
 
-    assert FilterCache.CACHE == {}
+    assert _FilterClassCache.CACHE == {}
     response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=F'))
     assert response.data == [{'id': books[0].pk}]
 
-    expected_cache_key = 'book.BooksFilterClass'
-    assert expected_cache_key in FilterCache.CACHE
-    cache_item_id = id(FilterCache.CACHE[expected_cache_key])
+    expected_cache_key = 'tests.dj_rf.view.DRFViewSet'
+    assert expected_cache_key in _FilterClassCache.CACHE
+    cache_item_id = id(_FilterClassCache.CACHE[expected_cache_key])
 
     response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=G'))
     assert response.data == [{'id': books[1].pk}]
 
-    assert expected_cache_key in FilterCache.CACHE
-    assert id(FilterCache.CACHE[expected_cache_key]) == cache_item_id
+    assert expected_cache_key in _FilterClassCache.CACHE
+    assert id(_FilterClassCache.CACHE[expected_cache_key]) == cache_item_id
 
-    FilterCache.clear()
-    assert FilterCache.CACHE == {}
+    _FilterClassCache.clear()
+    assert _FilterClassCache.CACHE == {}
+
+
+@pytest.mark.django_db
+def test_query_cache(api_client, clear_cache, django_assert_num_queries):
+    books = [
+        Book.objects.create(title='F'),
+        Book.objects.create(title='G'),
+    ]
+
+    for _ in range(4):
+        with django_assert_num_queries(2):
+            response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=F'))
+            assert response.data == [{'id': books[0].pk}]
+
+        response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=X'))
+        assert response.data == []
+
+        response = api_client.get(reverse('select-list') + '?select(-id)')
+        assert response.status_code == HTTP_200_OK
+        assert 'id' not in response.data[0]
+
+    caches = RQLFilterBackend._CACHES
+    assert isinstance(caches['tests.dj_rf.view.DRFViewSet'], LFUCache)
+    assert caches['tests.dj_rf.view.DRFViewSet'].currsize == 2
+    assert caches['tests.dj_rf.view.DRFViewSet'].maxsize == 20
+    assert isinstance(caches['tests.dj_rf.view.SelectViewSet'], LRUCache)
+    assert caches['tests.dj_rf.view.SelectViewSet'].currsize == 1
+    assert caches['tests.dj_rf.view.SelectViewSet'].maxsize == 100
 
 
 @pytest.mark.django_db
