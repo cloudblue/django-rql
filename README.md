@@ -27,11 +27,12 @@ The current parsing algorithm is [LALR(1)](https://www.wikiwand.com/en/LALR_pars
 Currently supported operators
 =============================
 1. Comparison (eq, ne, gt, ge, lt, le, like, ilike, search)
-0. List (in, out)
-0. Logical (and, or, not)
-0. Constants (null(), empty())
-0. Ordering (ordering)
-0. Select (select)
+2. List (in, out)
+3. Logical (and, or, not)
+4. Constants (null(), empty())
+5. Ordering (ordering)
+6. Select (select)
+7. Tuple (t)
 
 
 Documentation
