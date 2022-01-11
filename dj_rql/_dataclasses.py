@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 
@@ -40,3 +40,4 @@ class FilterArgs:
 
         self.filter_lookup = kwargs.get('filter_lookup')
         self.django_lookup = kwargs.get('django_lookup')
+        self.distinct = kwargs.get('distinct')

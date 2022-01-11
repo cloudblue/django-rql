@@ -1,5 +1,5 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from functools import partial
@@ -566,6 +566,18 @@ def test_global_distinct(distinct):
 @pytest.mark.django_db
 def test_distinct_on_field_no_field_in_filter():
     _, qs = BooksFilterClass(book_qs).apply_filters('title=abc')
+    assert not qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_default_distinct_from_namespace():
+    _, qs = BooksFilterClass(book_qs).apply_filters('author.email=x@y.com')
+    assert qs.query.distinct
+
+
+@pytest.mark.django_db
+def test_redefined_distinct_from_namespace():
+    _, qs = BooksFilterClass(book_qs).apply_filters('author.publisher.id=1')
     assert not qs.query.distinct
 
 

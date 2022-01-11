@@ -1,5 +1,5 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 import decimal
@@ -553,9 +553,15 @@ class RQLFilterClass:
 
         return filter_item['orm_route']
 
-    def _build_filters(self, filters, filter_route='', orm_route='',
-                       orm_model=None, select_tree=None, parent_qs=None):
+    def _build_filters(self, filters, **kwargs):
         """ Converter of provided nested filter configuration to linear inner representation. """
+        filter_route = kwargs.get('filter_route', '')
+        orm_route = kwargs.get('orm_route', '')
+        orm_model = kwargs.get('orm_model')
+        select_tree = kwargs.get('select_tree')
+        parent_qs = kwargs.get('parent_qs')
+        distinct = kwargs.get('distinct', False)
+
         _model = orm_model or self.MODEL
 
         if not orm_route:
@@ -591,7 +597,9 @@ class RQLFilterClass:
 
                 qs = item.get('qs')
                 tree, p_qs = self._fill_select_tree(
-                    namespace, related_filter_route, select_tree,
+                    namespace,
+                    related_filter_route,
+                    select_tree,
                     namespace=True,
                     hidden=item.get('hidden', False),
                     qs=qs,
@@ -599,8 +607,13 @@ class RQLFilterClass:
                 )
 
                 self._build_filters(
-                    item.get('filters', []), related_filter_route + '.',
-                    related_orm_route, related_model, select_tree=tree, parent_qs=p_qs,
+                    item.get('filters', []),
+                    filter_route=related_filter_route + '.',
+                    orm_route=related_orm_route,
+                    orm_model=related_model,
+                    select_tree=tree,
+                    parent_qs=p_qs,
+                    distinct=item.get('distinct', distinct),
                 )
                 continue
 
@@ -624,15 +637,20 @@ class RQLFilterClass:
 
             self._check_use_repr(item, field_filter_route)
             self._check_dynamic(item, field_filter_route, filter_route)
-            self._build_filters_for_common_item(item, field_filter_route, orm_route, _model)
+            self._build_filters_for_common_item(
+                item, field_filter_route, orm_route, _model, distinct,
+            )
 
-    def _build_filters_for_common_item(self, item, field_filter_route, orm_route, orm_model):
+    def _build_filters_for_common_item(
+        self, item, field_filter_route, orm_route, orm_model, distinct,
+    ):
         filter_name = item['filter']
         field = item.get('field')
         kwargs = {
             prop: item.get(prop)
-            for prop in ('lookups', 'use_repr', 'null_values', 'distinct', 'openapi', 'hidden')
+            for prop in ('lookups', 'use_repr', 'null_values', 'openapi', 'hidden')
         }
+        kwargs['distinct'] = item.get('distinct', distinct)
 
         if 'sources' in item:
             items = []

@@ -1,5 +1,5 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 from cachetools import LFUCache, LRUCache
 
@@ -20,6 +20,7 @@ AUTHOR_FILTERS = ['is_male', {
 }, {
     'namespace': 'publisher',
     'filters': ['id'],
+    'distinct': False,
     'qs': NSR('publisher'),
 }]
 
@@ -63,6 +64,7 @@ class BooksFilterClass(RQLFilterClass):
     }, {
         'namespace': 'author',
         'filters': AUTHOR_FILTERS,
+        'distinct': True,
         'qs': SR('author', 'author__publisher'),
     }, {
         'namespace': 'page',
