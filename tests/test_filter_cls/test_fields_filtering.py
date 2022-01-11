@@ -196,6 +196,7 @@ def test_page__id():
     assert filter_field(filter_name, CO.NE, pages[1].pk) == [books[0]]
 
 
+@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.django_db
 def test_published_at():
     filter_name = 'published.at'
@@ -465,13 +466,13 @@ def test_empty_value_fail(filter_name):
     ('*val*ue', DjangoLookups.REGEX, 'val(.*)ue$'),
     ('*val*ue*', DjangoLookups.REGEX, 'val(.*)ue'),
     ('*', DjangoLookups.REGEX, '(.*)'),
-    ('value\*', DjangoLookups.EXACT, 'value*'),
+    (r'value\*', DjangoLookups.EXACT, 'value*'),
     (r'value\\*', DjangoLookups.STARTSWITH, 'value\\'),
     (r'value\\\*', DjangoLookups.EXACT, r'value\*'),
     (r'value\**', DjangoLookups.STARTSWITH, 'value*'),
-    ('*\*\*value', DjangoLookups.ENDSWITH, '**value'),
-    ('*val\*ue*', DjangoLookups.CONTAINS, 'val*ue'),
-    ('va\*l*\*ue*', DjangoLookups.REGEX, '^va*l(.*)*ue'),
+    (r'*\*\*value', DjangoLookups.ENDSWITH, '**value'),
+    (r'*val\*ue*', DjangoLookups.CONTAINS, 'val*ue'),
+    (r'va\*l*\*ue*', DjangoLookups.REGEX, '^va*l(.*)*ue'),
     ('val*[ue}*', DjangoLookups.REGEX, r'^val(.*)\[ue\}'),
     ('val*ue)*', DjangoLookups.REGEX, r'^val(.*)ue\)'),
     ('*val*ue{2*', DjangoLookups.REGEX, r'val(.*)ue\{2'),
