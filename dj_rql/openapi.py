@@ -1,5 +1,5 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from copy import copy
@@ -11,7 +11,7 @@ from dj_rql.constants import (
 
 
 class RQLFilterDescriptionTemplate:
-    BASE_TEMPLATE = '**{description}**\n\nlookups: {lookups}'
+    BASE_TEMPLATE = '{description}\n\n**lookups:** {lookups}'
     DEFAULT_DESCRIPTION = 'Filter for: {description}'
     IN_PLACE_RENDERERS = (
         '_render_search_inplace',
@@ -89,13 +89,13 @@ class RQLFilterDescriptionTemplate:
     @classmethod
     def _render_default_inplace(cls, base, filter_item, filter_instance):
         if filter_item.get('hidden', False):
-            return cls._render_common_key_inplace(base, 'default', '**hidden**')
+            return cls._render_common_key_inplace(base, 'default', '*hidden*')
 
         return base
 
     @classmethod
     def _render_common_key_inplace(cls, base, key, value):
-        return '{base}\n{key}: {value}'.format(base=base, key=key, value=value)
+        return '{base}\n\n**{key}:** {value}'.format(base=base, key=key, value=value)
 
 
 class RQLFilterClassSpecification:
