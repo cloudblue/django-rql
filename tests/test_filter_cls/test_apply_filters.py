@@ -158,6 +158,7 @@ def test_out():
     assert apply_out_listing_filters('23') == books
 
 
+@pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.django_db
 @pytest.mark.parametrize('filter_string', (
     't(author.email={email},title=null())',

@@ -51,8 +51,6 @@ TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 SILENCED_SYSTEM_CHECKS = ['models.W042', 'fields.W903', 'fields.E005']
