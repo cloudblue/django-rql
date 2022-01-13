@@ -27,7 +27,6 @@ from dj_rql.constants import (
     SUPPORTED_FIELD_TYPES,
     SearchOperators,
 )
-from dj_rql.drf.fields import SelectField
 from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.parser import RQLParser
@@ -39,6 +38,12 @@ from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.functional import cached_property
 
 from lark.exceptions import LarkError
+
+try:
+    from dj_rql.drf.fields import SelectField
+except ImportError:
+    SelectField = None  # pragma: no cover
+
 
 iterable_types = (list, tuple)
 
@@ -281,7 +286,7 @@ class RQLFilterClass:
             filter_name, operator, str_value, available_lookups, null_values,
         )
         django_field = base_item.get('field')
-        if django_field and isinstance(django_field, SelectField):
+        if django_field and SelectField and isinstance(django_field, SelectField):
             raise RQLFilterLookupError(**self._get_error_details(
                 filter_name, filter_lookup, str_value,
             ))
