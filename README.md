@@ -242,8 +242,17 @@ Django Rest Framework Extensions
 Best Practices
 ==============
 1. Use `dj_rql.utils.assert_filter_cls` to test your API view filters. If the mappings are correct and there is no custom filtering logic, then it's practically guaranteed, that filtering will work correctly.
-0. Prefer using `custom=True` with `RQLFilterClass.build_q_for_custom_filter` overriding over overriding `RQLFilterClass.build_q_for_filter`.
-0. Custom filters may support ordering (`ordering=True`) with `build_name_for_custom_ordering`.
+2. Prefer using `custom=True` with `RQLFilterClass.build_q_for_custom_filter` overriding over overriding `RQLFilterClass.build_q_for_filter`.
+3. Custom filters may support ordering (`ordering=True`) with `build_name_for_custom_ordering`.
+4. Django JSON fields can't be used as namespaces currently, but can be supported via `dynamic=True`, for example:
+```python
+{
+    'filter': 'json_data.key',
+    'source': 'json_data__key',
+    'dynamic': True,
+    'field': CharField(null=True),
+},
+```
 
 Development
 ===========
