@@ -1,12 +1,13 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
 from dj_rql.filter_cls import AutoRQLFilterClass, NestedAutoRQLFilterClass, RQLFilterClass
 from dj_rql.utils import assert_filter_cls
 
 from django.core.exceptions import FieldDoesNotExist
+
+from py_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
 
 import pytest
 

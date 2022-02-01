@@ -1,8 +1,10 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.constants import FilterLookups, FilterTypes
+from dj_rql.constants import FilterTypes
+
+from py_rql.constants import FilterLookups
 
 import pytest
 

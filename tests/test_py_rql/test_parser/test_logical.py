@@ -1,17 +1,17 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from functools import partial
 
-from dj_rql.constants import ComparisonOperators, LogicalOperators
-from dj_rql.parser import RQLParser
-
 from lark.exceptions import LarkError
+
+from py_rql.constants import ComparisonOperators, LogicalOperators
+from py_rql.parser import RQLParser
 
 import pytest
 
-from tests.test_parser.utils import LogicalTransformer
+from tests.test_py_rql.test_parser.utils import LogicalTransformer
 
 
 def logical_transform(tpl, operator=None, exp1=None, exp2=None):

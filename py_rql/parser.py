@@ -1,14 +1,14 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from cachetools import LFUCache
 
-from dj_rql.exceptions import RQLFilterParsingError
-from dj_rql.grammar import RQL_GRAMMAR
-
 from lark import Lark
 from lark.exceptions import LarkError
+
+from py_rql.exceptions import RQLFilterParsingError
+from py_rql.grammar import RQL_GRAMMAR
 
 
 class RQLLarkParser(Lark):

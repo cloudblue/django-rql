@@ -1,8 +1,8 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.exceptions import (
+from py_rql.exceptions import (
     RQLFilterError, RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError,
 )
 

@@ -1,14 +1,15 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.drf.fields import SelectField
-from dj_rql.exceptions import RQLFilterParsingError
+from dj_rql.fields import SelectField
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.qs import AN, CH, NPR, NSR, PR, SR
 
 from django.core.exceptions import FieldError
 from django.db.models import CharField, IntegerField, Value
+
+from py_rql.exceptions import RQLFilterParsingError
 
 import pytest
 

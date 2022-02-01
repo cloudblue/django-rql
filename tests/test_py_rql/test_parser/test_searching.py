@@ -1,16 +1,16 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
-
-from dj_rql.constants import SearchOperators
-from dj_rql.parser import RQLParser
 
 from lark.exceptions import LarkError
 
+from py_rql.constants import SearchOperators
+from py_rql.parser import RQLParser
+
 import pytest
 
-from tests.test_parser.constants import FAIL_PROPS, FAIL_VALUES, OK_PROPS, OK_VALUES
-from tests.test_parser.utils import SearchTransformer
+from tests.test_py_rql.test_parser.constants import FAIL_PROPS, FAIL_VALUES, OK_PROPS, OK_VALUES
+from tests.test_py_rql.test_parser.utils import SearchTransformer
 
 
 search_operators = [SearchOperators.LIKE, SearchOperators.I_LIKE]

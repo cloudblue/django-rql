@@ -4,15 +4,15 @@
 
 from functools import partial
 
-from dj_rql.constants import ComparisonOperators as CompOp
-from dj_rql.parser import RQLParser
-
 from lark.exceptions import LarkError
+
+from py_rql.constants import ComparisonOperators as CompOp
+from py_rql.parser import RQLParser
 
 import pytest
 
-from tests.test_parser.constants import FAIL_PROPS, FAIL_VALUES, OK_PROPS, OK_VALUES
-from tests.test_parser.utils import ComparisonTransformer
+from tests.test_py_rql.test_parser.constants import FAIL_PROPS, FAIL_VALUES, OK_PROPS, OK_VALUES
+from tests.test_py_rql.test_parser.utils import ComparisonTransformer
 
 
 def cmp_transform(tpl, operator, prop, value):

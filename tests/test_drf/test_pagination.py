@@ -1,11 +1,12 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from unittest import TestCase
 
 from dj_rql.drf import RQLContentRangeLimitOffsetPagination
-from dj_rql.exceptions import RQLFilterParsingError
+
+from py_rql.exceptions import RQLFilterParsingError
 
 from rest_framework.pagination import PAGE_BREAK, PageLink
 from rest_framework.request import Request

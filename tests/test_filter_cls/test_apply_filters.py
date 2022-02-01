@@ -4,13 +4,14 @@
 
 from functools import partial
 
-from dj_rql.constants import FilterLookups, ListOperators, RQL_NULL
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 from dj_rql.filter_cls import RQLFilterClass
 
 from django.core.exceptions import FieldError
 from django.db.models import IntegerField, Q
 from django.utils.timezone import now
+
+from py_rql.constants import FilterLookups, ListOperators, RQL_NULL
+from py_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 
 import pytest
 

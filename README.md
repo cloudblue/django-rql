@@ -43,9 +43,11 @@ Full documentation is available at [https://django-rql.readthedocs.org](https://
 
 Example
 =======
+
 ```python
-from dj_rql.constants import FilterLookups
 from dj_rql.filter_cls import RQLFilterClass, RQL_NULL
+
+from py_rql.constants import FilterLookups
 
 
 class ModelFilterClass(RQLFilterClass):
@@ -164,8 +166,9 @@ class ModelFilterClass(RQLFilterClass):
     }]
 
 
-from dj_rql.drf.backend import  RQLFilterBackend
+from dj_rql.drf.backend import RQLFilterBackend
 from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
+
 
 class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
     queryset = MODEL.objects.all()

@@ -1,16 +1,16 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
-
-from dj_rql.constants import RQL_ORDERING_OPERATOR
-from dj_rql.parser import RQLParser
 
 from lark.exceptions import LarkError
 
+from py_rql.constants import RQL_ORDERING_OPERATOR
+from py_rql.parser import RQLParser
+
 import pytest
 
-from tests.test_parser.constants import FAIL_PROPS, OK_PROPS
-from tests.test_parser.utils import OrderingTransformer
+from tests.test_py_rql.test_parser.constants import FAIL_PROPS, OK_PROPS
+from tests.test_py_rql.test_parser.utils import OrderingTransformer
 
 
 REVERSED_OK_PROPS = reversed(OK_PROPS)

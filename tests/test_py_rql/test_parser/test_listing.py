@@ -1,16 +1,18 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
-
-from dj_rql.constants import ListOperators
-from dj_rql.parser import RQLParser
 
 from lark.exceptions import LarkError
 
+from py_rql.constants import ListOperators
+from py_rql.parser import RQLParser
+
 import pytest
 
-from tests.test_parser.constants import FAIL_PROPS, LIST_FAIL_VALUES, OK_PROPS, OK_VALUES
-from tests.test_parser.utils import ListTransformer
+from tests.test_py_rql.test_parser.constants import (
+    FAIL_PROPS, LIST_FAIL_VALUES, OK_PROPS, OK_VALUES,
+)
+from tests.test_py_rql.test_parser.utils import ListTransformer
 
 
 REVERSED_OK_VALUES = reversed(OK_VALUES)

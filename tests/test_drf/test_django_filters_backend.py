@@ -1,13 +1,14 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from dj_rql.constants import DjangoLookups
 from dj_rql.drf.compat import CompatibilityRQLFilterBackend, DjangoFiltersRQLFilterBackend
-from dj_rql.exceptions import RQLFilterParsingError, RQLFilterValueError
 
 from django.http import QueryDict
 from django.utils.timezone import now
+
+from py_rql.exceptions import RQLFilterParsingError, RQLFilterValueError
 
 import pytest
 
