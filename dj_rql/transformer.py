@@ -6,6 +6,8 @@ from dj_rql._dataclasses import FilterArgs
 
 from django.db.models import Q
 
+from lark import Tree
+
 from py_rql.constants import (
     ComparisonOperators,
     ListOperators,
@@ -66,6 +68,16 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         ret_value = super()._transform_tree(tree)
         self._pop_namespace(tree)
         return ret_value
+
+    @staticmethod
+    def _get_value(obj):
+        while isinstance(obj, Tree):
+            obj = obj.children[0]
+
+        if isinstance(obj, Q):
+            return obj
+
+        return obj.value
 
     @property
     def ordering_filters(self):

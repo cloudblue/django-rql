@@ -968,7 +968,7 @@ class RQLFilterClass:
     @staticmethod
     def _convert_datetime_value(value):
         dt = parse_datetime(value)
-        if dt is None:
+        if dt is None:  # pragma: no cover
             dt = parse_date(value)
             if dt is None:
                 raise ValueError
