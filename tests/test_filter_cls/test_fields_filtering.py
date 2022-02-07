@@ -1,21 +1,22 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from datetime import date, datetime
 from functools import partial
 
 from dj_rql._dataclasses import FilterArgs
-from dj_rql.constants import (
+from dj_rql.constants import DjangoLookups
+
+from django.db.models import Q
+
+from py_rql.constants import (
     ComparisonOperators as CO,
-    DjangoLookups,
     RQL_EMPTY,
     RQL_NULL,
     SearchOperators,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
-
-from django.db.models import Q
+from py_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 
 import pytest
 

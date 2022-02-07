@@ -1,10 +1,15 @@
 Django RQL
 ==========
-![pyversions](https://img.shields.io/pypi/pyversions/django-rql.svg)  [![PyPi Status](https://img.shields.io/pypi/v/django-rql.svg)](https://pypi.org/project/django-rql/) [![Docs](https://readthedocs.org/projects/django-rql/badge/?version=latest)](https://readthedocs.org/projects/django-rql) [![codecov](https://codecov.io/gh/cloudblue/django-rql/branch/master/graph/badge.svg)](https://codecov.io/gh/cloudblue/django-rql) [![Build Status](https://github.com/cloudblue/django-rql/workflows/Build%20Django-RQL%20library/badge.svg)](https://github.com/cloudblue/django-rql/actions) [![PyPI status](https://img.shields.io/pypi/status/django-rql.svg)](https://pypi.python.org/pypi/django-rql/) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=alert_status)](https://sonarcloud.io/dashboard?id=django-rql)
+[![pyversions](https://img.shields.io/pypi/pyversions/django-rql.svg)](https://pypi.org/project/django-rql/)
+[![PyPi Status](https://img.shields.io/pypi/v/django-rql.svg)](https://pypi.org/project/django-rql/)
+[![PyPI status](https://img.shields.io/pypi/status/django-rql.svg)](https://pypi.org/project/django-rql/)
+[![Docs](https://readthedocs.org/projects/django-rql/badge/?version=latest)](https://readthedocs.org/projects/django-rql) 
+[![Build Status](https://github.com/cloudblue/django-rql/workflows/Build%20Django-RQL%20library/badge.svg)](https://github.com/cloudblue/django-rql/actions)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=django-rql)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=coverage)](https://sonarcloud.io/summary/new_code?id=django-rql)
 
-
-
-`django-rql` is an Django application, that implements RQL filter backend for your web application.
+`django-rql` is the Django app, that adds RQL filtering to your application.
+This library is based on core [lib-rql](https://github.com/cloudblue/lib-rql) library.
 
 
 RQL
@@ -13,16 +18,8 @@ RQL
 RQL (Resource query language) is designed for modern application development. It is built for the web, ready for NoSQL, and highly extensible with simple syntax.
 This is a query language fast and convenient database interaction. RQL was designed for use in URLs to request object-style data structures.
 
-
 [RQL Reference](https://connect.cloudblue.com/community/api/rql/)
 
-[RQL for Web](https://www.sitepen.com/blog/resource-query-language-a-query-language-for-the-web-nosql/)
-
-Notes
------
-
-Parsing is done with [Lark](https://github.com/lark-parser/lark) ([cheatsheet](https://lark-parser.readthedocs.io/en/latest/lark_cheatsheet.pdf)).
-The current parsing algorithm is [LALR(1)](https://www.wikiwand.com/en/LALR_parser) with standard lexer.
 
 Currently supported operators
 =============================
@@ -43,9 +40,11 @@ Full documentation is available at [https://django-rql.readthedocs.org](https://
 
 Example
 =======
+
 ```python
-from dj_rql.constants import FilterLookups
 from dj_rql.filter_cls import RQLFilterClass, RQL_NULL
+
+from py_rql.constants import FilterLookups
 
 
 class ModelFilterClass(RQLFilterClass):
@@ -164,8 +163,9 @@ class ModelFilterClass(RQLFilterClass):
     }]
 
 
-from dj_rql.drf.backend import  RQLFilterBackend
+from dj_rql.drf.backend import RQLFilterBackend
 from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
+
 
 class DRFViewSet(mixins.ListModelMixin, GenericViewSet):
     queryset = MODEL.objects.all()

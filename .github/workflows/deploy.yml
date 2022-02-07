@@ -30,12 +30,6 @@ jobs:
     - name: Testing
       run: |
         python setup.py test
-    - name: Upload coverage
-      uses: codecov/codecov-action@v1
-      with:
-        file: ./tests/reports/coverage.xml
-        fail_ci_if_error: true
-        verbose: true
     - name: Fix coverage report for Sonar
       run: |
         sed -i 's/\/home\/runner\/work\/django-rql\/django-rql\//\/github\/workspace\//g' ./tests/reports/coverage.xml
@@ -47,7 +41,7 @@ jobs:
     - name: Wait sonar to process report
       uses: jakejarvis/wait-action@master
       with:
-        time: '120s'
+        time: '15s'
     - name: SonarQube Quality Gate check
       uses: sonarsource/sonarqube-quality-gate-action@master
       timeout-minutes: 5

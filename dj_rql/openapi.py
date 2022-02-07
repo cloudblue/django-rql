@@ -5,8 +5,10 @@
 from copy import copy
 from numbers import Number
 
-from dj_rql.constants import (
-    FilterLookups, FilterTypes, RQL_NULL, RQL_ORDERING_OPERATOR, RQL_SEARCH_PARAM,
+from dj_rql.constants import FilterTypes
+
+from py_rql.constants import (
+    FilterLookups, RQL_NULL, RQL_ORDERING_OPERATOR, RQL_SEARCH_PARAM,
 )
 
 

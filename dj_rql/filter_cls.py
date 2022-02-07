@@ -9,11 +9,21 @@ from datetime import datetime
 from uuid import uuid4
 
 from dj_rql._dataclasses import FilterArgs, OptimizationArgs
-from dj_rql.constants import (
+from dj_rql.constants import DjangoLookups, FilterTypes, SUPPORTED_FIELD_TYPES
+from dj_rql.fields import SelectField
+from dj_rql.openapi import RQLFilterClassSpecification
+from dj_rql.qs import Annotation, NPR, NSR
+from dj_rql.transformer import RQLToDjangoORMTransformer
+
+from django.db.models import ForeignKey, ManyToManyField, Model, OneToOneField, OneToOneRel, Q
+from django.utils.dateparse import parse_date, parse_datetime
+from django.utils.functional import cached_property
+
+from lark.exceptions import LarkError
+
+from py_rql.constants import (
     ComparisonOperators,
-    DjangoLookups,
     FilterLookups,
-    FilterTypes,
     ListOperators,
     RESERVED_FILTER_NAMES,
     RQL_ANY_SYMBOL,
@@ -24,25 +34,10 @@ from dj_rql.constants import (
     RQL_PLUS,
     RQL_SEARCH_PARAM,
     RQL_TRUE,
-    SUPPORTED_FIELD_TYPES,
     SearchOperators,
 )
-from dj_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
-from dj_rql.openapi import RQLFilterClassSpecification
-from dj_rql.parser import RQLParser
-from dj_rql.qs import Annotation, NPR, NSR
-from dj_rql.transformer import RQLToDjangoORMTransformer
-
-from django.db.models import ForeignKey, ManyToManyField, Model, OneToOneField, OneToOneRel, Q
-from django.utils.dateparse import parse_date, parse_datetime
-from django.utils.functional import cached_property
-
-from lark.exceptions import LarkError
-
-try:
-    from dj_rql.drf.fields import SelectField
-except ImportError:
-    SelectField = None  # pragma: no cover
+from py_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
+from py_rql.parser import RQLParser
 
 
 iterable_types = (list, tuple)
@@ -286,7 +281,7 @@ class RQLFilterClass:
             filter_name, operator, str_value, available_lookups, null_values,
         )
         django_field = base_item.get('field')
-        if django_field and SelectField and isinstance(django_field, SelectField):
+        if django_field and isinstance(django_field, SelectField):
             raise RQLFilterLookupError(**self._get_error_details(
                 filter_name, filter_lookup, str_value,
             ))
@@ -973,7 +968,7 @@ class RQLFilterClass:
     @staticmethod
     def _convert_datetime_value(value):
         dt = parse_datetime(value)
-        if dt is None:
+        if dt is None:  # pragma: no cover
             dt = parse_date(value)
             if dt is None:
                 raise ValueError

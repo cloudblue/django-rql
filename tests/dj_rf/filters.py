@@ -3,12 +3,13 @@
 #
 from cachetools import LFUCache, LRUCache
 
-from dj_rql.constants import FilterLookups, RQL_NULL
-from dj_rql.drf.fields import SelectField
+from dj_rql.fields import SelectField
 from dj_rql.filter_cls import RQLFilterClass
 from dj_rql.qs import AN, NSR, PR, SR
 
 from django.db.models import AutoField, CharField, F, IntegerField
+
+from py_rql.constants import FilterLookups, RQL_NULL
 
 from tests.dj_rf.models import Book
 
