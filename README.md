@@ -181,7 +181,19 @@ Notes
 1. Supported date format is ISO8601: 2019-02-12
 2. Supported datetime format is ISO8601: 2019-02-12T10:02:00 / 2019-02-12T10:02Z / 2019-02-12T10:02:00+03:00
 3. Support for Choices() fields from [Django Model Utilities](https://django-model-utils.readthedocs.io/en/latest/utilities.html#choices) is added
+4. Library supports [caching with different strategies](https://cachetools.readthedocs.io/en/stable/#cache-implementations) for queryset building, which can be very useful for collections, which use `select()`.
+> Queryset execution result (filtered data) is NOT cached (!), only queryset building is cached.
 
+```python
+from dj_rql.filter_cls import RQLFilterClass
+
+from cachetools import LRUCache
+
+class MyFilterClass(RQLFilterClass):
+    SELECT = True
+    QUERIES_CACHE_BACKEND = LRUCache
+    QUERIES_CACHE_SIZE = 100
+```
 
 Helpers
 ================================
