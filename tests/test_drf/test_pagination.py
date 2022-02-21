@@ -205,6 +205,18 @@ class TestRQLLimitOffsetPagination(TestCase):
         queryset = self.paginate_queryset(request)
         assert queryset == list(range(51, 66))
 
+    def test_limit_gt_than_count_wout_offset(self):
+        self.pagination.max_limit = 500
+
+        request = Request(factory.get('/', {'limit': 125}))
+        queryset = self.paginate_queryset(request)
+        assert queryset == list(range(1, 101))
+
+    def test_limit_gt_than_count_with_offset(self):
+        request = Request(factory.get('/', {'limit': 125, 'offset': 95}))
+        queryset = self.paginate_queryset(request)
+        assert queryset == list(range(96, 101))
+
     def test_rql_operators(self):
         limit, offset = 1, 2
         request = Request(
