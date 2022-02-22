@@ -7,6 +7,7 @@ Django RQL
 [![Build Status](https://github.com/cloudblue/django-rql/workflows/Build%20Django-RQL%20library/badge.svg)](https://github.com/cloudblue/django-rql/actions)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=django-rql)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=coverage)](https://sonarcloud.io/summary/new_code?id=django-rql)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/django-rql)](https://pypi.org/project/django-rql/)
 
 `django-rql` is the Django app, that adds RQL filtering to your application.
 This library is based on core [lib-rql](https://github.com/cloudblue/lib-rql) library.
