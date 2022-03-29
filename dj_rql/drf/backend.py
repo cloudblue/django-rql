@@ -1,10 +1,14 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
+from threading import Lock
 
 from dj_rql.drf._utils import get_query
 
 from rest_framework.filters import BaseFilterBackend
+
+
+lock = Lock()
 
 
 class _FilterClassCache:
@@ -46,10 +50,12 @@ class RQLFilterBackend(BaseFilterBackend):
             cache_key = str(queryset.query) + query
 
             query_cache = self._get_or_init_cache(filter_class, view)
-            filters_result = query_cache.get(cache_key)
-            if not filters_result:
+            try:
+                filters_result = query_cache[cache_key]
+            except KeyError:
                 filters_result = filter_instance.apply_filters(query, request, view)
-                query_cache[cache_key] = filters_result
+                with lock:
+                    query_cache[cache_key] = filters_result
 
         else:
             filters_result = filter_instance.apply_filters(query, request, view)
