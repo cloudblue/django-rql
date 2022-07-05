@@ -1,5 +1,5 @@
 #
-#  Copyright © 2020 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import OrderedDict
@@ -14,7 +14,7 @@ from tests.dj_rf.serializers import SelectBookSerializer
 def test_select_complex():
     publisher = Publisher.objects.create(name='publisher')
     author = Author.objects.create(name='auth', publisher=publisher)
-    book = Book.objects.create(author=author)
+    book = Book.objects.create(author=author, status='planning', amazon_rating=5.0)
     page = Page.objects.create(book=book, number=1, content='text')
 
     select = OrderedDict()
@@ -50,7 +50,10 @@ def test_select_complex():
         },
         'pages': [{
             'id': str(page.uuid),
-        }]} == data
+        }],
+        'status': book.status,
+        'amazon_rating': book.amazon_rating,
+    } == data
 
 
 @pytest.mark.django_db

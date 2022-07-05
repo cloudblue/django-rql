@@ -1,5 +1,5 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from dj_rql.drf.backend import RQLFilterBackend
@@ -14,7 +14,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from tests.dj_rf.filters import BooksFilterClass, SelectBooksFilterClass
+from tests.dj_rf.filters import (
+    BooksFilterClass, SelectBooksFilterClass, SelectDetailedBooksFilterClass,
+)
 from tests.dj_rf.models import Book
 from tests.dj_rf.serializers import BookSerializer, SelectBookSerializer
 
@@ -54,6 +56,15 @@ class DjangoFiltersViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, B
 class SelectViewSet(mixins.RetrieveModelMixin, DRFViewSet):
     serializer_class = SelectBookSerializer
     rql_filter_class = SelectBooksFilterClass
+
+
+class DynamicFilterClsViewSet(mixins.RetrieveModelMixin, DRFViewSet):
+    serializer_class = SelectBookSerializer
+
+    def get_rql_filter_class(self):
+        if self.action == 'retrieve':
+            return SelectDetailedBooksFilterClass
+        return SelectBooksFilterClass
 
 
 class NoFilterClsViewSet(DRFViewSet):
