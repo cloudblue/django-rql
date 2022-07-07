@@ -1,5 +1,5 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
 from dj_rql.drf.serializers import RQLMixin
@@ -68,6 +68,8 @@ class SelectBookSerializer(RQLMixin, serializers.ModelSerializer):
             'author_ref',  # One level reference field (FK)
             'author',  # Deep nested fields (FK)
             'pages',  # List of backrefs
+            'status',
+            'amazon_rating',
         )
 
     def get_author(self, obj):

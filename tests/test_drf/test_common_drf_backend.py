@@ -1,5 +1,5 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 from cachetools import LFUCache, LRUCache
 
@@ -12,7 +12,7 @@ from django.test.utils import CaptureQueriesContext
 import pytest
 
 from rest_framework.reverse import reverse
-from rest_framework.status import HTTP_200_OK
+from rest_framework.status import HTTP_200_OK, HTTP_404_NOT_FOUND
 
 from tests.dj_rf.models import Book
 
@@ -103,7 +103,7 @@ def test_filter_cls_cache(api_client, clear_cache):
     response = api_client.get('{0}?{1}'.format(reverse('book-list'), 'title=F'))
     assert response.data == [{'id': books[0].pk}]
 
-    expected_cache_key = 'tests.dj_rf.view.DRFViewSet'
+    expected_cache_key = 'tests.dj_rf.view.DRFViewSet+tests.dj_rf.filters.BooksFilterClass'
     assert expected_cache_key in _FilterClassCache.CACHE
     cache_item_id = id(_FilterClassCache.CACHE[expected_cache_key])
 
@@ -115,6 +115,42 @@ def test_filter_cls_cache(api_client, clear_cache):
 
     _FilterClassCache.clear()
     assert _FilterClassCache.CACHE == {}
+
+
+@pytest.mark.django_db
+def test_dynamic_filter_cls_cache(api_client, clear_cache):
+    books = [
+        Book.objects.create(title='F'),
+        Book.objects.create(title='G'),
+    ]
+
+    list_cache_key = '{0}+{1}'.format(
+        'tests.dj_rf.view.DynamicFilterClsViewSet',
+        'tests.dj_rf.filters.SelectBooksFilterClass',
+    )
+    detail_cache_key = '{0}+{1}'.format(
+        'tests.dj_rf.view.DynamicFilterClsViewSet',
+        'tests.dj_rf.filters.SelectDetailedBooksFilterClass',
+    )
+
+    assert _FilterClassCache.CACHE == {}
+
+    api_client.get('{0}?{1}'.format(reverse('dynamicfiltercls-list'), 'title=F'))
+    assert list_cache_key in _FilterClassCache.CACHE
+
+    list_cache_item_id = id(_FilterClassCache.CACHE[list_cache_key])
+    api_client.get('{0}?{1}'.format(reverse('dynamicfiltercls-list'), 'title=G'))
+    assert len(_FilterClassCache.CACHE) == 1
+    assert id(_FilterClassCache.CACHE[list_cache_key]) == list_cache_item_id
+
+    api_client.get(reverse('dynamicfiltercls-detail', [books[0].pk]))
+    assert len(_FilterClassCache.CACHE) == 2
+    assert detail_cache_key in _FilterClassCache.CACHE
+
+    detail_cache_item_id = id(_FilterClassCache.CACHE[detail_cache_key])
+    api_client.get(reverse('dynamicfiltercls-detail', [books[1].pk]))
+    assert len(_FilterClassCache.CACHE) == 2
+    assert id(_FilterClassCache.CACHE[detail_cache_key]) == detail_cache_item_id
 
 
 @pytest.mark.django_db
@@ -136,13 +172,45 @@ def test_query_cache(api_client, clear_cache, django_assert_num_queries):
         assert response.status_code == HTTP_200_OK
         assert 'id' not in response.data[0]
 
+        response = api_client.get('{0}?{1}'.format(reverse('dynamicfiltercls-list'), 'title=F'))
+        assert response.data[0]['id'] == books[0].pk
+
+        response = api_client.get(reverse('dynamicfiltercls-list') + '?select(author)')
+        assert len(response.data) == 2
+
+        response = api_client.get('{0}?{1}'.format(reverse('dynamicfiltercls-list'), 'title=X'))
+        assert response.data == []
+
+        response = api_client.get(reverse('dynamicfiltercls-detail', [books[0].pk]))
+        assert response.data['id'] == books[0].pk
+
+        response = api_client.get(reverse('dynamicfiltercls-detail', ['non-exists']))
+        assert response.status_code == HTTP_404_NOT_FOUND
+
     caches = RQLFilterBackend._CACHES
-    assert isinstance(caches['tests.dj_rf.view.DRFViewSet'], LFUCache)
-    assert caches['tests.dj_rf.view.DRFViewSet'].currsize == 2
-    assert caches['tests.dj_rf.view.DRFViewSet'].maxsize == 20
-    assert isinstance(caches['tests.dj_rf.view.SelectViewSet'], LRUCache)
-    assert caches['tests.dj_rf.view.SelectViewSet'].currsize == 1
-    assert caches['tests.dj_rf.view.SelectViewSet'].maxsize == 100
+    cache = caches['tests.dj_rf.view.DRFViewSet+tests.dj_rf.filters.BooksFilterClass']
+    assert isinstance(cache, LFUCache)
+    assert cache.currsize == 2
+    assert cache.maxsize == 20
+
+    cache = caches['tests.dj_rf.view.SelectViewSet+tests.dj_rf.filters.SelectBooksFilterClass']
+    assert isinstance(cache, LRUCache)
+    assert cache.currsize == 1
+    assert cache.maxsize == 100
+
+    cache = caches[
+        'tests.dj_rf.view.DynamicFilterClsViewSet'
+        '+tests.dj_rf.filters.SelectBooksFilterClass'
+    ]
+    assert isinstance(cache, LRUCache)
+    assert cache.currsize == 3
+
+    cache = caches[
+        'tests.dj_rf.view.DynamicFilterClsViewSet'
+        '+tests.dj_rf.filters.SelectDetailedBooksFilterClass'
+    ]
+    assert isinstance(cache, LRUCache)
+    assert cache.currsize == 1
 
 
 @pytest.mark.django_db

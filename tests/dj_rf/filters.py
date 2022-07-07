@@ -1,6 +1,8 @@
 #
 #  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
+from copy import deepcopy
+
 from cachetools import LFUCache, LRUCache
 
 from dj_rql.fields import SelectField
@@ -48,6 +50,7 @@ class BooksFilterClass(RQLFilterClass):
         'openapi': {
             'required': True,
         },
+        'hidden': True,
     }, {
         'filter': 'author__email',
         'search': True,
@@ -67,6 +70,7 @@ class BooksFilterClass(RQLFilterClass):
         'filters': AUTHOR_FILTERS,
         'distinct': True,
         'qs': SR('author', 'author__publisher'),
+        'hidden': True,
     }, {
         'namespace': 'page',
         'source': 'pages',
@@ -89,6 +93,7 @@ class BooksFilterClass(RQLFilterClass):
         'filter': 'amazon_rating',
         'lookups': {FilterLookups.GE, FilterLookups.LT},
         'null_values': {'random'},
+        'hidden': True,
     }, {
         'filter': 'url',
         'source': 'publishing_url',
@@ -196,3 +201,15 @@ class SelectBooksFilterClass(BooksFilterClass):
     SELECT = True
     QUERIES_CACHE_BACKEND = LRUCache
     QUERIES_CACHE_SIZE = 100
+
+
+class SelectDetailedBooksFilterClass(SelectBooksFilterClass):
+
+    def __make_filters():
+        result = deepcopy(BooksFilterClass.FILTERS)
+        result[4]['hidden'] = False  # status
+        result[7]['hidden'] = False  # author
+        result[12]['hidden'] = False  # amazon_rating
+        return result
+
+    FILTERS = __make_filters()

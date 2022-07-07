@@ -22,10 +22,26 @@ class _FilterClassCache:
 class RQLFilterBackend(BaseFilterBackend):
     """ RQL filter backend for DRF GenericAPIViews.
 
-    Examples:
+    Set the backend filter for the ``GenericAPIView`` class-based view, and set the
+    ``rql_filter_class`` class attribute to the ``RQLFilterClass`` to use:
+
+    .. code-block:: python
+
         class ViewSet(mixins.ListModelMixin, GenericViewSet):
             filter_backends = (RQLFilterBackend,)
             rql_filter_class = ModelFilterClass
+
+    Yo can also add a ``get_rql_filter_class()`` method to the view to get the filter class:
+
+    .. code-block:: python
+
+        class ViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+            filter_backends = (RQLFilterBackend,)
+
+            def get_rql_filter_class(self):
+                if self.action == 'retrieve':
+                    return ModelDetailFilterClass
+                return ModelFilterClass
     """
     OPENAPI_RETRIEVE_SPECIFICATION = False
 
@@ -85,6 +101,8 @@ class RQLFilterBackend(BaseFilterBackend):
 
     @staticmethod
     def get_filter_class(view):
+        if hasattr(view, 'get_rql_filter_class') and callable(view.get_rql_filter_class):
+            return view.get_rql_filter_class()
         return getattr(view, 'rql_filter_class', None)
 
     @classmethod
@@ -93,14 +111,14 @@ class RQLFilterBackend(BaseFilterBackend):
 
     @classmethod
     def _get_or_init_cache(cls, filter_class, view):
-        qual_name = cls._get_filter_cls_qual_name(view)
+        qual_name = cls._get_filter_cls_qual_name(view, filter_class)
         return cls._CACHES.setdefault(
             qual_name, filter_class.QUERIES_CACHE_BACKEND(int(filter_class.QUERIES_CACHE_SIZE)),
         )
 
     @classmethod
     def _get_filter_instance(cls, filter_class, queryset, view):
-        qual_name = cls._get_filter_cls_qual_name(view)
+        qual_name = cls._get_filter_cls_qual_name(view, filter_class)
 
         filter_instance = _FilterClassCache.CACHE.get(qual_name)
         if filter_instance:
@@ -111,5 +129,8 @@ class RQLFilterBackend(BaseFilterBackend):
         return filter_instance
 
     @staticmethod
-    def _get_filter_cls_qual_name(view):
-        return '{0}.{1}'.format(view.__class__.__module__, view.__class__.__name__)
+    def _get_filter_cls_qual_name(view, filter_class):
+        return '{0}.{1}+{2}.{3}'.format(
+            view.__class__.__module__, view.__class__.__name__,
+            filter_class.__module__, filter_class.__name__,
+        )
