@@ -31,24 +31,25 @@ SUPPORTED_FIELD_TYPES = (
 
 
 class FilterTypes(FT):
+    mapper = [
+        (models.AutoField, FT.INT),
+        (models.BooleanField, FT.BOOLEAN),
+        (models.NullBooleanField, FT.BOOLEAN),
+        (models.DateTimeField, FT.DATETIME),
+        (models.DateField, FT.DATE),
+        (models.DecimalField, FT.DECIMAL),
+        (models.FloatField, FT.FLOAT),
+        (models.IntegerField, FT.INT),
+        (models.TextField, FT.STRING),
+        (models.UUIDField, FT.STRING),
+        (models.CharField, FT.STRING),
+    ]
+
     @classmethod
     def field_filter_type(cls, field):
-        mapper = [
-            (models.AutoField, cls.INT),
-            (models.BooleanField, cls.BOOLEAN),
-            (models.NullBooleanField, cls.BOOLEAN),
-            (models.DateTimeField, cls.DATETIME),
-            (models.DateField, cls.DATE),
-            (models.DecimalField, cls.DECIMAL),
-            (models.FloatField, cls.FLOAT),
-            (models.IntegerField, cls.INT),
-            (models.TextField, cls.STRING),
-            (models.UUIDField, cls.STRING),
-            (models.CharField, cls.STRING),
-        ]
         return next(
             (
-                filter_type for base_cls, filter_type in mapper
+                filter_type for base_cls, filter_type in cls.mapper
                 if issubclass(field.__class__, base_cls)
             ),
             cls.STRING,
