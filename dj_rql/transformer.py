@@ -4,8 +4,6 @@
 
 from dj_rql._dataclasses import FilterArgs
 
-from django.db.models import Q
-
 from lark import Tree
 
 from py_rql.constants import (
@@ -44,6 +42,10 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
         self.__visit_tokens__ = False
 
+    @property
+    def _q(self):
+        return self._filter_cls_instance.Q_CLS
+
     def _push_namespace(self, tree):
         if tree.data in self.NAMESPACE_PROVIDERS:
             self._namespace.append(None)
@@ -69,12 +71,11 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         self._pop_namespace(tree)
         return ret_value
 
-    @staticmethod
-    def _get_value(obj):
+    def _get_value(self, obj):
         while isinstance(obj, Tree):
             obj = obj.children[0]
 
-        if isinstance(obj, Q):
+        if isinstance(obj, self._q):
             return obj
 
         return obj.value
@@ -95,7 +96,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
     def comp(self, args):
         prop, operation, value = self._extract_comparison(args)
 
-        if isinstance(value, Q):
+        if isinstance(value, self._q):
             if operation == ComparisonOperators.EQ:
                 return value
             else:
@@ -106,17 +107,21 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._filter_cls_instance.build_q_for_filter(filter_args)
 
     def tuple(self, args):
-        return Q(*args)
+        return self._q(*args)
 
     def logical(self, args):
         operation = args[0].data
         children = args[0].children
         if operation == LogicalOperators.get_grammar_key(LogicalOperators.NOT):
-            return ~Q(children[0])
-        if operation == LogicalOperators.get_grammar_key(LogicalOperators.AND):
-            return Q(*children)
+            return ~children[0]
 
-        q = Q()
+        q = self._q()
+        if operation == LogicalOperators.get_grammar_key(LogicalOperators.AND):
+            for child in children:
+                q &= child
+
+            return q
+
         for child in children:
             q |= child
 
@@ -127,10 +132,10 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         operation, prop = self._get_value(args[0]), self._get_value(args[1])
         f_op = ComparisonOperators.EQ if operation == ListOperators.IN else ComparisonOperators.NE
 
-        q = Q()
+        q = self._q()
         for value_tree in args[2:]:
             value = self._get_value(value_tree)
-            if isinstance(value, Q):
+            if isinstance(value, self._q):
                 if f_op == ComparisonOperators.EQ:
                     field_q = value
                 else:
@@ -164,7 +169,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
             for prop in props:
                 self._filtered_props.add(prop.replace('-', '').replace('+', ''))
 
-        return Q()
+        return self._q()
 
     def select(self, args):
         assert not self._select
@@ -177,7 +182,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
                 if not prop.startswith('-'):
                     self._filtered_props.add(prop.replace('+', ''))
 
-        return Q()
+        return self._q()
 
 
 class RQLLimitOffsetTransformer(BaseRQLTransformer):
