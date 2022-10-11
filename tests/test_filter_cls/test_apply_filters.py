@@ -65,40 +65,57 @@ def test_searching(searching_tpl):
 @pytest.mark.django_db
 @pytest.mark.parametrize('operator', ['&', ','])
 def test_and(operator):
-    email, title = 'george@martin.com', 'book'
-    comp1 = 'title={0}'.format(title)
-    comp2 = 'eq(author.email,{0})'.format(email)
-    query = '{comp1}{op}{comp2}'.format(comp1=comp1, op=operator, comp2=comp2)
+    email, title, stars = 'george@martin.com', 'book', 10
+    comps = [
+        'title={0}'.format(title),
+        'eq(author.email,{0})'.format(email),
+        'gt(github_stars,{0})'.format(stars),
+    ]
+    query = operator.join(comps)
+    query_func_style = 'and({0})'.format(','.join(comps))
 
     authors = [
         Author.objects.create(email='email@example.com'),
         Author.objects.create(email=email),
     ]
-    books = [Book.objects.create(author=authors[index], title=title) for index in range(2)]
+    books = [
+        Book.objects.create(author=authors[0], title=title, github_stars=11),
+        Book.objects.create(author=authors[1], title='title', github_stars=11),
+        Book.objects.create(author=authors[1], title=title, github_stars=11),
+    ]
 
-    expected = [books[1]]
+    expected = [books[2]]
     assert apply_filters(query) == expected
     assert apply_filters('{q}{op}{q}'.format(q=query, op=operator)) == expected
-    assert apply_filters('and({comp1},{comp2})'.format(comp1=comp1, comp2=comp2)) == expected
+    assert apply_filters(query_func_style) == expected
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('operator', ['|', ';'])
 def test_or(operator):
-    email, title = 'george@martin.com', 'book'
-    comp1 = 'title={0}'.format(title)
-    comp2 = 'eq(author.email,{0})'.format(email)
-    query = '({comp1}{op}{comp2})'.format(comp1=comp1, op=operator, comp2=comp2)
+    email, title, stars = 'george@martin.com', 'book', '10'
+    comps = [
+        'title={0}'.format(title),
+        'eq(author.email,{0})'.format(email),
+        'gt(github_stars,{0})'.format(stars),
+    ]
+    query = '({0})'.format(operator.join(comps))
+    query_func_style = 'or({0})'.format(','.join(comps))
 
     authors = [
         Author.objects.create(email='email@example.com'),
         Author.objects.create(email=email),
     ]
-    books = [Book.objects.create(author=authors[index], title=title) for index in range(2)]
+    books = [
+        Book.objects.create(author=authors[0], title=title, github_stars=2),
+        Book.objects.create(author=authors[1], title='1', github_stars=5),
+        Book.objects.create(author=authors[0], title='2', github_stars=11),
+    ]
 
     expected = books
+
     assert apply_filters(query) == expected
-    assert apply_filters('or({comp1},{comp2})'.format(comp1=comp1, comp2=comp2)) == expected
+    assert apply_filters(query_func_style) == expected
 
 
 @pytest.mark.django_db
