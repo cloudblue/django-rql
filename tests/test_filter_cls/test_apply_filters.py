@@ -4,17 +4,14 @@
 
 from functools import partial
 
-from dj_rql.filter_cls import RQLFilterClass
-
+import pytest
 from django.core.exceptions import FieldError
 from django.db.models import IntegerField, Q
 from django.utils.timezone import now
-
-from py_rql.constants import FilterLookups, ListOperators, RQL_NULL
+from py_rql.constants import RQL_NULL, FilterLookups, ListOperators
 from py_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 
-import pytest
-
+from dj_rql.filter_cls import RQLFilterClass
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
 from tests.test_filter_cls.utils import book_qs, create_books

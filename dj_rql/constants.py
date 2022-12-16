@@ -3,7 +3,6 @@
 #
 
 from django.db import models
-
 from py_rql.constants import FilterLookups, FilterTypes as FT
 
 

@@ -2,18 +2,17 @@
 #  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql._dataclasses import FilterArgs
-
 from lark import Tree
-
 from py_rql.constants import (
+    RQL_LIMIT_PARAM,
+    RQL_OFFSET_PARAM,
     ComparisonOperators,
     ListOperators,
     LogicalOperators,
-    RQL_LIMIT_PARAM,
-    RQL_OFFSET_PARAM,
 )
 from py_rql.transformer import BaseRQLTransformer
+
+from dj_rql._dataclasses import FilterArgs
 
 
 class RQLToDjangoORMTransformer(BaseRQLTransformer):

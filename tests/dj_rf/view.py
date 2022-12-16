@@ -2,20 +2,20 @@
 #  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.drf.backend import RQLFilterBackend
-from dj_rql.drf.compat import DjangoFiltersRQLFilterBackend
-from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
-from dj_rql.filter_cls import AutoRQLFilterClass
-
 from django.db.models import CharField, IntegerField, Value
-
 from rest_framework import mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from dj_rql.drf.backend import RQLFilterBackend
+from dj_rql.drf.compat import DjangoFiltersRQLFilterBackend
+from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
+from dj_rql.filter_cls import AutoRQLFilterClass
 from tests.dj_rf.filters import (
-    BooksFilterClass, SelectBooksFilterClass, SelectDetailedBooksFilterClass,
+    BooksFilterClass,
+    SelectBooksFilterClass,
+    SelectDetailedBooksFilterClass,
 )
 from tests.dj_rf.models import Book
 from tests.dj_rf.serializers import BookSerializer, SelectBookSerializer

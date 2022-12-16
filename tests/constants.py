@@ -3,7 +3,12 @@
 #
 
 from py_rql.constants import (
-    ComparisonOperators, ListOperators, LogicalOperators, RQL_EMPTY, RQL_NULL, SearchOperators,
+    RQL_EMPTY,
+    RQL_NULL,
+    ComparisonOperators,
+    ListOperators,
+    LogicalOperators,
+    SearchOperators,
 )
 
 

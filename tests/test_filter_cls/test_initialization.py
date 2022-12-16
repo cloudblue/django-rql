@@ -2,18 +2,16 @@
 #  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
+import pytest
+from django.core.exceptions import FieldDoesNotExist
+from py_rql.constants import RESERVED_FILTER_NAMES, RQL_NULL, FilterLookups as FL
+
 from dj_rql.filter_cls import AutoRQLFilterClass, NestedAutoRQLFilterClass, RQLFilterClass
 from dj_rql.utils import assert_filter_cls
-
-from django.core.exceptions import FieldDoesNotExist
-
-from py_rql.constants import FilterLookups as FL, RESERVED_FILTER_NAMES, RQL_NULL
-
-import pytest
-
 from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import AUTHOR_FILTERS, BooksFilterClass
 from tests.dj_rf.models import Author, AutoMain, Book
+
 
 empty_qs = Author.objects.none()
 

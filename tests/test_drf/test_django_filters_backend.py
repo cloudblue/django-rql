@@ -2,19 +2,15 @@
 #  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.constants import DjangoLookups
-from dj_rql.drf.compat import CompatibilityRQLFilterBackend, DjangoFiltersRQLFilterBackend
-
+import pytest
 from django.http import QueryDict
 from django.utils.timezone import now
-
 from py_rql.exceptions import RQLFilterParsingError, RQLFilterValueError
-
-import pytest
-
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 
+from dj_rql.constants import DjangoLookups
+from dj_rql.drf.compat import CompatibilityRQLFilterBackend, DjangoFiltersRQLFilterBackend
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book
 

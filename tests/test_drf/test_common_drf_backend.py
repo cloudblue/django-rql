@@ -1,19 +1,15 @@
 #
 #  Copyright © 2022 Ingram Micro Inc. All rights reserved.
 #
+import pytest
 from cachetools import LFUCache, LRUCache
-
-from dj_rql.drf import RQLFilterBackend
-from dj_rql.drf.backend import _FilterClassCache
-
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
-
-import pytest
-
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK, HTTP_404_NOT_FOUND
 
+from dj_rql.drf import RQLFilterBackend
+from dj_rql.drf.backend import _FilterClassCache
 from tests.dj_rf.models import Book
 
 

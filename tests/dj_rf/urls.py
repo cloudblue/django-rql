@@ -4,11 +4,14 @@
 
 from django.conf.urls import include
 from django.urls import re_path
-
 from rest_framework.routers import SimpleRouter
 
 from tests.dj_rf.view import (
-    AutoViewSet, DRFViewSet, DjangoFiltersViewSet, DynamicFilterClsViewSet, NoFilterClsViewSet,
+    AutoViewSet,
+    DjangoFiltersViewSet,
+    DRFViewSet,
+    DynamicFilterClsViewSet,
+    NoFilterClsViewSet,
     SelectViewSet,
 )
 
