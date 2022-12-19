@@ -1,9 +1,8 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 import pytest
-
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 

@@ -1,18 +1,22 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
+
+import pytest
+from django.core.exceptions import FieldError
+from django.db.models import CharField, IntegerField, Value
+from py_rql.exceptions import RQLFilterParsingError
 
 from dj_rql.fields import SelectField
 from dj_rql.filter_cls import RQLFilterClass
-from dj_rql.qs import AN, CH, NPR, NSR, PR, SR
-
-from django.core.exceptions import FieldError
-from django.db.models import CharField, IntegerField, Value
-
-from py_rql.exceptions import RQLFilterParsingError
-
-import pytest
-
+from dj_rql.qs import (
+    AN,
+    CH,
+    NPR,
+    NSR,
+    PR,
+    SR,
+)
 from tests.dj_rf.models import Author, Book
 from tests.test_filter_cls.utils import book_qs
 

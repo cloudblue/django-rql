@@ -1,12 +1,11 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
-from dj_rql.drf.backend import RQLFilterBackend, _FilterClassCache
-
 import pytest
-
 from rest_framework.test import APIClient
+
+from dj_rql.drf.backend import RQLFilterBackend, _FilterClassCache
 
 
 @pytest.fixture

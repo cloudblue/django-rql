@@ -1,15 +1,10 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import Counter
 
-from dj_rql.constants import DjangoLookups as DJL, FilterTypes
-from dj_rql.drf._utils import get_query
-from dj_rql.drf.backend import RQLFilterBackend
-
 from py_rql.constants import (
-    ComparisonOperators as CO,
     RQL_ANY_SYMBOL,
     RQL_FALSE,
     RQL_LIMIT_PARAM,
@@ -17,9 +12,14 @@ from py_rql.constants import (
     RQL_OFFSET_PARAM,
     RQL_ORDERING_OPERATOR,
     RQL_TRUE,
+    ComparisonOperators as CO,
     SearchOperators as SO,
 )
 from py_rql.exceptions import RQLFilterParsingError
+
+from dj_rql.constants import DjangoLookups as DJL, FilterTypes
+from dj_rql.drf._utils import get_query
+from dj_rql.drf.backend import RQLFilterBackend
 
 
 class CompatibilityRQLFilterBackend(RQLFilterBackend):

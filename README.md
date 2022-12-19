@@ -270,18 +270,22 @@ Best Practices
 Development
 ===========
 
-1. Python 3.6+
-0. Install dependencies `requirements/dev.txt` and `requirements/extra.txt`
+1. Python 3.7+
+2. Install `poetry: pip install poetry`
+3. Install dependencies: `poetry install`
+4. We use `isort` library to order and format our imports, and we check it using `flake8-isort` library (automatically on `flake8` run).  
+For convenience you may run `isort .` to order imports.
+5. Run flake8: `poetry run flake8`
 
 Testing
 =======
 
-1. Python 3.6+
-0. Install dependencies `requirements/test.txt`
-0. `export PYTHONPATH=/your/path/to/django-rql/`
+1. Python 3.7+
+2. Install poetry: `pip install poetry`
+3. Install dependencies: `poetry install`
 
-Check code style: `flake8`
-Run tests: `pytest`
+Check code style: `poetry run flake8`
+Run tests: `poetry run pytest`
 
 Tests reports are generated in `tests/reports`.
 * `out.xml` - JUnit test results

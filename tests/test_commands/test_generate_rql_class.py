@@ -1,12 +1,11 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 import os
 
-from django.core.management import call_command
-
 import pytest
+from django.core.management import call_command
 
 from tests.dj_rf.models import AutoMain, Publisher
 

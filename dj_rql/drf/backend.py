@@ -1,11 +1,11 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 from threading import Lock
 
-from dj_rql.drf._utils import get_query
-
 from rest_framework.filters import BaseFilterBackend
+
+from dj_rql.drf._utils import get_query
 
 
 lock = Lock()

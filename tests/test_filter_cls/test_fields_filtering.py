@@ -1,27 +1,29 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from datetime import date, datetime
 from functools import partial
 
-from dj_rql._dataclasses import FilterArgs
-from dj_rql.constants import DjangoLookups
-
+import pytest
 from django.db.models import Q
-
 from py_rql.constants import (
-    ComparisonOperators as CO,
     RQL_EMPTY,
     RQL_NULL,
+    ComparisonOperators as CO,
     SearchOperators,
 )
 from py_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFilterValueError
 
-import pytest
-
+from dj_rql._dataclasses import FilterArgs
+from dj_rql.constants import DjangoLookups
 from tests.dj_rf.filters import BooksFilterClass
-from tests.dj_rf.models import Author, Book, Page, Publisher
+from tests.dj_rf.models import (
+    Author,
+    Book,
+    Page,
+    Publisher,
+)
 from tests.test_filter_cls.utils import book_qs, create_books
 
 

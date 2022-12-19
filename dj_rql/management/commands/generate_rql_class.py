@@ -1,15 +1,15 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 import json
 import re
 
-from dj_rql.filter_cls import NestedAutoRQLFilterClass
-
 from django.core.management import BaseCommand
 from django.db.models import ForeignKey, OneToOneField, OneToOneRel
 from django.utils.module_loading import import_string
+
+from dj_rql.filter_cls import NestedAutoRQLFilterClass
 
 
 TEMPLATE = """from {model_package} import {model_name}

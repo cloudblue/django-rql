@@ -16,3 +16,5 @@ tests/reports/
 docs/_build
 
 _generated_filters*.py
+
+.devcontainer/

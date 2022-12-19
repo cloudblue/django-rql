@@ -1,15 +1,18 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from copy import copy
 from numbers import Number
 
-from dj_rql.constants import FilterTypes
-
 from py_rql.constants import (
-    FilterLookups, RQL_NULL, RQL_ORDERING_OPERATOR, RQL_SEARCH_PARAM,
+    RQL_NULL,
+    RQL_ORDERING_OPERATOR,
+    RQL_SEARCH_PARAM,
+    FilterLookups,
 )
+
+from dj_rql.constants import FilterTypes
 
 
 class RQLFilterDescriptionTemplate:

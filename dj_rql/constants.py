@@ -1,9 +1,8 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from django.db import models
-
 from py_rql.constants import FilterLookups, FilterTypes as FT
 
 

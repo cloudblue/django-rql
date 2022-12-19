@@ -1,12 +1,17 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import OrderedDict
 
 import pytest
 
-from tests.dj_rf.models import Author, Book, Page, Publisher
+from tests.dj_rf.models import (
+    Author,
+    Book,
+    Page,
+    Publisher,
+)
 from tests.dj_rf.serializers import SelectBookSerializer
 
 

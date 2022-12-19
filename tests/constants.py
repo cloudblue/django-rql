@@ -1,9 +1,14 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from py_rql.constants import (
-    ComparisonOperators, ListOperators, LogicalOperators, RQL_EMPTY, RQL_NULL, SearchOperators,
+    RQL_EMPTY,
+    RQL_NULL,
+    ComparisonOperators,
+    ListOperators,
+    LogicalOperators,
+    SearchOperators,
 )
 
 

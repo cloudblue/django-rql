@@ -1,13 +1,12 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from copy import copy
 
-from dj_rql.openapi import RQLFilterClassSpecification, RQLFilterDescriptionTemplate
-
 from rest_framework.schemas.openapi import SchemaGenerator
 
+from dj_rql.openapi import RQLFilterClassSpecification, RQLFilterDescriptionTemplate
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Book
 
