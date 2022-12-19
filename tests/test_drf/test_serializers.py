@@ -6,7 +6,12 @@ from collections import OrderedDict
 
 import pytest
 
-from tests.dj_rf.models import Author, Book, Page, Publisher
+from tests.dj_rf.models import (
+    Author,
+    Book,
+    Page,
+    Publisher,
+)
 from tests.dj_rf.serializers import SelectBookSerializer
 
 

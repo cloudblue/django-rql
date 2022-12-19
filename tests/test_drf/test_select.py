@@ -3,11 +3,15 @@
 #
 
 import pytest
-
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 
-from tests.dj_rf.models import Author, Book, Page, Publisher
+from tests.dj_rf.models import (
+    Author,
+    Book,
+    Page,
+    Publisher,
+)
 
 
 @pytest.mark.django_db

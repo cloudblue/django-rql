@@ -3,7 +3,6 @@
 #
 
 import pytest
-
 from rest_framework.reverse import reverse
 from rest_framework.status import HTTP_200_OK
 
