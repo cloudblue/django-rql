@@ -1,13 +1,15 @@
 #
-#  Copyright © 2021 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from collections import namedtuple
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, QuerySet
 
 
 class DBOptimization:
+    """Optimize the DB queries base class."""
+
     def __init__(self, *relations, **kwargs):
         assert relations, 'At least one optimization must be specified.'
 
@@ -34,25 +36,57 @@ class DBOptimization:
 
 
 class Annotation(DBOptimization):
+    """Apply an `annotate` optimization to the queryset."""
+
     def __init__(self, **kwargs):
         super(Annotation, self).__init__('None', **kwargs)
 
     def rebuild(self, parent_optimization=None):
         return self
 
-    def apply(self, queryset):
+    def apply(self, queryset: QuerySet) -> QuerySet:
+        """
+        Apply an annotate operation for the given queryset.
+
+        Args:
+            queryset (QuerySet): queryset instance to optimize.
+
+        Returns:
+            QuerySet: queryset optimized.
+
+        """
         return queryset.annotate(**self._extensions)
 
 
 class SelectRelated(DBOptimization):
-    """Apply a ``select_related`` optimization to the queryset."""
-    def apply(self, queryset):
+    """Apply a `select_related` optimization to the queryset."""
+
+    def apply(self, queryset: QuerySet) -> QuerySet:
+        """
+        Apply a select related operation for the given queryset.
+
+        Args:
+            queryset (QuerySet): queryset instance to optimize.
+
+        Returns:
+            QuerySet: queryset optimized.
+        """
         return queryset.select_related(*self._relations)
 
 
 class PrefetchRelated(DBOptimization):
-    """Apply a ``prefetch_related`` optimization to the queryset."""
-    def apply(self, queryset):
+    """Apply a `prefetch_related` optimization to the queryset."""
+
+    def apply(self, queryset: QuerySet) -> QuerySet:
+        """
+        Apply a prefetch related operation for the given queryset.
+
+        Args:
+            queryset (QuerySet): queryset instance to optimize.
+
+        Returns:
+            QuerySet: queryset optimized.
+        """
         return queryset.prefetch_related(*self._relations)
 
 
@@ -95,6 +129,8 @@ class _NestedOptimizationMixin:
 
 
 class NestedPrefetchRelated(_NestedOptimizationMixin, PrefetchRelated):
+    """Apply a `prefetch_related` optimization to a nested attribute of the queryset."""
+
     def _rebuild_nested(self, parent_data):
         rebuilt_relations = []
 
@@ -114,6 +150,8 @@ class NestedPrefetchRelated(_NestedOptimizationMixin, PrefetchRelated):
 
 
 class NestedSelectRelated(_NestedOptimizationMixin, SelectRelated):
+    """Apply a `select_related` optimization to a nested attribute of the queryset."""
+
     def _rebuild_nested(self, parent_data):
         optimization_cls = NSR if parent_data.type == self._SR else NPR
         rebuilt_relations = [self._join_relation(parent_data.relation, r) for r in self._relations]
@@ -122,6 +160,8 @@ class NestedSelectRelated(_NestedOptimizationMixin, SelectRelated):
 
 
 class Chain(_NestedOptimizationMixin, DBOptimization):
+    """Apply a chain of optimizations to the queryset."""
+
     def __init__(self, *relations, **extensions):
         e = 'Wrong Chain() optimization configuration.'
         assert all(isinstance(rel, DBOptimization) for rel in relations), e

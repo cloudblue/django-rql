@@ -1,5 +1,5 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from datetime import date, datetime
@@ -24,7 +24,7 @@ from tests.dj_rf.models import (
     Page,
     Publisher,
 )
-from tests.test_filter_cls.utils import book_qs, create_books
+from tests.test_filter_cls.utils import book_qs
 
 
 def filter_field(filter_name, operator, value):
@@ -48,9 +48,9 @@ assert_filter_field_lookup_error = partial(assert_filter_field_error, RQLFilterL
 
 
 @pytest.mark.django_db
-def test_id():
+def test_id(generate_books):
     filter_name = 'id'
-    books = create_books()
+    books = generate_books()
     assert filter_field(filter_name, CO.EQ, books[0].pk) == [books[0]]
     assert filter_field(filter_name, CO.EQ, 3) == []
     assert filter_field(filter_name, CO.NE, books[1].pk) == [books[0]]
@@ -297,8 +297,8 @@ def test_fsm():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('filter_name', ('anno_int', 'anno_int_ref'))
-def test_anno_int_ok(filter_name):
-    books = create_books()
+def test_anno_int_ok(generate_books, filter_name):
+    books = generate_books()
 
     assert filter_field(filter_name, CO.EQ, 10) == []
     assert filter_field(filter_name, CO.EQ, 1000) == books
@@ -319,19 +319,19 @@ def test_anno_int_fail_value(filter_name):
 
 
 @pytest.mark.django_db
-def test_anno_str_ok():
+def test_anno_str_ok(generate_books):
     filter_name = 'anno_str'
-    books = create_books()
+    books = generate_books()
 
     assert filter_field(filter_name, CO.EQ, 'te') == []
     assert filter_field(filter_name, CO.EQ, 'text') == books
 
 
 @pytest.mark.django_db
-def test_anno_title_non_dynamic():
+def test_anno_title_non_dynamic(generate_books):
     filter_name = 'anno_title_non_dynamic'
 
-    books = create_books()
+    books = generate_books()
     books[0].title = 'text'
     books[0].save(update_fields=['title'])
 
@@ -340,10 +340,10 @@ def test_anno_title_non_dynamic():
 
 
 @pytest.mark.django_db
-def test_anno_title_dynamic():
+def test_anno_title_dynamic(generate_books):
     filter_name = 'anno_title_dynamic'
 
-    books = create_books()
+    books = generate_books()
     books[0].title = 'text'
     books[0].save(update_fields=['title'])
 
@@ -449,8 +449,8 @@ def test_null_empty_value_lookup_fail(bad_operator, value):
 @pytest.mark.django_db
 @pytest.mark.parametrize('operator', [CO.EQ, CO.NE, CO.GT])
 @pytest.mark.parametrize('filter_name', ['invalid'])
-def test_ignored_filters(filter_name, operator):
-    books = create_books()
+def test_ignored_filters(generate_books, filter_name, operator):
+    books = generate_books()
     assert filter_field(filter_name, operator, 'value') == books
 
 

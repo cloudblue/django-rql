@@ -1,5 +1,5 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 from threading import Lock
 
@@ -20,20 +20,22 @@ class _FilterClassCache:
 
 
 class RQLFilterBackend(BaseFilterBackend):
-    """ RQL filter backend for DRF GenericAPIViews.
+    """
+    RQL filter backend for DRF GenericAPIViews.
 
-    Set the backend filter for the ``GenericAPIView`` class-based view, and set the
-    ``rql_filter_class`` class attribute to the ``RQLFilterClass`` to use:
+    Set the backend filter for the `GenericAPIView` class-based view, and set the
+    `rql_filter_class` class attribute to the `RQLFilterClass` to use:
 
-    .. code-block:: python
+    ``` py3
 
         class ViewSet(mixins.ListModelMixin, GenericViewSet):
             filter_backends = (RQLFilterBackend,)
             rql_filter_class = ModelFilterClass
+    ```
 
-    Yo can also add a ``get_rql_filter_class()`` method to the view to get the filter class:
+    Yo can also add a `get_rql_filter_class()` method to the view to get the filter class:
 
-    .. code-block:: python
+    ``` py3
 
         class ViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
             filter_backends = (RQLFilterBackend,)
@@ -42,12 +44,14 @@ class RQLFilterBackend(BaseFilterBackend):
                 if self.action == 'retrieve':
                     return ModelDetailFilterClass
                 return ModelFilterClass
+    ```
     """
     OPENAPI_RETRIEVE_SPECIFICATION = False
 
     _CACHES = {}
 
     def filter_queryset(self, request, queryset, view):
+        """Return a filtered queryset."""
         filter_class = self.get_filter_class(view)
         if not filter_class:
             return queryset

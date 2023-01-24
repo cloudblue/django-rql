@@ -1,5 +1,5 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from functools import partial
@@ -14,7 +14,7 @@ from py_rql.exceptions import RQLFilterLookupError, RQLFilterParsingError, RQLFi
 from dj_rql.filter_cls import RQLFilterClass
 from tests.dj_rf.filters import BooksFilterClass
 from tests.dj_rf.models import Author, Book, Publisher
-from tests.test_filter_cls.utils import book_qs, create_books
+from tests.test_filter_cls.utils import book_qs
 
 
 def apply_filters(query):
@@ -156,8 +156,8 @@ apply_out_listing_filters = partial(apply_listing_filters, ListOperators.OUT)
 
 
 @pytest.mark.django_db
-def test_in():
-    books = create_books()
+def test_in(generate_books):
+    books = generate_books()
     assert apply_in_listing_filters(str(books[0].pk)) == [books[0]]
     assert apply_in_listing_filters(str(books[1].pk), '23') == [books[1]]
     assert apply_in_listing_filters(str(books[1].pk), str(books[0].pk)) == books
@@ -165,8 +165,8 @@ def test_in():
 
 
 @pytest.mark.django_db
-def test_out():
-    books = create_books()
+def test_out(generate_books):
+    books = generate_books()
     assert apply_out_listing_filters(str(books[0].pk)) == [books[1]]
     assert apply_out_listing_filters(str(books[1].pk), '23') == [books[0]]
     assert apply_out_listing_filters(str(books[1].pk), str(books[0].pk)) == []
@@ -192,8 +192,8 @@ def test_out():
     'in(author,(t(publisher.id=null()),t(email={email})))',
     'out(author,(t(email={second_book_email})))',
 ))
-def test_tuple(filter_string):
-    books = create_books()
+def test_tuple(generate_books, filter_string):
+    books = generate_books()
     comp_filter = filter_string.format(
         email=books[0].author.email,
         published_at=books[0].published_at.date(),
@@ -216,8 +216,8 @@ def test_tuple(filter_string):
     'author=t(limit=1)',
     'author=t(offset=1)',
 ))
-def test_tuple_syntax_terms_not_fail(filter_string):
-    books = create_books()
+def test_tuple_syntax_terms_not_fail(generate_books, filter_string):
+    books = generate_books()
     assert apply_filters(filter_string) == books
 
 
@@ -262,15 +262,15 @@ def test_tuple_lookup_error():
 
 
 @pytest.mark.django_db
-def test_null():
-    books = create_books()
+def test_null(generate_books):
+    books = generate_books()
     assert apply_filters('title={0}'.format(RQL_NULL)) == books
     assert apply_filters('title=ne={0}'.format(RQL_NULL)) == []
 
 
 @pytest.mark.django_db
-def test_null_with_in_or():
-    books = create_books()
+def test_null_with_in_or(generate_books):
+    books = generate_books()
 
     title = 'null'
     books[0].title = title
@@ -312,8 +312,8 @@ def test_ordering_source():
 
 
 @pytest.mark.django_db
-def test_ordering_sources():
-    books = create_books()
+def test_ordering_sources(generate_books):
+    books = generate_books()
     assert apply_filters('ordering(d_id)') == [books[0], books[1]]
     assert apply_filters('ordering(-d_id)') == [books[1], books[0]]
 
@@ -333,8 +333,8 @@ def test_ordering_by_several_filters():
 
 
 @pytest.mark.django_db
-def test_ordering_by_empty_value():
-    books = create_books()
+def test_ordering_by_empty_value(generate_books):
+    books = generate_books()
     assert apply_filters('ordering()') == books
 
 
@@ -400,7 +400,7 @@ def test_custom_filter_list_lookup_fail(operator):
 
 
 @pytest.mark.django_db
-def test_custom_filter_ordering():
+def test_custom_filter_ordering(generate_books):
     class CustomCls(BooksFilterClass):
         def build_name_for_custom_ordering(self, filter_name):
             return 'id'
@@ -408,7 +408,7 @@ def test_custom_filter_ordering():
         def assert_ordering(self, filter_name, expected):
             assert list(self.apply_filters('ordering({0})'.format(filter_name))[1]) == expected
 
-    books = create_books()
+    books = generate_books()
 
     CustomCls(book_qs).assert_ordering('ordering_filter', [books[0], books[1]])
     CustomCls(book_qs).assert_ordering('-ordering_filter', [books[1], books[0]])

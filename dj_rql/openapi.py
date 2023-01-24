@@ -1,5 +1,5 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from copy import copy
@@ -26,12 +26,15 @@ class RQLFilterDescriptionTemplate:
     )
 
     @classmethod
-    def render(cls, filter_item, filter_instance):
-        """
-        :param dict filter_item: Extended Filter item
-        :param dj_rql.filter_cls.RQLFilterClass filter_instance: Instance of Filter Class
-        :return: Rendered description for filter item
-        :rtype: str
+    def render(cls, filter_item: dict, filter_instance):
+        """Render for the given item and instance.
+
+        Args:
+            filter_item (dict) : Extended Filter item dict.
+            filter_instance (RQLFilterClass) : Instance of RQLFilterClass Class.
+
+        Returns:
+            Rendered description string for filter item.
         """
         result = cls._render_base(filter_item, filter_instance)
 
@@ -112,9 +115,11 @@ class RQLFilterClassSpecification:
         Returns OpenAPI specification for filters.
         Filter sorting is alphabetic with deprecated filters in the end.
 
-        :param dj_rql.filter_cls.RQLFilterClass filter_instance: Instance of Filter Class
-        :return: OpenAPI compatible specification of Filter Class Filters
-        :rtype: list of dict
+        Args:
+            filter_instance (RQLFilterClass): Instance of RQLFilterClass Class.
+
+        Returns:
+            An OpenAPI compatible specification of Filter Class Filters list or dict.
         """
         extended_filter_items = {}
         common_filter_names, deprecated_filter_names = [], []
@@ -145,12 +150,12 @@ class RQLFilterClassSpecification:
         return result
 
     @classmethod
-    def get_for_field(cls, filter_item, filter_instance):
-        """ This method can be overridden to support custom specs for certain filters.
+    def get_for_field(cls, filter_item: dict, filter_instance):
+        """This method can be overridden to support custom specs for certain filters.
 
-        :param dict filter_item: Extended Filter Item
-        :param dj_rql.filter_cls.RQLFilterClass filter_instance: Instance of Filter Class
-        :rtype: dict or None
+        Args:
+            filter_item (dict): Extended Filter Item dict.
+            filter_instance (RQLFilterClass): Instance of RQLFilterClass Class.
         """
         pass
 
