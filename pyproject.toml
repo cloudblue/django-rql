@@ -1,0 +1,105 @@
+[tool.poetry]
+name = "django-rql"
+version = "27.0.0"
+description = "Django RQL Filtering"
+authors = ["CloudBlue LLC"]
+license = "Apache-2.0"
+packages = [
+    { include = "dj_rql" }
+]
+readme = "./README.md"
+homepage = "https://connect.cloudblue.com/community/api/rql/"
+repository = "https://github.com/cloudblue/django-rql"
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Framework :: Django :: 3.2',
+    'Framework :: Django :: 4.0',
+    'Framework :: Django :: 4.1',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: Apache Software License',
+    'Operating System :: Unix',
+    'Programming Language :: Python :: 3.7',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+    'Programming Language :: Python :: 3.11',
+    'Topic :: Text Processing :: Filters',
+]
+keywords = [
+    "django",
+    "rql",
+    "filter",
+    "rest",
+    "api",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.7,<4"
+lib-rql = "^1.1.5"
+django = ">=3.2"
+
+[tool.poetry.group.test.dependencies]
+pytest = ">=6.1.2,<8"
+pytest-cov = ">=2.10.1,<5"
+pytest-mock = "^3.3.1"
+coverage = {extras = ["toml"], version = ">=5.3,<7"}
+flake8 = ">=3.8,<6"
+flake8-bugbear = ">=20,<23"
+flake8-cognitive-complexity = "^0.1"
+flake8-commas = "~2.1"
+flake8-future-import = "~0.4"
+flake8-isort = "^5.0"
+flake8-broken-line = ">=0.3,<0.7"
+pytest-django = ">=4.4.0"
+djangorestframework = ">=3.12"
+isort = "^5.10"
+importlib-metadata = "<5"
+django-fsm = ">=2.7.1"
+django-model-utils = ">=3.2.0"
+uritemplate = "^4.1.1"
+pytest-pythonpath = { version = "^0.7.4", python = "<3.8" }
+pytest-randomly = ">=3.12"
+
+[tool.poetry.group.docs.dependencies]
+mkdocs = ">=1.4"
+mkdocs-material = ">=9"
+mkdocs-glightbox = "^0.3.1"
+mkdocs-macros-plugin = "^0.7.0"
+mkdocstrings = ">=0.19.1"
+mkdocstrings-python = "^0.8.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+log_cli = false
+addopts = "--show-capture=no --create-db --nomigrations --junitxml=tests/reports/out.xml --cov=dj_rql --cov-report xml:tests/reports/coverage.xml"
+filterwarnings = "ignore::UserWarning"
+python_files = "test_*.py"
+DJANGO_SETTINGS_MODULE = "tests.dj_rf.settings"
+django_find_project = false
+pythonpath = ["."]
+python_paths = ["."]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.xml]
+output = "tests/reports/coverage.xml"
+
+[virtualenvs]
+create = false
+
+[tool.isort]
+src_paths = "*"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+group_by_package = true
+multi_line_output = 3
+force_grid_wrap = 4
+combine_as_imports = true
+use_parentheses = true
+include_trailing_comma = true
+line_length = 100
+lines_after_imports = 2

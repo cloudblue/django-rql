@@ -1,5 +1,5 @@
 #
-#  Copyright © 2022 Ingram Micro Inc. All rights reserved.
+#  Copyright © 2023 Ingram Micro Inc. All rights reserved.
 #
 
 from lark.exceptions import LarkError
@@ -14,6 +14,7 @@ from dj_rql.transformer import RQLLimitOffsetTransformer
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
     """ RQL limit offset pagination. """
+
     def __init__(self, *args, **kwargs):
         super(RQLLimitOffsetPagination, self).__init__(*args, **kwargs)
 
@@ -84,10 +85,12 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
     """ RQL RFC2616 limit offset pagination.
 
     Examples:
+        ```
         Response
 
         200 OK
         Content-Range: items <FIRST>-<LAST>/<TOTAL>
+        ```
     """
 
     def get_paginated_response(self, data):
