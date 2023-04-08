@@ -2,7 +2,7 @@
 name = "django-rql"
 version = "27.0.0"
 description = "Django RQL Filtering"
-authors = ["CloudBlue LLC"]
+authors = ["Ingram Micro"]
 license = "Apache-2.0"
 packages = [
     { include = "dj_rql" }
@@ -15,6 +15,7 @@ classifiers = [
     'Framework :: Django :: 3.2',
     'Framework :: Django :: 4.0',
     'Framework :: Django :: 4.1',
+    'Framework :: Django :: 4.2',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: Apache Software License',
     'Operating System :: Unix',
@@ -39,7 +40,7 @@ lib-rql = "^1.1.5"
 django = ">=3.2"
 
 [tool.poetry.group.test.dependencies]
-pytest = ">=6.1.2,<8"
+pytest = ">=7.2.0,<8"
 pytest-cov = ">=2.10.1,<5"
 pytest-mock = "^3.3.1"
 coverage = {extras = ["toml"], version = ">=5.3,<7"}
@@ -57,7 +58,6 @@ importlib-metadata = "<5"
 django-fsm = ">=2.7.1"
 django-model-utils = ">=3.2.0"
 uritemplate = "^4.1.1"
-pytest-pythonpath = { version = "^0.7.4", python = "<3.8" }
 pytest-randomly = ">=3.12"
 
 [tool.poetry.group.docs.dependencies]
@@ -81,7 +81,6 @@ python_files = "test_*.py"
 DJANGO_SETTINGS_MODULE = "tests.dj_rf.settings"
 django_find_project = false
 pythonpath = ["."]
-python_paths = ["."]
 
 [tool.coverage.run]
 branch = true
