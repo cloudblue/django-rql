@@ -352,6 +352,31 @@ def test_bad_ordering_filter():
     assert e.value.details['error'] == 'Bad ordering filter: id.'
 
 
+def test_too_much_ordering_filters():
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters('ordering(id,id,id,id,id,id)')
+
+    assert e.value.details['error'] == 'Bad ordering filter: max allowed number is 5.'
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('perms, q', (
+    ({('author.email',)}, '-published.at'),
+    ({('-author.email',)}, 'author.email'),
+    ({('d_id', '-d_id')}, 'd_id,author.email'),
+    ({('d_id', 'author.email')}, 'd_id'),
+    ({('d_id', 'author.email'), ('author.email', '-published.at')}, 'author.email,published.at'),
+))
+def test_bad_ordering_permutation(perms, q):
+    class CustomCls(BooksFilterClass):
+        ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = perms
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        list(CustomCls(book_qs).apply_filters(f'ordering({q})'))
+
+    assert e.value.details['error'] == 'Bad ordering filter: permutation not allowed.'
+
+
 @pytest.mark.django_db
 def test_search():
     title = 'book'
@@ -402,6 +427,13 @@ def test_custom_filter_list_lookup_fail(operator):
 @pytest.mark.django_db
 def test_custom_filter_ordering(generate_books):
     class CustomCls(BooksFilterClass):
+        ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = {
+            ('author.email', 'published.at'),
+            ('ordering_filter',),
+            ('-ordering_filter',),
+            ('-ordering_filter', 'author.email'),
+        }
+
         def build_name_for_custom_ordering(self, filter_name):
             return 'id'
 
@@ -412,6 +444,7 @@ def test_custom_filter_ordering(generate_books):
 
     CustomCls(book_qs).assert_ordering('ordering_filter', [books[0], books[1]])
     CustomCls(book_qs).assert_ordering('-ordering_filter', [books[1], books[0]])
+    CustomCls(book_qs).assert_ordering('-ordering_filter,author.email', [books[1], books[0]])
 
 
 @pytest.mark.django_db

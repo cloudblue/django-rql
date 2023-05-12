@@ -56,6 +56,8 @@ class ModelFilterClass(RQLFilterClass):
     DISTINCT - Boolean flag, that specifies if queryset must always be DISTINCT
     SELECT - Boolean flag, that specifies if Filter Class supports select operations and queryset optimizations
     OPENAPI_SPECIFICATION - Python class that renders OpenAPI specification
+    MAX_ORDERING_LENGTH_IN_QUERY - Integer max allowed number of provided ordering filters in query ordering expression
+    ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY - Set of tuples of strings to specify a set of allowed ordering permutations
 
     Filters can be set in two ways:
         1) string (default settings are calculated from ORM)
