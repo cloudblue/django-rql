@@ -126,6 +126,53 @@ def test_wrong_extended_search_setup():
     assert str(e.value) == 'Extended search ORM routes must be iterable.'
 
 
+@pytest.mark.parametrize('v', ('5', None, 1.23, []))
+def test_wrong_ordering_length_setup(v):
+    class Cls(BooksFilterClass):
+        MAX_ORDERING_LENGTH_IN_QUERY = v
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+    assert str(e.value) == 'Max ordering length must be integer.'
+
+
+@pytest.mark.parametrize('v', (
+    5,
+    [['name']],
+    {'name'},
+    {(5,)},
+    {('x',), ('y', None)},
+))
+def test_wrong_ordering_permutations_setup(v):
+    class Cls(BooksFilterClass):
+        ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = v
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+
+    expected = 'Allowed ordering permutations must be a set of tuples of string filter names.'
+    assert str(e.value) == expected
+
+
+@pytest.mark.parametrize('v, expected', (
+    ({('x',)}, 'Wrong configuration of allowed ordering permutations: x.'),
+    ({('-d_id', '+')}, 'Wrong configuration of allowed ordering permutations: +.'),
+    ({('',)}, 'Wrong configuration of allowed ordering permutations: .'),
+    (
+        {('author.email', '+published.at'), ('fsm', '-title')},
+        'Wrong configuration of allowed ordering permutations: -title.',
+    ),
+))
+def test_wrong_ordering_permutations_filter_name_provided(v, expected):
+    class Cls(BooksFilterClass):
+        ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = v
+
+    with pytest.raises(AssertionError) as e:
+        Cls(empty_qs)
+
+    assert str(e.value) == expected
+
+
 @pytest.mark.parametrize('filters', [{}, set()])
 def test_wrong_filters_type(filters):
     class Cls(RQLFilterClass):

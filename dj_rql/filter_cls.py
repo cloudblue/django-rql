@@ -5,6 +5,7 @@ import decimal
 import re
 from collections import defaultdict
 from datetime import datetime
+from itertools import chain
 from typing import Set
 from uuid import uuid4
 
@@ -58,6 +59,13 @@ class RQLFilterClass:
     """A list or tuple of filters definitions."""
 
     EXTENDED_SEARCH_ORM_ROUTES = ()
+    """List of additional Django ORM fields for search."""
+
+    MAX_ORDERING_LENGTH_IN_QUERY = 5
+    """Max allowed number of provided ordering filters in query ordering expression."""
+
+    ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = None
+    """Property to specify a set of allowed ordering permutations (default `None`)."""
 
     DISTINCT = False
     """If True, a `SELECT DISTINCT` will always be executed (default `False`)."""
@@ -107,6 +115,16 @@ class RQLFilterClass:
         e = 'Extended search ORM routes must be iterable.'
         assert isinstance(self.EXTENDED_SEARCH_ORM_ROUTES, iterable_types), e
 
+        e = 'Max ordering length must be integer.'
+        assert isinstance(self.MAX_ORDERING_LENGTH_IN_QUERY, int), e
+
+        perms = self.ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY
+        if perms:
+            e = 'Allowed ordering permutations must be a set of tuples of string filter names.'
+            assert isinstance(perms, set), e
+            assert all(isinstance(t, tuple) for t in perms), e
+            assert all(isinstance(s, str) for s in chain.from_iterable(perms)), e
+
     def _get_init_filters(self):
         return self.FILTERS
 
@@ -120,8 +138,10 @@ class RQLFilterClass:
         self.select_tree = {}
         self.default_exclusions = set()
         self.annotations = {}
+        self.allowed_ordering_permutations = None
 
         self._build_filters(filters)
+        self._validate_and_store_allowed_ordering_permutations()
         self._extend_annotations()
 
     def _init_from_class(self, instance):
@@ -132,6 +152,7 @@ class RQLFilterClass:
             'select_tree',
             'default_exclusions',
             'annotations',
+            'allowed_ordering_permutations',
         )
         for attr in copied_attributes:
             setattr(self, attr, getattr(instance, attr))
@@ -542,12 +563,21 @@ class RQLFilterClass:
     def _apply_ordering(self, qs, properties):
         if len(properties) == 0:
             return qs
-        elif len(properties) > 1:
+
+        if len(properties) > 1:
             raise RQLFilterParsingError(details={
                 'error': 'Bad ordering filter: query can contain only one ordering operation.',
             })
 
+        if len(properties[0]) > self.MAX_ORDERING_LENGTH_IN_QUERY:
+            raise RQLFilterParsingError(details={
+                'error': 'Bad ordering filter: max allowed number is {n}.'.format(
+                    n=self.MAX_ORDERING_LENGTH_IN_QUERY,
+                ),
+            })
+
         ordering_fields = []
+        perm = []
         for prop in properties[0]:
             filter_name, sign = self._get_filter_name_with_sign_for_ordering(prop)
             if filter_name not in self.ordering_filters:
@@ -555,6 +585,7 @@ class RQLFilterClass:
                     'error': 'Bad ordering filter: {0}.'.format(filter_name),
                 })
 
+            perm.append('{0}{1}'.format(sign, filter_name))
             filters = self.filters[filter_name]
             if not isinstance(filters, list):
                 filters = [filters]
@@ -564,6 +595,12 @@ class RQLFilterClass:
 
                 ordering_name = self._get_filter_ordering_name(filter_item, filter_name)
                 ordering_fields.append('{0}{1}'.format(sign, ordering_name))
+
+        perms = self.allowed_ordering_permutations
+        if perms and tuple(perm) not in perms:
+            raise RQLFilterParsingError(details={
+                'error': 'Bad ordering filter: permutation not allowed.',
+            })
 
         return qs.order_by(*ordering_fields)
 
@@ -765,6 +802,20 @@ class RQLFilterClass:
                         extended_annotations[filter_name].append(own_annotation[0])
 
         self.annotations.update(dict(extended_annotations))
+
+    def _validate_and_store_allowed_ordering_permutations(self):
+        perms = self.ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY
+        if perms:
+            for s in chain.from_iterable(perms):
+                filter_name = s[1:] if s and s[0] in ('+', '-') else s
+
+                e = 'Wrong configuration of allowed ordering permutations: {n}.'.format(n=s)
+                assert filter_name in self.ordering_filters, e
+
+            self.allowed_ordering_permutations = {
+                tuple(s[1:] if s[0] == '+' else s for s in t)
+                for t in perms
+            }
 
     @classmethod
     def _is_field_supported(cls, field):
