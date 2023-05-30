@@ -3,7 +3,7 @@ Getting started
 
 # Requirements
 
-`django-rql` works with Python 3.7 or newer and has the
+`django-rql` works with Python 3.8 or newer and has the
 following dependencies:
 
 -   Django >= 3.2.* and <= 4.1
