@@ -16,7 +16,8 @@ factory = APIRequestFactory()
 
 
 class TestRQLLimitOffsetPagination(TestCase):
-    """ An adopted copy of DRF pagination test case. """
+    """An adopted copy of DRF pagination test case."""
+
     def setUp(self):
         class ExamplePagination(RQLContentRangeLimitOffsetPagination):
             default_limit = 10

@@ -16,7 +16,7 @@ from dj_rql._dataclasses import FilterArgs
 
 
 class RQLToDjangoORMTransformer(BaseRQLTransformer):
-    """ Parsed RQL AST tree transformer to Django ORM Query.
+    """Parsed RQL AST tree transformer to Django ORM Query.
 
     Notes:
         Grammar-Function name mapping is made automatically by Lark.
@@ -25,6 +25,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         They are applied later in FilterCls. This is done on purpose, because transformer knows
         nothing about the mappings between filter names and orm fields.
     """
+
     NAMESPACE_PROVIDERS = ('comp', 'listing')
     NAMESPACE_FILLERS = ('prop',)
     NAMESPACE_ACTIVATORS = ('tuple',)
@@ -50,9 +51,9 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
             self._namespace.append(None)
         elif tree.data in self.NAMESPACE_ACTIVATORS:
             self._active_namespace = len(self._namespace)
-        elif (tree.data in self.NAMESPACE_FILLERS
-                and self._namespace
-                and self._namespace[-1] is None):
+        elif (
+            tree.data in self.NAMESPACE_FILLERS and self._namespace and self._namespace[-1] is None
+        ):
             self._namespace[-1] = self._get_value(tree)
 
     def _pop_namespace(self, tree):
@@ -62,7 +63,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
             self._active_namespace -= 1
 
     def _get_current_namespace(self):
-        return self._namespace[:self._active_namespace]
+        return self._namespace[: self._active_namespace]
 
     def _transform_tree(self, tree):
         self._push_namespace(tree)
@@ -140,10 +141,14 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
                 else:
                     field_q = ~value
             else:
-                field_q = self._filter_cls_instance.build_q_for_filter(FilterArgs(
-                    prop, f_op, value,
-                    list_operator=operation,
-                ))
+                field_q = self._filter_cls_instance.build_q_for_filter(
+                    FilterArgs(
+                        prop,
+                        f_op,
+                        value,
+                        list_operator=operation,
+                    ),
+                )
             if operation == ListOperators.IN:
                 q |= field_q
             else:
@@ -185,7 +190,8 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
 
 class RQLLimitOffsetTransformer(BaseRQLTransformer):
-    """ Parsed RQL AST tree transformer to (limit, offset) tuple for limit offset pagination. """
+    """Parsed RQL AST tree transformer to (limit, offset) tuple for limit offset pagination."""
+
     def __init__(self):
         self.limit = None
         self.offset = None

@@ -17,6 +17,7 @@ def test_default():
         f.write(code)
 
     from tests.test_commands._generated_filters1 import AutoMainFilters
+
     assert AutoMainFilters.MODEL == AutoMain
     assert AutoMainFilters.FILTERS
     assert AutoMainFilters.SELECT is True
@@ -39,31 +40,36 @@ def test_overridden_args():
         f.write(code)
 
     from tests.test_commands._generated_filters2 import PublisherFilters
+
     assert PublisherFilters.MODEL == Publisher
     assert PublisherFilters.FILTERS == [
         {
-            "filter": "id",
-            "ordering": True,
-            "search": False,
+            'filter': 'id',
+            'ordering': True,
+            'search': False,
         },
         {
-            "filter": "name",
-            "ordering": True,
-            "search": True,
+            'filter': 'name',
+            'ordering': True,
+            'search': True,
         },
         {
-            "namespace": "fk1",
-            "filters": [
+            'namespace': 'fk1',
+            'filters': [
                 {
-                    "filter": "id",
-                    "ordering": True,
-                    "search": False,
+                    'filter': 'id',
+                    'ordering': True,
+                    'search': False,
                 },
             ],
-            "qs": None,
+            'qs': None,
         },
     ]
     assert PublisherFilters.SELECT is False
     assert PublisherFilters.EXCLUDE_FILTERS == [
-        'authors', 'fk1.publisher', 'fk1.author', 'fk2', 'invalid',
+        'authors',
+        'fk1.publisher',
+        'fk1.author',
+        'fk2',
+        'invalid',
     ]

@@ -28,6 +28,7 @@ class CompatibilityRQLFilterBackend(RQLFilterBackend):
     filter backend (without raising API version number or losing compatibility), this base
     compatibility DRF backend must be inherited from.
     """
+
     @classmethod
     def get_query(cls, filter_instance, request, view):
         try:
@@ -70,6 +71,7 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
         * ?&& syntax in queries;
         * etc.
     """
+
     RESERVED_ORDERING_WORDS = {'order_by', 'ordering'}
 
     _POSSIBLE_DF_LOOKUPS = DJL.all()
@@ -161,7 +163,9 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
             one_filter_value_pairs = []
             for value in request.query_params.getlist(filter_name):
                 name_value_pair = cls._get_one_filter_value_pair(
-                    filter_instance, filter_name, value,
+                    filter_instance,
+                    filter_name,
+                    value,
                 )
                 if name_value_pair is not None:
                     one_filter_value_pairs.append(name_value_pair)
@@ -202,7 +206,8 @@ class DjangoFiltersRQLFilterBackend(CompatibilityRQLFilterBackend):
 
         if lookup == DJL.IN:
             return 'in({0},({1}))'.format(
-                filter_base, ','.join(cls._add_quotes_to_value(v) for v in value.split(',') if v),
+                filter_base,
+                ','.join(cls._add_quotes_to_value(v) for v in value.split(',') if v),
             )
 
         if lookup == DJL.NULL:

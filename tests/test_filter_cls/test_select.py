@@ -133,7 +133,8 @@ def test_init_hidden():
                     {
                         'filter': 'vi',
                         'source': 'id',
-                    }, {
+                    },
+                    {
                         'filter': 'nvi',
                         'source': 'id',
                         'hidden': True,
@@ -722,7 +723,8 @@ def test_qs_optimization_deep_various_nesting():
     _, qs = BookCls(book_qs).apply_filters('')
     assert qs.query.select_related == {'author': {'publisher': {'fk1': {}, 'fk2': {}}, 'fk': {}}}
     assert qs._prefetch_related_lookups == (
-        'author__publisher__authors', 'author__books',
+        'author__publisher__authors',
+        'author__books',
     )
 
 

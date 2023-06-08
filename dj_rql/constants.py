@@ -48,7 +48,8 @@ class FilterTypes(FT):
     def field_filter_type(cls, field):
         return next(
             (
-                filter_type for base_cls, filter_type in cls.mapper
+                filter_type
+                for base_cls, filter_type in cls.mapper
                 if issubclass(field.__class__, base_cls)
             ),
             cls.STRING,

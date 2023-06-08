@@ -46,6 +46,7 @@ class RQLFilterBackend(BaseFilterBackend):
                 return ModelFilterClass
     ```
     """
+
     OPENAPI_RETRIEVE_SPECIFICATION = False
 
     _CACHES = {}
@@ -59,11 +60,13 @@ class RQLFilterBackend(BaseFilterBackend):
         filter_instance = self._get_filter_instance(filter_class, queryset, view)
         query = self.get_query(filter_instance, request, view)
 
-        can_query_be_cached = all((
-            filter_class.QUERIES_CACHE_BACKEND,
-            filter_class.QUERIES_CACHE_SIZE,
-            request.method in ('GET', 'HEAD', 'OPTIONS'),
-        ))
+        can_query_be_cached = all(
+            (
+                filter_class.QUERIES_CACHE_BACKEND,
+                filter_class.QUERIES_CACHE_SIZE,
+                request.method in ('GET', 'HEAD', 'OPTIONS'),
+            ),
+        )
         if can_query_be_cached:
             # We must use the combination of queryset and query to make a cache key as
             #  queryset can already contain some filters (e.x. based on authentication)
@@ -117,7 +120,8 @@ class RQLFilterBackend(BaseFilterBackend):
     def _get_or_init_cache(cls, filter_class, view):
         qual_name = cls._get_filter_cls_qual_name(view, filter_class)
         return cls._CACHES.setdefault(
-            qual_name, filter_class.QUERIES_CACHE_BACKEND(int(filter_class.QUERIES_CACHE_SIZE)),
+            qual_name,
+            filter_class.QUERIES_CACHE_BACKEND(int(filter_class.QUERIES_CACHE_SIZE)),
         )
 
     @classmethod
@@ -135,6 +139,8 @@ class RQLFilterBackend(BaseFilterBackend):
     @staticmethod
     def _get_filter_cls_qual_name(view, filter_class):
         return '{0}.{1}+{2}.{3}'.format(
-            view.__class__.__module__, view.__class__.__name__,
-            filter_class.__module__, filter_class.__name__,
+            view.__class__.__module__,
+            view.__class__.__name__,
+            filter_class.__module__,
+            filter_class.__name__,
         )

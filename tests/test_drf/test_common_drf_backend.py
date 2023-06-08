@@ -195,8 +195,7 @@ def test_query_cache(api_client, clear_cache, django_assert_num_queries):
     assert cache.maxsize == 100
 
     cache = caches[
-        'tests.dj_rf.view.DynamicFilterClsViewSet'
-        '+tests.dj_rf.filters.SelectBooksFilterClass'
+        'tests.dj_rf.view.DynamicFilterClsViewSet' '+tests.dj_rf.filters.SelectBooksFilterClass'
     ]
     assert isinstance(cache, LRUCache)
     assert cache.currsize == 3

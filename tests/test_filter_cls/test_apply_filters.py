@@ -146,9 +146,12 @@ def test_nested_logic():
 
 
 def apply_listing_filters(operator, *values):
-    return apply_filters('{operator}(id,({values}))'.format(
-        operator=operator, values=','.join(tuple(values)),
-    ))
+    return apply_filters(
+        '{operator}(id,({values}))'.format(
+            operator=operator,
+            values=','.join(tuple(values)),
+        ),
+    )
 
 
 apply_in_listing_filters = partial(apply_listing_filters, ListOperators.IN)
@@ -175,23 +178,26 @@ def test_out(generate_books):
 
 @pytest.mark.filterwarnings('ignore::RuntimeWarning')
 @pytest.mark.django_db
-@pytest.mark.parametrize('filter_string', (
-    't(author.email={email},title=null())',
-    't(search={email})',
-    't(ge(published.at,{published_at}))',
-    't(author.publisher.id={publisher_id})',
-    'title=null()&t(author.email={email})',
-    't(author=t(email={email}))',
-    'author=t(email={email},is_male=true)',
-    'author=t(publisher=t(id={publisher_id}))',
-    'author=t(email={email},ne(is_male,false))',
-    'ne(author,t(email={second_book_email},is_male=true))',
-    'and(author=t(email={email}),author=t(is_male=true))',
-    'and(title=null(),author=t(is_male=true,publisher=t(id={publisher_id})))',
-    'in(author.email,({email}))',
-    'in(author,(t(publisher.id=null()),t(email={email})))',
-    'out(author,(t(email={second_book_email})))',
-))
+@pytest.mark.parametrize(
+    'filter_string',
+    (
+        't(author.email={email},title=null())',
+        't(search={email})',
+        't(ge(published.at,{published_at}))',
+        't(author.publisher.id={publisher_id})',
+        'title=null()&t(author.email={email})',
+        't(author=t(email={email}))',
+        'author=t(email={email},is_male=true)',
+        'author=t(publisher=t(id={publisher_id}))',
+        'author=t(email={email},ne(is_male,false))',
+        'ne(author,t(email={second_book_email},is_male=true))',
+        'and(author=t(email={email}),author=t(is_male=true))',
+        'and(title=null(),author=t(is_male=true,publisher=t(id={publisher_id})))',
+        'in(author.email,({email}))',
+        'in(author,(t(publisher.id=null()),t(email={email})))',
+        'out(author,(t(email={second_book_email})))',
+    ),
+)
 def test_tuple(generate_books, filter_string):
     books = generate_books()
     comp_filter = filter_string.format(
@@ -204,41 +210,46 @@ def test_tuple(generate_books, filter_string):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('filter_string', (
-    'author=t(like=1)',
-    'author=t(ilike=1)',
-    'author=t(in=1)',
-    'author=t(out=1)',
-    'author=t(eq=1)',
-    'author=t(ne=1)',
-    'author=t(and=1)',
-    'author=t(or=1)',
-    'author=t(limit=1)',
-    'author=t(offset=1)',
-))
+@pytest.mark.parametrize(
+    'filter_string',
+    (
+        'author=t(like=1)',
+        'author=t(ilike=1)',
+        'author=t(in=1)',
+        'author=t(out=1)',
+        'author=t(eq=1)',
+        'author=t(ne=1)',
+        'author=t(and=1)',
+        'author=t(or=1)',
+        'author=t(limit=1)',
+        'author=t(offset=1)',
+    ),
+)
 def test_tuple_syntax_terms_not_fail(generate_books, filter_string):
     books = generate_books()
     assert apply_filters(filter_string) == books
 
 
-@pytest.mark.parametrize('filter_string', (
-    't()',
-    't(1=1)',
-    'author=t(t(t(name=1))'
-    'author=t(male)',
-    'author=t(test=in(male,(true,false)))',
-    'in(t(is_male=true),(author))',
-    'select(t(author.publisher))',
-    'author=t(limit(email))',
-    'author=t(offset(email))',
-    'author=t(select(email))',
-    'author=t(ordering(email))',
-    'author=t(and(a=1,b=2))',
-    'author=t(or(a=1,b=2))',
-    'author=t(not(a=1))',
-    'author=t(search(x,term))',
-    'auhtor=t(select(+test))',
-))
+@pytest.mark.parametrize(
+    'filter_string',
+    (
+        't()',
+        't(1=1)',
+        'author=t(t(t(name=1))' 'author=t(male)',
+        'author=t(test=in(male,(true,false)))',
+        'in(t(is_male=true),(author))',
+        'select(t(author.publisher))',
+        'author=t(limit(email))',
+        'author=t(offset(email))',
+        'author=t(select(email))',
+        'author=t(ordering(email))',
+        'author=t(and(a=1,b=2))',
+        'author=t(or(a=1,b=2))',
+        'author=t(not(a=1))',
+        'author=t(search(x,term))',
+        'auhtor=t(select(+test))',
+    ),
+)
 def test_tuple_parse_error(filter_string):
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(filter_string)
@@ -360,13 +371,19 @@ def test_too_much_ordering_filters():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize('perms, q', (
-    ({('author.email',)}, '-published.at'),
-    ({('-author.email',)}, 'author.email'),
-    ({('d_id', '-d_id')}, 'd_id,author.email'),
-    ({('d_id', 'author.email')}, 'd_id'),
-    ({('d_id', 'author.email'), ('author.email', '-published.at')}, 'author.email,published.at'),
-))
+@pytest.mark.parametrize(
+    'perms, q',
+    (
+        ({('author.email',)}, '-published.at'),
+        ({('-author.email',)}, 'author.email'),
+        ({('d_id', '-d_id')}, 'd_id,author.email'),
+        ({('d_id', 'author.email')}, 'd_id'),
+        (
+            {('d_id', 'author.email'), ('author.email', '-published.at')},
+            'author.email,published.at',
+        ),
+    ),
+)
 def test_bad_ordering_permutation(perms, q):
     class CustomCls(BooksFilterClass):
         ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = perms
@@ -451,12 +468,14 @@ def test_custom_filter_ordering(generate_books):
 def test_custom_filter_search_ok(mocker):
     class CustomCls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'filter': 'search_filter',
-            'custom': True,
-            'search': True,
-            'lookups': {FilterLookups.I_LIKE},
-        }]
+        FILTERS = [
+            {
+                'filter': 'search_filter',
+                'custom': True,
+                'search': True,
+                'lookups': {FilterLookups.I_LIKE},
+            },
+        ]
 
         def assert_search(self, value, expected):
             assert list(self.apply_filters('search={0}'.format(value))[1]) == expected
@@ -464,14 +483,19 @@ def test_custom_filter_search_ok(mocker):
         @classmethod
         def side_effect(cls, data):
             django_lookup = data.django_lookup
-            return Q(**{
-                'title__{0}'.format(django_lookup): cls._get_searching_typed_value(
-                    django_lookup, data.str_value,
-                ),
-            })
+            return Q(
+                **{
+                    'title__{0}'.format(django_lookup): cls._get_searching_typed_value(
+                        django_lookup,
+                        data.str_value,
+                    ),
+                }
+            )
 
     build_q_for_custom_filter_patch = mocker.patch.object(
-        CustomCls, 'build_q_for_custom_filter', side_effect=CustomCls.side_effect,
+        CustomCls,
+        'build_q_for_custom_filter',
+        side_effect=CustomCls.side_effect,
     )
 
     books = [
@@ -502,6 +526,7 @@ def test_test_custom_filter_with_type_ok():
         def build_q_for_custom_filter(self, data):
             if data.filter_name == 'int_field':
                 from django.db.models import Q
+
                 return Q(**{f'int_choice_field__{data.django_lookup}': data.str_value})
             return super().build_q_for_custom_filter(data)
 
@@ -541,11 +566,13 @@ def test_test_custom_filter_with_type_fail():
 def test_dynamic_no_annotation():
     class CustomCls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'filter': 'anno',
-            'dynamic': True,
-            'field': IntegerField(),
-        }]
+        FILTERS = [
+            {
+                'filter': 'anno',
+                'dynamic': True,
+                'field': IntegerField(),
+            },
+        ]
 
     # We want to be error unhandled in this case
     with pytest.raises(FieldError):

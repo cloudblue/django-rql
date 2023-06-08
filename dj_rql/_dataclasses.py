@@ -21,8 +21,9 @@ class OptimizationArgs:
 
 
 class FilterArgs:
-    def __init__(self, filter_name, operator, str_value, list_operator=None,
-                 namespace=None, **kwargs):
+    def __init__(
+        self, filter_name, operator, str_value, list_operator=None, namespace=None, **kwargs
+    ):
         """
         :param str filter_name: Full filter name (f.e. ns1.ns2.filter1)
         :param str operator: RQL operator (f.e. eq, like, etc.)

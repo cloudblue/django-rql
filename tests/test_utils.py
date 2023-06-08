@@ -29,7 +29,7 @@ def test_no_key():
     with pytest.raises(AssertionError) as e:
         assert_filter_cls(BooksFilterClass, mismatch, set(), set())
 
-    assert "Filter `key` is not set" in str(e.value)
+    assert 'Filter `key` is not set' in str(e.value)
 
 
 def test_mismatch_for_list_data():
@@ -63,6 +63,5 @@ def test_mismatch_for_fields():
         assert_filter_cls(BooksFilterClass, mismatch, set(), set())
 
     assert str(e.value) == (
-        "Wrong filter `id` configuration: assertion data "
-        "must contain `orm_route` and `lookups`."
+        'Wrong filter `id` configuration: assertion data ' 'must contain `orm_route` and `lookups`.'
     )

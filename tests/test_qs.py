@@ -41,7 +41,8 @@ def test_extensions_no_extension():
 
 def test_extensions_annotations():
     assert DBOptimization('z', anno_1=1, anno_2=2).extensions == {
-        'anno_1': 1, 'anno_2': 2,
+        'anno_1': 1,
+        'anno_2': 2,
     }
 
 
