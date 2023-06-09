@@ -4,7 +4,7 @@
 
 
 def assert_filter_cls(filter_cls, filters, ordering_filters, search_filters):
-    """ Helper function for testing of custom view rql filter classes.
+    """Helper function for testing of custom view rql filter classes.
 
     Args:
         filter_cls (cls): Custom RQL Filter.
@@ -32,7 +32,7 @@ def _is_filter_subset(main_dct, subset_dct):
                     _is_filter_subset(main_dct_value, value)
                 except AssertionError as e:
                     raise AssertionError(
-                        "Wrong filter `{0}` configuration: {1}".format(key, str(e)),
+                        'Wrong filter `{0}` configuration: {1}'.format(key, str(e)),
                     )
 
         elif isinstance(value, list):
@@ -43,9 +43,9 @@ def _is_filter_subset(main_dct, subset_dct):
                 _is_filter_subset(m_dict, s_dict)
 
         else:
-            assert main_dct[key] == value, "{0} != {1}".format(main_dct[key], value)
+            assert main_dct[key] == value, '{0} != {1}'.format(main_dct[key], value)
 
-            e = "assertion data must contain `orm_route` and `lookups`."
+            e = 'assertion data must contain `orm_route` and `lookups`.'
             assert {'orm_route', 'lookups'}.issubset(subset_keys), e
 
             assert 'field' in main_keys

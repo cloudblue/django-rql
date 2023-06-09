@@ -19,7 +19,7 @@ class RQLMixin:
 
         for field_name, is_included in rql_select['select'].items():
             split_field_name = field_name.split('.')
-            is_current_level_field = (len(split_field_name) == 1)
+            is_current_level_field = len(split_field_name) == 1
             current_depth_field_name = split_field_name[0]
 
             if is_current_level_field:
@@ -48,8 +48,11 @@ class RQLMixin:
 
     def _get_field_rql_select(self, field):
         take_parent = bool(
-            field.parent and getattr(field.parent, 'many', False) and isinstance(
-                field, field.parent.child.__class__,
+            field.parent
+            and getattr(field.parent, 'many', False)
+            and isinstance(
+                field,
+                field.parent.child.__class__,
             ),
         )
         if take_parent:

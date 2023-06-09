@@ -89,7 +89,9 @@ class RQLFilterDescriptionTemplate:
 
         if FilterLookups.NULL in filter_item.get('lookups', {}) and null_values != {RQL_NULL}:
             return cls._render_common_key_inplace(
-                base, 'null', ', '.join(sorted(null_values)),
+                base,
+                'null',
+                ', '.join(sorted(null_values)),
             )
 
         return base

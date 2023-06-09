@@ -169,9 +169,11 @@ class RQLFilterClass:
         Raises:
             RQLFilterParsingError: Filter logic is not implemented.
         """
-        raise RQLFilterParsingError(details={
-            'error': 'Filter logic is not implemented: {0}.'.format(data.filter_name),
-        })
+        raise RQLFilterParsingError(
+            details={
+                'error': 'Filter logic is not implemented: {0}.'.format(data.filter_name),
+            },
+        )
 
     def build_name_for_custom_ordering(self, filter_name: str) -> str:
         """Builder for ordering name of custom filter.
@@ -185,9 +187,11 @@ class RQLFilterClass:
         Raises:
             RQLFilterParsingError: Ordering logic is not implemented.
         """
-        raise RQLFilterParsingError(details={
-            'error': 'Ordering logic is not implemented: {0}.'.format(filter_name),
-        })
+        raise RQLFilterParsingError(
+            details={
+                'error': 'Ordering logic is not implemented: {0}.'.format(filter_name),
+            },
+        )
 
     def optimize_field(self, data: OptimizationArgs):
         """This method can be overridden to apply complex DB optimization logic.
@@ -305,9 +309,11 @@ class RQLFilterClass:
         filter_basename, namespace = data.filter_basename, data.namespace
 
         if namespace and filter_basename == RQL_SEARCH_PARAM:
-            raise RQLFilterLookupError(details={
-                'error': f'Filter "{filter_basename}" can be applied only on top level.',
-            })
+            raise RQLFilterLookupError(
+                details={
+                    'error': f'Filter "{filter_basename}" can be applied only on top level.',
+                },
+            )
 
         if filter_name == RQL_SEARCH_PARAM:
             return self._build_q_for_search(operator, str_value)
@@ -328,19 +334,31 @@ class RQLFilterClass:
                 list_filter_lookup = FilterLookups.OUT
 
             if list_filter_lookup not in available_lookups:
-                raise RQLFilterLookupError(**self._get_error_details(
-                    filter_name, list_filter_lookup, str_value,
-                ))
+                raise RQLFilterLookupError(
+                    **self._get_error_details(
+                        filter_name,
+                        list_filter_lookup,
+                        str_value,
+                    )
+                )
 
         null_values = base_item.get('null_values', set())
         filter_lookup = self._get_filter_lookup(
-            filter_name, operator, str_value, available_lookups, null_values,
+            filter_name,
+            operator,
+            str_value,
+            available_lookups,
+            null_values,
         )
         django_field = base_item.get('field')
         if django_field and isinstance(django_field, SelectField):
-            raise RQLFilterLookupError(**self._get_error_details(
-                filter_name, filter_lookup, str_value,
-            ))
+            raise RQLFilterLookupError(
+                **self._get_error_details(
+                    filter_name,
+                    filter_lookup,
+                    str_value,
+                )
+            )
 
         django_lookup = self._get_django_lookup(filter_lookup, str_value, null_values)
 
@@ -349,19 +367,26 @@ class RQLFilterClass:
         typed_value = None
         if django_field is not None:
             typed_value = self._get_typed_value(
-                filter_name, filter_lookup, str_value, django_field,
-                use_repr, null_values, django_lookup,
+                filter_name,
+                filter_lookup,
+                str_value,
+                django_field,
+                use_repr,
+                null_values,
+                django_lookup,
             )
 
         if base_item.get('custom'):
-            return self.build_q_for_custom_filter(FilterArgs(
-                filter_name,
-                operator,
-                str_value,
-                list_operator=list_operator,
-                filter_lookup=filter_lookup,
-                django_lookup=django_lookup,
-            ))
+            return self.build_q_for_custom_filter(
+                FilterArgs(
+                    filter_name,
+                    operator,
+                    str_value,
+                    list_operator=list_operator,
+                    filter_lookup=filter_lookup,
+                    django_lookup=django_lookup,
+                ),
+            )
 
         if not isinstance(filter_item, iterable_types):
             return self._build_django_q(filter_item, django_lookup, filter_lookup, typed_value)
@@ -416,9 +441,11 @@ class RQLFilterClass:
 
         for index, part in enumerate(filter_name_parts):
             if part not in select_tree:
-                raise RQLFilterParsingError(details={
-                    'error': 'Bad select filter: {0}.'.format(filter_name),
-                })
+                raise RQLFilterParsingError(
+                    details={
+                        'error': 'Bad select filter: {0}.'.format(filter_name),
+                    },
+                )
 
             current_part = '{0}.{1}'.format(parent_parts, part) if parent_parts else part
 
@@ -445,9 +472,11 @@ class RQLFilterClass:
 
         for filter_name in real_exclude_select:
             if filter_name in inclusions:
-                raise RQLFilterParsingError(details={
-                    'error': 'Bad select filter: incompatible properties.',
-                })
+                raise RQLFilterParsingError(
+                    details={
+                        'error': 'Bad select filter: incompatible properties.',
+                    },
+                )
 
             select_tree = self.select_tree
             filter_name_parts = filter_name.split('.')
@@ -455,9 +484,11 @@ class RQLFilterClass:
 
             for index, part in enumerate(filter_name_parts):
                 if part not in select_tree:
-                    raise RQLFilterParsingError(details={
-                        'error': 'Bad select filter: -{0}.'.format(filter_name),
-                    })
+                    raise RQLFilterParsingError(
+                        details={
+                            'error': 'Bad select filter: -{0}.'.format(filter_name),
+                        },
+                    )
 
                 if index != last_filter_name_part_index:
                     select_tree = select_tree[part]['fields']
@@ -470,7 +501,7 @@ class RQLFilterClass:
     def _prepare_selects(select):
         include_select, exclude_select = [], set()
         for s_prop in select:
-            is_included = (s_prop[0] != RQL_MINUS)
+            is_included = s_prop[0] != RQL_MINUS
             filter_name = s_prop[1:] if s_prop[0] in (RQL_MINUS, RQL_PLUS) else s_prop
 
             if is_included:
@@ -482,9 +513,11 @@ class RQLFilterClass:
 
     def _build_q_for_search(self, operator, str_value):
         if operator != ComparisonOperators.EQ:
-            raise RQLFilterParsingError(details={
-                'error': 'Bad search filter: {0}.'.format(operator),
-            })
+            raise RQLFilterParsingError(
+                details={
+                    'error': 'Bad search filter: {0}.'.format(operator),
+                },
+            )
 
         unquoted_value = self.remove_quotes(str_value)
         if not unquoted_value:
@@ -498,9 +531,13 @@ class RQLFilterClass:
 
         q = self._build_q_for_extended_search(unquoted_value)
         for filter_name in self.search_filters:
-            q |= self.build_q_for_filter(FilterArgs(
-                filter_name, SearchOperators.I_LIKE, unquoted_value,
-            ))
+            q |= self.build_q_for_filter(
+                FilterArgs(
+                    filter_name,
+                    SearchOperators.I_LIKE,
+                    unquoted_value,
+                ),
+            )
 
         return q
 
@@ -510,7 +547,8 @@ class RQLFilterClass:
 
         for django_orm_route in self.EXTENDED_SEARCH_ORM_ROUTES:
             django_lookup = self._get_searching_django_lookup(
-                extended_search_filter_lookup, str_value,
+                extended_search_filter_lookup,
+                str_value,
             )
             typed_value = self._get_searching_typed_value(django_lookup, str_value)
             q |= self._build_django_q(
@@ -565,25 +603,31 @@ class RQLFilterClass:
             return qs
 
         if len(properties) > 1:
-            raise RQLFilterParsingError(details={
-                'error': 'Bad ordering filter: query can contain only one ordering operation.',
-            })
+            raise RQLFilterParsingError(
+                details={
+                    'error': 'Bad ordering filter: query can contain only one ordering operation.',
+                },
+            )
 
         if len(properties[0]) > self.MAX_ORDERING_LENGTH_IN_QUERY:
-            raise RQLFilterParsingError(details={
-                'error': 'Bad ordering filter: max allowed number is {n}.'.format(
-                    n=self.MAX_ORDERING_LENGTH_IN_QUERY,
-                ),
-            })
+            raise RQLFilterParsingError(
+                details={
+                    'error': 'Bad ordering filter: max allowed number is {n}.'.format(
+                        n=self.MAX_ORDERING_LENGTH_IN_QUERY,
+                    ),
+                },
+            )
 
         ordering_fields = []
         perm = []
         for prop in properties[0]:
             filter_name, sign = self._get_filter_name_with_sign_for_ordering(prop)
             if filter_name not in self.ordering_filters:
-                raise RQLFilterParsingError(details={
-                    'error': 'Bad ordering filter: {0}.'.format(filter_name),
-                })
+                raise RQLFilterParsingError(
+                    details={
+                        'error': 'Bad ordering filter: {0}.'.format(filter_name),
+                    },
+                )
 
             perm.append('{0}{1}'.format(sign, filter_name))
             filters = self.filters[filter_name]
@@ -598,9 +642,11 @@ class RQLFilterClass:
 
         perms = self.allowed_ordering_permutations
         if perms and tuple(perm) not in perms:
-            raise RQLFilterParsingError(details={
-                'error': 'Bad ordering filter: permutation not allowed.',
-            })
+            raise RQLFilterParsingError(
+                details={
+                    'error': 'Bad ordering filter: permutation not allowed.',
+                },
+            )
 
         return qs.order_by(*ordering_fields)
 
@@ -622,7 +668,7 @@ class RQLFilterClass:
         return filter_item['orm_route']
 
     def _build_filters(self, filters, **kwargs):
-        """ Converter of provided nested filter configuration to linear inner representation. """
+        """Converter of provided nested filter configuration to linear inner representation."""
         filter_route = kwargs.get('filter_route', '')
         orm_route = kwargs.get('orm_route', '')
         orm_model = kwargs.get('orm_model')
@@ -642,7 +688,8 @@ class RQLFilterClass:
                 field_orm_route = '{0}{1}'.format(orm_route, item)
                 field = self._get_field(_model, item)
                 self._add_filter_item(
-                    field_filter_route, self._build_mapped_item(field, field_orm_route),
+                    field_filter_route,
+                    self._build_mapped_item(field, field_orm_route),
                 )
                 self._fill_select_tree(item, field_filter_route, select_tree, parent_qs=parent_qs)
                 continue
@@ -650,7 +697,8 @@ class RQLFilterClass:
             if 'namespace' in item:
                 for option in ('filter', 'dynamic', 'custom'):
                     e = "{0}: '{1}' is not supported by namespaces.".format(
-                        item['namespace'], option,
+                        item['namespace'],
+                        option,
                     )
                     assert option not in item, e
 
@@ -659,9 +707,13 @@ class RQLFilterClass:
                 orm_field_name = item.get('source', namespace)
                 related_orm_route = '{0}{1}__'.format(orm_route, orm_field_name)
 
-                related_model = self._get_field_related_model(self._get_field(
-                    _model, orm_field_name, get_related=True,
-                ))
+                related_model = self._get_field_related_model(
+                    self._get_field(
+                        _model,
+                        orm_field_name,
+                        get_related=True,
+                    ),
+                )
 
                 qs = item.get('qs')
                 tree, p_qs = self._fill_select_tree(
@@ -690,14 +742,16 @@ class RQLFilterClass:
             field_filter_route = '{0}{1}'.format(filter_route, filter_name)
 
             self._fill_select_tree(
-                filter_name, field_filter_route, select_tree,
+                filter_name,
+                field_filter_route,
+                select_tree,
                 hidden=item.get('hidden', False),
                 qs=item.get('qs'),
                 parent_qs=parent_qs,
             )
 
             if item.get('custom', False):
-                assert 'lookups' in item, "Custom filters must specify possible lookups."
+                assert 'lookups' in item, 'Custom filters must specify possible lookups.'
 
                 self._add_filter_item(field_filter_route, item)
                 self._register_ordering_and_search(item, field_filter_route)
@@ -706,11 +760,20 @@ class RQLFilterClass:
             self._check_use_repr(item, field_filter_route)
             self._check_dynamic(item, field_filter_route, filter_route)
             self._build_filters_for_common_item(
-                item, field_filter_route, orm_route, _model, distinct,
+                item,
+                field_filter_route,
+                orm_route,
+                _model,
+                distinct,
             )
 
     def _build_filters_for_common_item(
-        self, item, field_filter_route, orm_route, orm_model, distinct,
+        self,
+        item,
+        field_filter_route,
+        orm_route,
+        orm_model,
+        distinct,
     ):
         filter_name = item['filter']
         field = item.get('field')
@@ -738,9 +801,16 @@ class RQLFilterClass:
         self._add_filter_item(field_filter_route, items)
         self._register_ordering_and_search(item, field_filter_route)
 
-    def _fill_select_tree(self, f_name, full_f_name, select_tree,
-                          namespace=False, hidden=False, qs=None, parent_qs=None):
-
+    def _fill_select_tree(
+        self,
+        f_name,
+        full_f_name,
+        select_tree,
+        namespace=False,
+        hidden=False,
+        qs=None,
+        parent_qs=None,
+    ):
         if not self.SELECT:
             return select_tree, None
 
@@ -763,13 +833,16 @@ class RQLFilterClass:
         path = ''
         for index, filter_name_part in enumerate(filter_name_parts):
             path += filter_name_part
-            current_select_tree.setdefault(filter_name_part, {
-                'hidden': hidden,
-                'fields': {},
-                'namespace': namespace or (index != last_filter_name_part_index),
-                'qs': changed_qs,
-                'path': path if is_logical_namespace else full_f_name,
-            })
+            current_select_tree.setdefault(
+                filter_name_part,
+                {
+                    'hidden': hidden,
+                    'fields': {},
+                    'namespace': namespace or (index != last_filter_name_part_index),
+                    'qs': changed_qs,
+                    'path': path if is_logical_namespace else full_f_name,
+                },
+            )
             current_select_tree = current_select_tree[filter_name_part]['fields']
             path += '.'
 
@@ -813,8 +886,7 @@ class RQLFilterClass:
                 assert filter_name in self.ordering_filters, e
 
             self.allowed_ordering_permutations = {
-                tuple(s[1:] if s[0] == '+' else s for s in t)
-                for t in perms
+                tuple(s[1:] if s[0] == '+' else s for s in t) for t in perms
             }
 
     @classmethod
@@ -901,17 +973,25 @@ class RQLFilterClass:
         if str_value in null_values:
             null_lookups = {FilterLookups.EQ, FilterLookups.NE}
             if (FilterLookups.NULL not in available_lookups) or (filter_lookup not in null_lookups):
-                raise RQLFilterLookupError(**cls._get_error_details(
-                    filter_name, filter_lookup, str_value,
-                ))
+                raise RQLFilterLookupError(
+                    **cls._get_error_details(
+                        filter_name,
+                        filter_lookup,
+                        str_value,
+                    )
+                )
 
         if str_value == RQL_EMPTY:
             available_lookups = {FilterLookups.EQ, FilterLookups.NE}
 
         if filter_lookup not in available_lookups:
-            raise RQLFilterLookupError(**cls._get_error_details(
-                filter_name, filter_lookup, str_value,
-            ))
+            raise RQLFilterLookupError(
+                **cls._get_error_details(
+                    filter_name,
+                    filter_lookup,
+                    str_value,
+                )
+            )
 
         return filter_lookup
 
@@ -957,8 +1037,16 @@ class RQLFilterClass:
         return getattr(DjangoLookups, '{0}{1}'.format(prefix, pattern))
 
     @classmethod
-    def _get_typed_value(cls, filter_name, filter_lookup, str_value, django_field,
-                         use_repr, null_values, django_lookup):
+    def _get_typed_value(
+        cls,
+        filter_name,
+        filter_lookup,
+        str_value,
+        django_field,
+        use_repr,
+        null_values,
+        django_lookup,
+    ):
         if str_value in null_values:
             return True
 
@@ -969,17 +1057,24 @@ class RQLFilterClass:
             typed_value = cls._convert_value(django_field, str_value, use_repr=use_repr)
             return typed_value
         except (ValueError, TypeError, decimal.InvalidOperation):
-            raise RQLFilterValueError(**cls._get_error_details(
-                filter_name, filter_lookup, str_value,
-            ))
+            raise RQLFilterValueError(
+                **cls._get_error_details(
+                    filter_name,
+                    filter_lookup,
+                    str_value,
+                )
+            )
 
     @classmethod
     def _reflect_like_value(cls, str_value):
         star_replacer = uuid4().hex
-        return '\\'.join(
-            v.replace(r'\{0}'.format(RQL_ANY_SYMBOL), star_replacer)
-            for v in cls.remove_quotes(str_value).split(r'\\')
-        ), star_replacer
+        return (
+            '\\'.join(
+                v.replace(r'\{0}'.format(RQL_ANY_SYMBOL), star_replacer)
+                for v in cls.remove_quotes(str_value).split(r'\\')
+            ),
+            star_replacer,
+        )
 
     @classmethod
     def _get_searching_typed_value(cls, django_lookup, str_value):
@@ -999,7 +1094,8 @@ class RQLFilterClass:
         new_val = new_val[1:] if val[0] == RQL_ANY_SYMBOL else '^{0}'.format(new_val)
         new_val = new_val[:-1] if val[-1] == RQL_ANY_SYMBOL else '{0}$'.format(new_val)
         return new_val.replace(RQL_ANY_SYMBOL, any_symbol_regex).replace(
-            star_replacer, RQL_ANY_SYMBOL,
+            star_replacer,
+            RQL_ANY_SYMBOL,
         )
 
     @staticmethod
@@ -1011,10 +1107,7 @@ class RQLFilterClass:
         or misinterpreted (symbols range). Regex is not supported by RQL so we can safely
         escape redundant special symbols.
         """
-        return (
-            re.escape(str_value)
-            .replace(r'\{0}'.format(RQL_ANY_SYMBOL), RQL_ANY_SYMBOL)
-        )
+        return re.escape(str_value).replace(r'\{0}'.format(RQL_ANY_SYMBOL), RQL_ANY_SYMBOL)
 
     @classmethod
     def _convert_value(cls, django_field, str_value, use_repr=False):
@@ -1054,7 +1147,7 @@ class RQLFilterClass:
     def _convert_decimal_value(cls, value, field):
         if '.' in value:
             integer_part, fractional_part = value.split('.', 1)
-            value = integer_part + '.' + fractional_part[:cls._get_decimal_field_precision(field)]
+            value = integer_part + '.' + fractional_part[: cls._get_decimal_field_precision(field)]
 
         return decimal.Decimal(value)
 
@@ -1095,9 +1188,7 @@ class RQLFilterClass:
         # F.e.: `choices=((0, 'v0'), (1, 'v1'))` can be filtered by 'v1' if `use_repr=True` or
         # by '1' if `use_repr=False`
         if isinstance(choices[0], tuple):
-            iterator = iter(
-                choice[0] for choice in choices if str(choice[int(use_repr)]) == value
-            )
+            iterator = iter(choice[0] for choice in choices if str(choice[int(use_repr)]) == value)
         else:
             iterator = iter(choice for choice in choices if choice == value)
         try:
@@ -1110,9 +1201,7 @@ class RQLFilterClass:
     def _get_choice_class_db_value(cls, value, choices, filter_type, use_repr):
         if use_repr:
             try:
-                db_value = next(
-                    db_value for db_value, value_repr in choices if value_repr == value
-                )
+                db_value = next(db_value for db_value, value_repr in choices if value_repr == value)
                 return db_value
             except StopIteration:
                 raise ValueError
@@ -1184,7 +1273,7 @@ class RQLFilterClass:
     def _check_dynamic(filter_item, filter_name, filter_route):
         field = filter_item.get('field')
         if filter_item.get('dynamic', False):
-            e = "{0}: dynamic filters are not supported in namespaces.".format(filter_name)
+            e = '{0}: dynamic filters are not supported in namespaces.'.format(filter_name)
             assert filter_route == '', e
 
             e = "{0}: dynamic filters must have 'field' set.".format(filter_name)
@@ -1218,11 +1307,9 @@ class AutoRQLFilterClass(RQLFilterClass):
                 'search': FilterTypes.field_filter_type(f) == FilterTypes.STRING,
             }
             for f in self.MODEL._meta.get_fields()
-            if isinstance(f, SUPPORTED_FIELD_TYPES) and (
-                f.name not in self.EXCLUDE_FILTERS
-            ) and (
-                f.name not in described_filters
-            )
+            if isinstance(f, SUPPORTED_FIELD_TYPES)
+            and (f.name not in self.EXCLUDE_FILTERS)
+            and (f.name not in described_filters)
         )
 
         return described_filters + filters
@@ -1285,11 +1372,13 @@ class NestedAutoRQLFilterClass(AutoRQLFilterClass):
                 model_related_models.append(relation_data + (rel_f_name,))
                 continue
 
-            namespace.append({
-                'filter': field.name,
-                'ordering': True,
-                'search': FilterTypes.field_filter_type(field) == FilterTypes.STRING,
-            })
+            namespace.append(
+                {
+                    'filter': field.name,
+                    'ordering': True,
+                    'search': FilterTypes.field_filter_type(field) == FilterTypes.STRING,
+                },
+            )
 
         return [i for i in model_related_models if i[0] not in through_models]
 
@@ -1301,11 +1390,13 @@ class NestedAutoRQLFilterClass(AutoRQLFilterClass):
 
         namespace_filters = []
         if depth < self.DEPTH:
-            namespace.append({
-                'namespace': field.name,
-                'filters': namespace_filters,
-                'qs': self._get_field_optimization(field),
-            })
+            namespace.append(
+                {
+                    'namespace': field.name,
+                    'filters': namespace_filters,
+                    'qs': self._get_field_optimization(field),
+                },
+            )
 
         return field.related_model, namespace_filters, circular_related_name
 

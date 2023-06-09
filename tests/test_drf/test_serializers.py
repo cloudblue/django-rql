@@ -53,9 +53,11 @@ def test_select_complex():
                 'id': publisher.id,
             },
         },
-        'pages': [{
-            'id': str(page.uuid),
-        }],
+        'pages': [
+            {
+                'id': str(page.uuid),
+            },
+        ],
         'status': book.status,
         'amazon_rating': book.amazon_rating,
     } == data

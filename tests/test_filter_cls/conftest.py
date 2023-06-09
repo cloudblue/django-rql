@@ -28,4 +28,5 @@ def generate_books():
         book_qs = apply_annotations(Book.objects.order_by('id'))
         books = list(book_qs)
         return books
+
     return _generate_books

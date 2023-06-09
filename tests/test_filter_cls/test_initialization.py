@@ -26,10 +26,14 @@ def test_building_filters():
     expected_sub_dct = {
         'id': {'orm_route': 'id', 'lookups': FL.numeric()},
         'title': {
-            'orm_route': 'title', 'lookups': FL.string(), 'null_values': {RQL_NULL, 'NULL_ID'},
+            'orm_route': 'title',
+            'lookups': FL.string(),
+            'null_values': {RQL_NULL, 'NULL_ID'},
         },
         'current_price': {
-            'orm_route': 'current_price', 'lookups': FL.numeric(), 'null_values': {RQL_NULL},
+            'orm_route': 'current_price',
+            'lookups': FL.numeric(),
+            'null_values': {RQL_NULL},
         },
         'written': {'orm_route': 'written', 'lookups': FL.numeric()},
         'status': {'orm_route': 'status', 'lookups': non_null_string_lookups},
@@ -45,13 +49,18 @@ def test_building_filters():
         'page.id': {'orm_route': 'pages__uuid', 'lookups': FL.string()},
         'published.at': {'orm_route': 'published_at', 'lookups': FL.numeric()},
         'rating.blog': {
-            'orm_route': 'blog_rating', 'lookups': FL.numeric(), 'use_repr': True,
+            'orm_route': 'blog_rating',
+            'lookups': FL.numeric(),
+            'use_repr': True,
         },
         'rating.blog_int': {
-            'orm_route': 'blog_rating', 'lookups': FL.numeric(), 'use_repr': False,
+            'orm_route': 'blog_rating',
+            'lookups': FL.numeric(),
+            'use_repr': False,
         },
         'amazon_rating': {
-            'orm_route': 'amazon_rating', 'lookups': {FL.GE, FL.LT},
+            'orm_route': 'amazon_rating',
+            'lookups': {FL.GE, FL.LT},
         },
         'url': {'orm_route': 'publishing_url', 'lookups': FL.string()},
         'd_id': [
@@ -60,16 +69,22 @@ def test_building_filters():
         ],
         'custom_filter': {'custom': True, 'custom_data': [1], 'lookups': {FL.I_LIKE}},
         'int_choice_field': {
-            'orm_route': 'int_choice_field', 'lookups': non_null_numeric_lookups,
+            'orm_route': 'int_choice_field',
+            'lookups': non_null_numeric_lookups,
         },
         'int_choice_field_repr': {
-            'orm_route': 'int_choice_field', 'lookups': {FL.EQ, FL.NE}, 'use_repr': True,
+            'orm_route': 'int_choice_field',
+            'lookups': {FL.EQ, FL.NE},
+            'use_repr': True,
         },
         'str_choice_field': {
-            'orm_route': 'str_choice_field', 'lookups': non_null_string_lookups,
+            'orm_route': 'str_choice_field',
+            'lookups': non_null_string_lookups,
         },
         'str_choice_field_repr': {
-            'orm_route': 'str_choice_field', 'lookups': {FL.EQ, FL.NE}, 'use_repr': True,
+            'orm_route': 'str_choice_field',
+            'lookups': {FL.EQ, FL.NE},
+            'use_repr': True,
         },
         'has_list_lookup': {'custom': True, 'lookups': {FL.EQ, FL.IN, FL.OUT}},
         'no_list_lookup': {'custom': True, 'lookups': {FL.EQ}},
@@ -136,13 +151,16 @@ def test_wrong_ordering_length_setup(v):
     assert str(e.value) == 'Max ordering length must be integer.'
 
 
-@pytest.mark.parametrize('v', (
-    5,
-    [['name']],
-    {'name'},
-    {(5,)},
-    {('x',), ('y', None)},
-))
+@pytest.mark.parametrize(
+    'v',
+    (
+        5,
+        [['name']],
+        {'name'},
+        {(5,)},
+        {('x',), ('y', None)},
+    ),
+)
 def test_wrong_ordering_permutations_setup(v):
     class Cls(BooksFilterClass):
         ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = v
@@ -154,15 +172,18 @@ def test_wrong_ordering_permutations_setup(v):
     assert str(e.value) == expected
 
 
-@pytest.mark.parametrize('v, expected', (
-    ({('x',)}, 'Wrong configuration of allowed ordering permutations: x.'),
-    ({('-d_id', '+')}, 'Wrong configuration of allowed ordering permutations: +.'),
-    ({('',)}, 'Wrong configuration of allowed ordering permutations: .'),
+@pytest.mark.parametrize(
+    'v, expected',
     (
-        {('author.email', '+published.at'), ('fsm', '-title')},
-        'Wrong configuration of allowed ordering permutations: -title.',
+        ({('x',)}, 'Wrong configuration of allowed ordering permutations: x.'),
+        ({('-d_id', '+')}, 'Wrong configuration of allowed ordering permutations: +.'),
+        ({('',)}, 'Wrong configuration of allowed ordering permutations: .'),
+        (
+            {('author.email', '+published.at'), ('fsm', '-title')},
+            'Wrong configuration of allowed ordering permutations: -title.',
+        ),
     ),
-))
+)
 def test_wrong_ordering_permutations_filter_name_provided(v, expected):
     class Cls(BooksFilterClass):
         ALLOWED_ORDERING_PERMUTATIONS_IN_QUERY = v
@@ -218,10 +239,12 @@ def test_orm_field_type_is_unsupported():
 def test_reserved_filter_name_is_used(filter_name):
     class Cls(RQLFilterClass):
         MODEL = Author
-        FILTERS = [{
-            'filter': filter_name,
-            'source': 'id',
-        }]
+        FILTERS = [
+            {
+                'filter': filter_name,
+                'source': 'id',
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -231,12 +254,14 @@ def test_reserved_filter_name_is_used(filter_name):
 def test_bad_use_repr_and_ordering():
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'filter': 'rating.blog',
-            'source': 'blog_rating',
-            'use_repr': True,
-            'ordering': True,
-        }]
+        FILTERS = [
+            {
+                'filter': 'rating.blog',
+                'source': 'blog_rating',
+                'use_repr': True,
+                'ordering': True,
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -246,11 +271,13 @@ def test_bad_use_repr_and_ordering():
 def test_bad_use_repr_and_search():
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'filter': 'str_choice_field',
-            'use_repr': True,
-            'search': True,
-        }]
+        FILTERS = [
+            {
+                'filter': 'str_choice_field',
+                'use_repr': True,
+                'search': True,
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -261,10 +288,12 @@ def test_bad_use_repr_and_search():
 def test_bad_option_in_namespace(option):
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'namespace': 'title',
-            option: True,
-        }]
+        FILTERS = [
+            {
+                'namespace': 'title',
+                option: True,
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -274,9 +303,11 @@ def test_bad_option_in_namespace(option):
 def test_bad_item_structure():
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'source': 'title',
-        }]
+        FILTERS = [
+            {
+                'source': 'title',
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -286,26 +317,32 @@ def test_bad_item_structure():
 def test_bad_dynamic_in_namespace():
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'namespace': 'author',
-            'filters': [{
-                'filter': 'a',
-                'dynamic': True,
-            }],
-        }]
+        FILTERS = [
+            {
+                'namespace': 'author',
+                'filters': [
+                    {
+                        'filter': 'a',
+                        'dynamic': True,
+                    },
+                ],
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
-    assert str(e.value) == "author.a: dynamic filters are not supported in namespaces."
+    assert str(e.value) == 'author.a: dynamic filters are not supported in namespaces.'
 
 
 def test_dynamic_field_not_set():
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'filter': 'title',
-            'dynamic': True,
-        }]
+        FILTERS = [
+            {
+                'filter': 'title',
+                'dynamic': True,
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -315,15 +352,18 @@ def test_dynamic_field_not_set():
 def test_bad_dynamic_set():
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'filter': 'custom',
-            'custom': True,
-            'field': True,
-            'lookups': {FL.EQ},
-        }, {
-            'filter': 'common',
-            'field': True,
-        }]
+        FILTERS = [
+            {
+                'filter': 'custom',
+                'custom': True,
+                'field': True,
+                'lookups': {FL.EQ},
+            },
+            {
+                'filter': 'common',
+                'field': True,
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -333,10 +373,12 @@ def test_bad_dynamic_set():
 def test_bad_search():
     class Cls(RQLFilterClass):
         MODEL = Book
-        FILTERS = [{
-            'filter': 'id',
-            'search': True,
-        }]
+        FILTERS = [
+            {
+                'filter': 'id',
+                'search': True,
+            },
+        ]
 
     with pytest.raises(AssertionError) as e:
         Cls(empty_qs)
@@ -360,7 +402,9 @@ def _default_expected_book_auto_filters():
         'id': {'orm_route': 'id', 'lookups': FL.numeric()},
         'title': {'orm_route': 'title', 'lookups': FL.string(), 'null_values': {RQL_NULL}},
         'current_price': {
-            'orm_route': 'current_price', 'lookups': FL.numeric(), 'null_values': {RQL_NULL},
+            'orm_route': 'current_price',
+            'lookups': FL.numeric(),
+            'null_values': {RQL_NULL},
         },
         'written': {'orm_route': 'written', 'lookups': FL.numeric()},
         'status': {'orm_route': 'status', 'lookups': FL.string(with_null=False)},
@@ -369,10 +413,12 @@ def _default_expected_book_auto_filters():
         'amazon_rating': {'orm_route': 'amazon_rating', 'lookups': FL.numeric()},
         'publishing_url': {'orm_route': 'publishing_url', 'lookups': FL.string()},
         'int_choice_field': {
-            'orm_route': 'int_choice_field', 'lookups': FL.numeric(with_null=False),
+            'orm_route': 'int_choice_field',
+            'lookups': FL.numeric(with_null=False),
         },
         'str_choice_field': {
-            'orm_route': 'str_choice_field', 'lookups': FL.string(with_null=False),
+            'orm_route': 'str_choice_field',
+            'lookups': FL.string(with_null=False),
         },
         'github_stars': {'orm_route': 'github_stars', 'lookups': FL.numeric()},
         'fsm_field': {'orm_route': 'fsm_field', 'lookups': FL.string()},
@@ -415,14 +461,16 @@ def test_auto_filtering_override():
     expected_sub_dct = _default_expected_book_auto_filters()
     del expected_sub_dct['id']
     del expected_sub_dct['fsm_field']
-    expected_sub_dct.update({
-        'author.is_male': {'orm_route': 'author__is_male', 'lookups': FL.boolean()},
-        'author.email': {'orm_route': 'author__email', 'lookups': FL.string()},
-        'author.publisher.id': {
-            'orm_route': 'author__publisher__id',
-            'lookups': FL.numeric(),
+    expected_sub_dct.update(
+        {
+            'author.is_male': {'orm_route': 'author__is_male', 'lookups': FL.boolean()},
+            'author.email': {'orm_route': 'author__email', 'lookups': FL.string()},
+            'author.publisher.id': {
+                'orm_route': 'author__publisher__id',
+                'lookups': FL.numeric(),
+            },
         },
-    })
+    )
 
     assert len(Cls(empty_qs).filters) == len(expected_sub_dct)
     assert_filter_cls(
@@ -567,10 +615,12 @@ def test_nested_auto_building_filters_depth_3_described_and_exclusions():
         MODEL = AutoMain
         DEPTH = 3
         EXCLUDE_FILTERS = ('common_int', 'parent.parent', 'related1')
-        FILTERS = ({
-            'filter': 'random',
-            'source': 'id',
-        },)
+        FILTERS = (
+            {
+                'filter': 'random',
+                'source': 'id',
+            },
+        )
 
     filter_set = set(Cls(AutoMain.objects.all()).filters.keys())
 

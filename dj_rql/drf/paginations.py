@@ -13,7 +13,7 @@ from dj_rql.transformer import RQLLimitOffsetTransformer
 
 
 class RQLLimitOffsetPagination(LimitOffsetPagination):
-    """ RQL limit offset pagination. """
+    """RQL limit offset pagination."""
 
     def __init__(self, *args, **kwargs):
         super(RQLLimitOffsetPagination, self).__init__(*args, **kwargs)
@@ -37,9 +37,11 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
             try:
                 self._rql_limit, self._rql_offset = RQLLimitOffsetTransformer().transform(rql_ast)
             except LarkError:
-                raise RQLFilterParsingError(details={
-                    'error': 'Limit and offset are set incorrectly.',
-                })
+                raise RQLFilterParsingError(
+                    details={
+                        'error': 'Limit and offset are set incorrectly.',
+                    },
+                )
 
         self.limit = self.get_limit(request)
         if self.limit == 0:
@@ -62,7 +64,7 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
         if self.limit + self.offset > self.count:
             self.limit = self.count - self.offset
 
-        return list(queryset[self.offset:self.offset + self.limit])
+        return list(queryset[self.offset : self.offset + self.limit])
 
     def get_limit(self, *args):
         if self._rql_limit is not None:
@@ -82,7 +84,7 @@ class RQLLimitOffsetPagination(LimitOffsetPagination):
 
 
 class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
-    """ RQL RFC2616 limit offset pagination.
+    """RQL RFC2616 limit offset pagination.
 
     Examples:
         ```
@@ -96,6 +98,8 @@ class RQLContentRangeLimitOffsetPagination(RQLLimitOffsetPagination):
     def get_paginated_response(self, data):
         length = len(data) - 1 if data else 0
         content_range = 'items {0}-{1}/{2}'.format(
-            self.offset, self.offset + length, self.count,
+            self.offset,
+            self.offset + length,
+            self.count,
         )
         return Response(data, headers={'Content-Range': content_range})

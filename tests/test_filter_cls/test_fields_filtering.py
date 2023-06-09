@@ -97,10 +97,16 @@ def test_current_price():
     assert filter_field(filter_name, CO.EQ, 2) == []
     assert filter_field(filter_name, CO.GT, books[1].current_price) == [books[0], books[2]]
     assert filter_field(filter_name, CO.NE, books[1].current_price) == [
-        books[0], books[2], books[3], books[4],
+        books[0],
+        books[2],
+        books[3],
+        books[4],
     ]
     assert filter_field(filter_name, CO.LE, books[0].current_price) == [
-        books[0], books[1], books[3], books[4],
+        books[0],
+        books[1],
+        books[3],
+        books[4],
     ]
 
 
@@ -404,38 +410,64 @@ def test_boolean_field_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
 
-@pytest.mark.parametrize('bad_value', [
-    '2019-02-12T10:02:00', '0', 'date', '2019:02:12', '2019-27-1',
-])
+@pytest.mark.parametrize(
+    'bad_value',
+    [
+        '2019-02-12T10:02:00',
+        '0',
+        'date',
+        '2019:02:12',
+        '2019-27-1',
+    ],
+)
 @pytest.mark.parametrize('filter_name', ['written'])
 def test_date_field_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
 
-@pytest.mark.parametrize('bad_value', [
-    '0', 'date', '2019-02-12T27:00:00', '2019-02-12T21:00:00K',
-])
+@pytest.mark.parametrize(
+    'bad_value',
+    [
+        '0',
+        'date',
+        '2019-02-12T27:00:00',
+        '2019-02-12T21:00:00K',
+    ],
+)
 @pytest.mark.parametrize('filter_name', ['published.at'])
 def test_datetime_field_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
 
 @pytest.mark.parametrize('bad_operator', [CO.GT, CO.LE])
-@pytest.mark.parametrize('filter_name,value', [
-    ('amazon_rating', '1.23'), ('page.number', '5'),
-    ('int_choice_field_repr', 'I'), ('str_choice_field_repr', 'I'),
-    ('select_author', 'value'),
-])
+@pytest.mark.parametrize(
+    'filter_name,value',
+    [
+        ('amazon_rating', '1.23'),
+        ('page.number', '5'),
+        ('int_choice_field_repr', 'I'),
+        ('str_choice_field_repr', 'I'),
+        ('select_author', 'value'),
+    ],
+)
 def test_field_lookup_fail(filter_name, value, bad_operator):
     assert_filter_field_lookup_error(filter_name, bad_operator, value)
 
 
-@pytest.mark.parametrize('filter_name,bad_value', [
-    ('status', 'invalid'), ('rating.blog', 'invalid'), ('rating.blog_int', '-1'),
-    ('int_choice_field', 0), ('int_choice_field', 'invalid'),
-    ('int_choice_field_repr', 0), ('int_choice_field_repr', 'invalid'),
-    ('str_choice_field', 'zero'), ('str_choice_field_repr', 'zero'),
-])
+@pytest.mark.parametrize(
+    'filter_name,bad_value',
+    [
+        ('status', 'invalid'),
+        ('rating.blog', 'invalid'),
+        ('rating.blog_int', '-1'),
+        ('int_choice_field', 0),
+        ('int_choice_field', 'invalid'),
+        ('int_choice_field_repr', 0),
+        ('int_choice_field_repr', 'invalid'),
+        ('str_choice_field', 'zero'),
+        ('str_choice_field_repr', 'zero'),
+    ],
+)
 def test_bad_choice_fail(filter_name, bad_value):
     assert_filter_field_value_error(filter_name, CO.EQ, bad_value)
 
@@ -459,28 +491,31 @@ def test_empty_value_fail(filter_name):
     assert_filter_field_value_error(filter_name, CO.EQ, RQL_EMPTY)
 
 
-@pytest.mark.parametrize('value,db_lookup,db_value', [
-    ('value', DjangoLookups.EXACT, 'value'),
-    ('*value', DjangoLookups.ENDSWITH, 'value'),
-    ('value*', DjangoLookups.STARTSWITH, 'value'),
-    ('*value*', DjangoLookups.CONTAINS, 'value'),
-    ('val*ue', DjangoLookups.REGEX, '^val(.*)ue$'),
-    ('val*ue*', DjangoLookups.REGEX, '^val(.*)ue'),
-    ('*val*ue', DjangoLookups.REGEX, 'val(.*)ue$'),
-    ('*val*ue*', DjangoLookups.REGEX, 'val(.*)ue'),
-    ('*', DjangoLookups.REGEX, '(.*)'),
-    (r'value\*', DjangoLookups.EXACT, 'value*'),
-    (r'value\\*', DjangoLookups.STARTSWITH, 'value\\'),
-    (r'value\\\*', DjangoLookups.EXACT, r'value\*'),
-    (r'value\**', DjangoLookups.STARTSWITH, 'value*'),
-    (r'*\*\*value', DjangoLookups.ENDSWITH, '**value'),
-    (r'*val\*ue*', DjangoLookups.CONTAINS, 'val*ue'),
-    (r'va\*l*\*ue*', DjangoLookups.REGEX, '^va*l(.*)*ue'),
-    ('val*[ue}*', DjangoLookups.REGEX, r'^val(.*)\[ue\}'),
-    ('val*ue)*', DjangoLookups.REGEX, r'^val(.*)ue\)'),
-    ('*val*ue{2*', DjangoLookups.REGEX, r'val(.*)ue\{2'),
-    ('val*ue{2}*', DjangoLookups.REGEX, r'^val(.*)ue\{2\}'),
-])
+@pytest.mark.parametrize(
+    'value,db_lookup,db_value',
+    [
+        ('value', DjangoLookups.EXACT, 'value'),
+        ('*value', DjangoLookups.ENDSWITH, 'value'),
+        ('value*', DjangoLookups.STARTSWITH, 'value'),
+        ('*value*', DjangoLookups.CONTAINS, 'value'),
+        ('val*ue', DjangoLookups.REGEX, '^val(.*)ue$'),
+        ('val*ue*', DjangoLookups.REGEX, '^val(.*)ue'),
+        ('*val*ue', DjangoLookups.REGEX, 'val(.*)ue$'),
+        ('*val*ue*', DjangoLookups.REGEX, 'val(.*)ue'),
+        ('*', DjangoLookups.REGEX, '(.*)'),
+        (r'value\*', DjangoLookups.EXACT, 'value*'),
+        (r'value\\*', DjangoLookups.STARTSWITH, 'value\\'),
+        (r'value\\\*', DjangoLookups.EXACT, r'value\*'),
+        (r'value\**', DjangoLookups.STARTSWITH, 'value*'),
+        (r'*\*\*value', DjangoLookups.ENDSWITH, '**value'),
+        (r'*val\*ue*', DjangoLookups.CONTAINS, 'val*ue'),
+        (r'va\*l*\*ue*', DjangoLookups.REGEX, '^va*l(.*)*ue'),
+        ('val*[ue}*', DjangoLookups.REGEX, r'^val(.*)\[ue\}'),
+        ('val*ue)*', DjangoLookups.REGEX, r'^val(.*)ue\)'),
+        ('*val*ue{2*', DjangoLookups.REGEX, r'val(.*)ue\{2'),
+        ('val*ue{2}*', DjangoLookups.REGEX, r'^val(.*)ue\{2\}'),
+    ],
+)
 def test_searching_q_ok(value, db_lookup, db_value):
     cls = BooksFilterClass(book_qs)
 

@@ -27,7 +27,10 @@ class Author(models.Model):
     is_male = models.NullBooleanField()
 
     publisher = models.ForeignKey(
-        Publisher, related_name='authors', on_delete=models.SET_NULL, null=True,
+        Publisher,
+        related_name='authors',
+        on_delete=models.SET_NULL,
+        null=True,
     )
 
     fk1 = models.ForeignKey(RandomFk, on_delete=models.SET_NULL, null=True)
@@ -111,7 +114,10 @@ class ReverseFKRelated(models.Model):
 
 class ReverseOneToOneRelated(models.Model):
     auto = models.OneToOneField(
-        AutoMain, null=True, on_delete=models.SET_NULL, related_name='reverse_OtO',
+        AutoMain,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='reverse_OtO',
     )
 
 
@@ -121,7 +127,10 @@ class ReverseManyToManyRelated(models.Model):
 
 class ReverseManyToManyTroughRelated(models.Model):
     auto = models.ManyToManyField(
-        AutoMain, through='Through', through_fields=('mtm', 'auto'), related_name='reverse_MtM',
+        AutoMain,
+        through='Through',
+        through_fields=('mtm', 'auto'),
+        related_name='reverse_MtM',
     )
 
 

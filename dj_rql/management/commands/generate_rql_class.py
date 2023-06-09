@@ -89,16 +89,28 @@ class Command(BaseCommand):
                     return "NPR('{0}')".format(field.name)
 
         filters = Cls(model._default_manager.all()).init_filters
-        filters_str = json.dumps(filters, sort_keys=False, indent=4).replace(
-            '"ordering": true', '"ordering": True',
-        ).replace(
-            '"ordering": false', '"ordering": False',
-        ).replace(
-            '"search": true', '"search": True',
-        ).replace(
-            '"search": false', '"search": False',
-        ).replace(
-            '"qs": null', '"qs": None',
+        filters_str = (
+            json.dumps(filters, sort_keys=False, indent=4)
+            .replace(
+                '"ordering": true',
+                '"ordering": True',
+            )
+            .replace(
+                '"ordering": false',
+                '"ordering": False',
+            )
+            .replace(
+                '"search": true',
+                '"search": True',
+            )
+            .replace(
+                '"search": false',
+                '"search": False',
+            )
+            .replace(
+                '"qs": null',
+                '"qs": None',
+            )
         )
 
         filters_str = re.sub(r"\"((NPR|NSR)\('\w+?'\))\"", r'\1', filters_str)

@@ -30,8 +30,7 @@ def test_detail_exclude_fields(api_client, clear_cache):
     book = Book.objects.create(author=author, status=Book.PLANNING, amazon_rating=5.0)
 
     response = api_client.get(
-        reverse('dynamicfiltercls-detail', [book.pk])
-        + '?select(-author,-status,-amazon_rating)',
+        reverse('dynamicfiltercls-detail', [book.pk]) + '?select(-author,-status,-amazon_rating)',
     )
 
     assert response.status_code == HTTP_200_OK
@@ -61,8 +60,7 @@ def test_list_include_fields(api_client, clear_cache):
     Book.objects.create(author=author, status=Book.PLANNING, amazon_rating=5.0)
 
     response = api_client.get(
-        reverse('dynamicfiltercls-list')
-        + '?select(author,status,amazon_rating)',
+        reverse('dynamicfiltercls-list') + '?select(author,status,amazon_rating)',
     )
 
     assert response.status_code == HTTP_200_OK
