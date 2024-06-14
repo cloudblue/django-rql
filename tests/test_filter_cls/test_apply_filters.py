@@ -689,3 +689,25 @@ def test_distinct_on_field_field_in_ordering():
 def test_distinct_on_field_field_not_in_ordering():
     _, qs = BooksFilterClass(book_qs).apply_filters('ordering(int_choice_field)')
     assert not qs.query.distinct
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    'query',
+    (
+        '(not(ilike(title,*ermat*)))',
+        '(not(ilike(title,*ermat*))&not(ilike(author__name,*Foo*)))',
+        '(and(not(ilike(title,*ermat*)),not(ilike(author__name,*Foo*))))',
+    ),
+)
+def test_complex_nested_queries(query):
+    publisher = [Publisher.objects.create() for _ in range(2)]
+
+    author = Author.objects.create(name='Foo', publisher=publisher[0], is_male=False)
+    Book.objects.create(amazon_rating=4.0, author=author, title='Fermats last theorem')
+
+    other_author = Author.objects.create(name='Bar', publisher=publisher[0], is_male=False)
+    other_book = Book.objects.create(amazon_rating=4.5, author=other_author, title="Madame Bovary")
+    other_book2 = Book.objects.create(amazon_rating=4.5, author=other_author, title="Madame Bovary")
+
+    assert apply_filters(query) == [other_book, other_book2]
