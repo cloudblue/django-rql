@@ -12,10 +12,26 @@ jobs:
   build:
     name: Build and test ${{ matrix.python-version }} - ${{ matrix.django-version }}
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
-      matrix: 
+      fail-fast: false
+      matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
         django-version: ['3.2', '4.1', '4.2']
+        experimental: [false]
+        include:
+          - python-version: '3.12'
+            django-version: '5.2'
+            experimental: true
+          - python-version: '3.13'
+            django-version: '6.0'
+            experimental: true
+          - python-version: '3.13'
+            django-version: '6.1'
+            experimental: true
+          - python-version: '3.14'
+            django-version: '6.1'
+            experimental: true
     steps:
       - name: Checkout project
         uses: actions/checkout@v3
