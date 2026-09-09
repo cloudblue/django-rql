@@ -23,6 +23,11 @@ dependencies = [
     "lib-rql>=2.0,<3",
 ]
 
+[project.optional-dependencies]
+drf = [
+    "djangorestframework>=3.15",
+]
+
 [project.urls]
 Homepage = "https://connect.cloudblue.com/community/api/rql/"
 Repository = "https://github.com/cloudblue/django-rql"
