@@ -75,7 +75,7 @@ optional = true
 
 [tool.poetry.group.docs.dependencies]
 mkdocs = ">=1.4"
-mkdocs-material = ">=9"
+mkdocs-material = ">=9.7.7"
 mkdocs-glightbox = "^0.3.1"
 mkdocs-macros-plugin = "^0.7.0"
 mkdocstrings = ">=0.19.1"
