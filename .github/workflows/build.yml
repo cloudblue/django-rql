@@ -8,11 +8,13 @@ on:
   pull_request:
     branches: [ master ]
 
-# The SonarCloud quality analysis used to run here as a third job. It has been
-# taken out because the SonarCloud project behind it no longer exists, which
-# made every build on master fail. It comes back in a follow-up PR, in its own
-# sonar.yml workflow and with the corrected project key, once the project has
-# been provisioned again.
+# The SonarCloud quality analysis used to run here as a third job, on actions
+# that have been deprecated for years, and it failed on every push while the
+# SonarCloud project was missing. The project is back and its automatic
+# analysis now covers pushes and pull requests on its own, so nothing has to
+# run here for the quality gate. A follow-up PR restores a CI-side analysis in
+# its own sonar.yml workflow, which is the only way to feed the coverage report
+# to SonarCloud, and that requires turning the automatic analysis off first.
 jobs:
   lint:
     name: Lint
