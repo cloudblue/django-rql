@@ -25,9 +25,9 @@ jobs:
       run: poetry run flake8
     - name: Testing
       run: poetry run pytest
-    # This job also ran the SonarCloud analysis and quality gate, on the same
-    # deprecated actions as build.yml. Analysing a release twice adds nothing,
-    # so those steps are gone for good: see the comment in build.yml.
+    # This job also ran the analysis and the quality gate. Analysing a release
+    # twice adds nothing: the tagged commit is already analysed by sonar.yml
+    # when it lands on master.
     - name: Extract tag name
       uses: actions/github-script@v7
       id: tag
