@@ -11,7 +11,6 @@ from rest_framework.test import APIRequestFactory
 
 from dj_rql.drf import RQLContentRangeLimitOffsetPagination
 
-
 factory = APIRequestFactory()
 
 

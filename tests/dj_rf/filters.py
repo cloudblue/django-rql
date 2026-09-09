@@ -22,7 +22,6 @@ from dj_rql.qs import (
 )
 from tests.dj_rf.models import Book
 
-
 AUTHOR_FILTERS = [
     'is_male',
     {

@@ -5,7 +5,6 @@
 from django.db import models
 from py_rql.constants import FilterLookups, FilterTypes as FT
 
-
 SUPPORTED_FIELD_TYPES = (
     models.AutoField,
     models.BigAutoField,

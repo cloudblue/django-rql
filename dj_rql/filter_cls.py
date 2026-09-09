@@ -45,7 +45,6 @@ from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.qs import NPR, NSR, Annotation
 from dj_rql.transformer import RQLToDjangoORMTransformer
 
-
 iterable_types = (list, tuple)
 
 

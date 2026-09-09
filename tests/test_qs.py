@@ -19,7 +19,6 @@ from dj_rql.qs import (
 )
 from tests.dj_rf.models import Book
 
-
 default_qs = Book.objects.all()
 
 

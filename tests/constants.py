@@ -11,7 +11,6 @@ from py_rql.constants import (
     SearchOperators,
 )
 
-
 OK_PROPS = (
     'p',
     'p1',

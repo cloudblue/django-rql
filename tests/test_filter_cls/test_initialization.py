@@ -12,7 +12,6 @@ from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_se
 from tests.dj_rf.filters import AUTHOR_FILTERS, BooksFilterClass
 from tests.dj_rf.models import Author, AutoMain, Book
 
-
 empty_qs = Author.objects.none()
 
 

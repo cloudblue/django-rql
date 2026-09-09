@@ -11,7 +11,6 @@ from django.utils.module_loading import import_string
 
 from dj_rql.filter_cls import NestedAutoRQLFilterClass
 
-
 TEMPLATE = """from {model_package} import {model_name}
 
 from dj_rql.filter_cls import RQLFilterClass

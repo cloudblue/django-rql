@@ -15,7 +15,6 @@ from tests.dj_rf.view import (
     SelectViewSet,
 )
 
-
 router = SimpleRouter()
 router.register(r'books', DRFViewSet, basename='book')
 router.register(r'old_books', DjangoFiltersViewSet, basename='old_book')
