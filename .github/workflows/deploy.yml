@@ -9,50 +9,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
+    - name: Install poetry
+      run: pipx install poetry
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.8'
+        python-version: '3.12'
+        cache: poetry
     - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
-        poetry install
-        pip install twine
+      run: poetry install --no-interaction
     - name: Linting
-      run: |
-        poetry run flake8
+      run: poetry run flake8
     - name: Testing
-      run: |
-        poetry run pytest
-    - name: Fix coverage report for Sonar
-      run: |
-        sed -i 's/\/home\/runner\/work\/django-rql\/django-rql\//\/github\/workspace\//g' ./tests/reports/coverage.xml
-    - name: SonarCloud
-      uses: SonarSource/sonarcloud-github-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    - name: Wait sonar to process report
-      uses: jakejarvis/wait-action@master
-      with:
-        time: '15s'
-    - name: SonarQube Quality Gate check
-      uses: sonarsource/sonarqube-quality-gate-action@master
-      timeout-minutes: 5
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      run: poetry run pytest
+    # This job also ran the SonarCloud analysis and quality gate. Those steps
+    # were dropped together with the ones in build.yml, because the SonarCloud
+    # project behind them no longer exists; they come back in a follow-up PR.
     - name: Extract tag name
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       id: tag
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         result-encoding: string
         script: |
           return context.payload.ref.replace(/refs\/tags\//, '')
+    # TODO: PyPI no longer accepts username/password uploads. Replace this
+    # step with pypa/gh-action-pypi-publish once either an API token or
+    # Trusted Publishing is configured for the project on PyPI.
     - name: Build and publish to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
