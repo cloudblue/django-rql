@@ -3,15 +3,15 @@ Getting started
 
 # Requirements
 
-`django-rql` works with Python 3.8 or newer and has the
+`django-rql` works with Python 3.10 or newer and has the
 following dependencies:
 
--   Django >= 3.2.* and <= 4.1
--   lark-parser 0.8.2
+-   Django >= 4.2 (4.2 and 5.2 are the versions covered by the test suite)
+-   lib-rql >= 2.0
 
 And the following optional dependency:
 
--   djangorestframework >= 3.12
+-   djangorestframework >= 3.15
 
 # Install
 
