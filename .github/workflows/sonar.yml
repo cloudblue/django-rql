@@ -12,10 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     # The analysis needs SONAR_TOKEN, which GitHub does not expose to pull
     # requests opened from a fork. Those get analysed once they are merged.
-     if: >
-       github.event_name == 'push' ||
-       (github.actor != 'dependabot[bot]' &&
-        github.event.pull_request.head.repo.full_name == github.repository)
+    if: github.event_name == 'push' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout project
         uses: actions/checkout@v4
