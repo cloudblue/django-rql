@@ -8,74 +8,57 @@ on:
   pull_request:
     branches: [ master ]
 
+# The quality analysis used to run here as a third job. It now lives in its own
+# sonar.yml workflow, so that a failing quality gate no longer reads as a failed
+# build and the analysis does not wait for the whole version matrix.
 jobs:
-  build:
-    name: Build and test ${{ matrix.python-version }} - ${{ matrix.django-version }}
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-    strategy:
-      matrix: 
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-        django-version: ['3.2', '4.1', '4.2']
     steps:
       - name: Checkout project
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+      - name: Install poetry
+        run: pipx install poetry
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: poetry
+      - name: Install dependencies
+        run: poetry install --no-interaction
+      - name: Linting
+        run: poetry run flake8
+
+  test:
+    name: Python ${{ matrix.python-version }} - Django ${{ matrix.django-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        django-version: ['4.2', '5.2']
+        exclude:
+          # Django 4.2 supports Python 3.8 to 3.12 only.
+          - python-version: '3.13'
+            django-version: '4.2'
+          - python-version: '3.14'
+            django-version: '4.2'
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install poetry
+        run: pipx install poetry
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install poetry
-        run: |
-          python -m pip install --upgrade pip
-          pip install poetry
+          cache: poetry
       - name: Install dependencies
-        run: |
-          poetry install
-      - name: Force django version ${{ matrix.django-version }} 
-        run: |
-          poetry add django==${{ matrix.django-version }}.*
-      - name: Linting
-        run: |
-          poetry run flake8
+        run: poetry install --no-interaction
+      - name: Force Django ${{ matrix.django-version }}
+        run: poetry run pip install "django==${{ matrix.django-version }}.*"
       - name: Testing
-        run: |
-          poetry run pytest
-  sonar:
-    name: Quality Analysis by sonar
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout project
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install poetry
-        poetry install
-    - name: Testing
-      run: |
-        poetry run pytest
-    - name: Fix coverage report for Sonar
-      run: |
-        sed -i 's/\/home\/runner\/work\/django-rql\/django-rql\//\/github\/workspace\//g' ./tests/reports/coverage.xml
-    - name: SonarCloud
-      uses: SonarSource/sonarcloud-github-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-    - name: Wait sonar to process report
-      uses: jakejarvis/wait-action@master
-      with:
-        time: '15s'
-    - name: SonarQube Quality Gate check
-      uses: sonarsource/sonarqube-quality-gate-action@master
-      timeout-minutes: 5
-      env:
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: poetry run pytest

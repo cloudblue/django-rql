@@ -1,5 +1,5 @@
 #
-#  Copyright © 2025 CloudBlue. All rights reserved.
+#  Copyright © 2026 CloudBlue. All rights reserved.
 #
 
 import json
@@ -10,7 +10,6 @@ from django.db.models import ForeignKey, OneToOneField, OneToOneRel
 from django.utils.module_loading import import_string
 
 from dj_rql.filter_cls import NestedAutoRQLFilterClass
-
 
 TEMPLATE = """from {model_package} import {model_name}
 

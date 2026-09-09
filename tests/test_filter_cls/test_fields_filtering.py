@@ -1,5 +1,5 @@
 #
-#  Copyright © 2025 CloudBlue. All rights reserved.
+#  Copyright © 2026 CloudBlue. All rights reserved.
 #
 
 from datetime import date, datetime
@@ -154,7 +154,7 @@ def test_name():
 def test_author__email(filter_name):
     authors = [
         Author.objects.create(email='email@gmail.com'),
-        Author.objects.create(email='m.k@ingrammicro.com'),
+        Author.objects.create(email='m.k@cloudblue.com'),
     ]
     books = [Book.objects.create(author=authors[index]) for index in range(2)]
     assert filter_field(filter_name, CO.EQ, authors[1].email) == [books[1]]

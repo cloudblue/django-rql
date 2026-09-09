@@ -1,5 +1,5 @@
 #
-#  Copyright © 2025 CloudBlue. All rights reserved.
+#  Copyright © 2026 CloudBlue. All rights reserved.
 #
 import decimal
 import re
@@ -44,7 +44,6 @@ from dj_rql.fields import SelectField
 from dj_rql.openapi import RQLFilterClassSpecification
 from dj_rql.qs import NPR, NSR, Annotation
 from dj_rql.transformer import RQLToDjangoORMTransformer
-
 
 iterable_types = (list, tuple)
 

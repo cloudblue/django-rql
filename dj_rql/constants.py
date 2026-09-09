@@ -1,10 +1,9 @@
 #
-#  Copyright © 2025 CloudBlue. All rights reserved.
+#  Copyright © 2026 CloudBlue. All rights reserved.
 #
 
 from django.db import models
 from py_rql.constants import FilterLookups, FilterTypes as FT
-
 
 SUPPORTED_FIELD_TYPES = (
     models.AutoField,

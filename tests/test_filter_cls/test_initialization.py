@@ -1,5 +1,5 @@
 #
-#  Copyright © 2025 CloudBlue. All rights reserved.
+#  Copyright © 2026 CloudBlue. All rights reserved.
 #
 
 import pytest
@@ -11,7 +11,6 @@ from dj_rql.utils import assert_filter_cls
 from tests.data import get_book_filter_cls_ordering_data, get_book_filter_cls_search_data
 from tests.dj_rf.filters import AUTHOR_FILTERS, BooksFilterClass
 from tests.dj_rf.models import Author, AutoMain, Book
-
 
 empty_qs = Author.objects.none()
 

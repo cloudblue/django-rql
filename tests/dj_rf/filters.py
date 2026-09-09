@@ -1,5 +1,5 @@
 #
-#  Copyright © 2025 CloudBlue. All rights reserved.
+#  Copyright © 2026 CloudBlue. All rights reserved.
 #
 from copy import deepcopy
 
@@ -21,7 +21,6 @@ from dj_rql.qs import (
     SR,
 )
 from tests.dj_rf.models import Book
-
 
 AUTHOR_FILTERS = [
     'is_male',

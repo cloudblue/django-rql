@@ -4,7 +4,7 @@ Django RQL
 [![PyPi Status](https://img.shields.io/pypi/v/django-rql.svg)](https://pypi.org/project/django-rql/)
 [![PyPI status](https://img.shields.io/pypi/status/django-rql.svg)](https://pypi.org/project/django-rql/)
 [![Docs](https://readthedocs.org/projects/django-rql/badge/?version=latest)](https://readthedocs.org/projects/django-rql) 
-[![Build Status](https://github.com/cloudblue/django-rql/workflows/Build%20Django-RQL%20library/badge.svg)](https://github.com/cloudblue/django-rql/actions)
+[![Build Status](https://github.com/cloudblue/django-rql/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/cloudblue/django-rql/actions/workflows/build.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=django-rql)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=django-rql&metric=coverage)](https://sonarcloud.io/summary/new_code?id=django-rql)
 [![PyPI Downloads](https://img.shields.io/pypi/dm/django-rql)](https://pypi.org/project/django-rql/)
@@ -272,7 +272,7 @@ Best Practices
 Development
 ===========
 
-1. Python 3.8+
+1. Python 3.10+
 2. Install poetry: `pip install poetry`
 3. Install dependencies: `poetry install`
 4. We use `isort` library to order and format our imports, and `black` - to format the code. 
@@ -283,7 +283,7 @@ For convenience you may run `isort . && black .` to format the code.
 Testing
 =======
 
-1. Python 3.8+
+1. Python 3.10+
 2. Install poetry: `pip install poetry`
 3. Install dependencies: `poetry install`
 

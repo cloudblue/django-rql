@@ -1,5 +1,5 @@
 #
-#  Copyright © 2025 CloudBlue. All rights reserved.
+#  Copyright © 2026 CloudBlue. All rights reserved.
 #
 
 from unittest import TestCase
@@ -10,7 +10,6 @@ from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
 from dj_rql.drf import RQLContentRangeLimitOffsetPagination
-
 
 factory = APIRequestFactory()
 
