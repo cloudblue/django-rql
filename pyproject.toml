@@ -121,6 +121,7 @@ exclude = [
     ".git",
     "pg_data",
     "venv",
+    ".venv",
     "*.eggs",
     "*.egg",
     "_generated_filters*.py",
