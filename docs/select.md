@@ -120,3 +120,51 @@ class ProductSerializer(RQLMixin, serializers.ModelSerializer):
 
     A complete working example of how the `select` operator works can be
     found [here](https://github.com/maxipavlovic/django_rql_select_example).
+
+## Reading what a request selected
+
+Sometimes a view has to know what the caller selected *before* the filtering runs,
+because the queryset it builds depends on it. A typical case is deciding which
+`Prefetch` objects or annotations are worth adding, which happens in `get_queryset()`,
+and Django Rest Framework calls it before the filter backend gets to run.
+
+`dj_rql.drf.get_select_props` reads the props straight from the query string of the
+request:
+
+``` py3
+from dj_rql.drf import get_select_props
+
+
+class ProductViewSet(mixins.ListModelMixin, GenericViewSet):
+    filter_backends = (RQLFilterBackend,)
+    rql_filter_class = ProductFilters
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+
+        if 'reviews' in get_select_props(self.request):
+            queryset = queryset.prefetch_related(
+                Prefetch('reviews', queryset=Review.objects.published()),
+            )
+
+        return queryset
+```
+
+The props come back as the query wrote them, so an exclusion keeps its `-` prefix and
+it is up to the view to decide what that means to it:
+
+```
+GET /products?select(reviews,-category)
+```
+
+``` py3
+('reviews', '-category')
+```
+
+!!! note
+
+    The accessor doesn't check the props against the filters of the filter class, and
+    doesn't require `SELECT = True`, which is what makes it usable on a collection that
+    accepts prop names it doesn't declare. It also never raises: a query that cannot be
+    parsed simply has no props to read, and the request still gets rejected afterwards,
+    by the filtering.
