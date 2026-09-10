@@ -250,7 +250,7 @@ class RQLFilterClass:
             view (View): API view.
 
         Returns:
-            A Lark AST, Filtered QuerySet (could be None).
+            tuple: A Lark AST, Filtered QuerySet (could be None).
         """
         self._request = request
         self._view = view
