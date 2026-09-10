@@ -8,6 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
+from dj_rql.drf import get_select_props
 from dj_rql.drf.backend import RQLFilterBackend
 from dj_rql.drf.compat import DjangoFiltersRQLFilterBackend
 from dj_rql.drf.paginations import RQLContentRangeLimitOffsetPagination
@@ -65,6 +66,20 @@ class DynamicFilterClsViewSet(mixins.RetrieveModelMixin, DRFViewSet):
         if self.action == 'retrieve':
             return SelectDetailedBooksFilterClass
         return SelectBooksFilterClass
+
+
+select_props_seen = []
+
+
+class SelectPropsViewSet(DRFViewSet):
+    """Reads the requested select props while building the queryset, before filtering.
+
+    Its filter class doesn't enable SELECT, which is the case the accessor exists for.
+    """
+
+    def get_queryset(self):
+        select_props_seen.append(get_select_props(self.request))
+        return super().get_queryset()
 
 
 class NoFilterClsViewSet(DRFViewSet):
