@@ -15,7 +15,7 @@ jobs:
     if: github.event_name == 'push' || (github.actor != 'dependabot[bot]' && github.event.pull_request.head.repo.full_name == github.repository)
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # SonarQube needs the full history to attribute issues and to work
           # out the new code period.
