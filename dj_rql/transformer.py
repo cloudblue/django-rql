@@ -10,6 +10,7 @@ from py_rql.constants import (
     ListOperators,
     LogicalOperators,
 )
+from py_rql.exceptions import RQLFilterParsingError
 from py_rql.transformer import BaseRQLTransformer
 
 from dj_rql._dataclasses import FilterArgs
@@ -176,7 +177,12 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._q()
 
     def select(self, args):
-        assert not self._select
+        if self._select:
+            raise RQLFilterParsingError(
+                details={
+                    'error': 'Bad select filter: query can contain only one select operation.',
+                },
+            )
 
         props = args[1:]
         self._select = props
