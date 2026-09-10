@@ -37,8 +37,8 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.emoji:
-      emoji_index: !!python/name:materialx.emoji.twemoji
-      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - attr_list
   - toc:
       toc_depth: 3
@@ -54,6 +54,10 @@ plugins:
       handlers:
         python:
           options:
+            docstring_options:
+              # The docstrings write returns as "type: description", not as
+              # "name: description", which is what griffe assumes by default.
+              returns_named_value: false
             show_signature_annotations: true
             show_source: false
             show_bases: false

@@ -30,11 +30,11 @@ class RQLFilterDescriptionTemplate:
         """Render for the given item and instance.
 
         Args:
-            filter_item (dict) : Extended Filter item dict.
-            filter_instance (RQLFilterClass) : Instance of RQLFilterClass Class.
+            filter_item (dict): Extended Filter item dict.
+            filter_instance (RQLFilterClass): Instance of RQLFilterClass Class.
 
         Returns:
-            Rendered description string for filter item.
+            str: Rendered description string for filter item.
         """
         result = cls._render_base(filter_item, filter_instance)
 
@@ -121,7 +121,7 @@ class RQLFilterClassSpecification:
             filter_instance (RQLFilterClass): Instance of RQLFilterClass Class.
 
         Returns:
-            An OpenAPI compatible specification of Filter Class Filters list or dict.
+            dict: An OpenAPI compatible specification of Filter Class Filters list or dict.
         """
         extended_filter_items = {}
         common_filter_names, deprecated_filter_names = [], []

@@ -74,12 +74,12 @@ pytest-randomly = ">=3.15"
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-mkdocs = ">=1.4"
-mkdocs-material = ">=9"
-mkdocs-glightbox = "^0.3.1"
-mkdocs-macros-plugin = "^0.7.0"
-mkdocstrings = ">=0.19.1"
-mkdocstrings-python = "^0.8.3"
+mkdocs = ">=1.6"
+mkdocs-material = ">=9.5"
+mkdocs-glightbox = ">=0.4"
+mkdocs-macros-plugin = ">=1.0"
+mkdocstrings = ">=0.27"
+mkdocstrings-python = ">=1.11"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
