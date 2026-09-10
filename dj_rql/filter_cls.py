@@ -100,6 +100,16 @@ class RQLFilterClass:
             self._validate_init()
             self._default_init(self._get_init_filters())
 
+    @property
+    def request(self):
+        """Request `apply_filters` was called with, or `None` while it isn't running."""
+        return self._request
+
+    @property
+    def view(self):
+        """View `apply_filters` was called with, or `None` while it isn't running."""
+        return self._view
+
     @classmethod
     def _is_valid_model_cls(cls, model):
         return issubclass(model, Model)
@@ -199,7 +209,7 @@ class RQLFilterClass:
             data (OptimizationArgs): An OptimizationArgs instance.
 
         Returns:
-            An Optimized QuerySet (could be None).
+            QuerySet: An optimized QuerySet (could be None).
         """
         pass
 

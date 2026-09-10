@@ -31,6 +31,48 @@ def test_parsing_error(bad_query):
     assert e.value.details['error'] == 'Bad filter query.'
 
 
+def test_request_and_view_are_not_set_outside_filtering():
+    filter_cls = BooksFilterClass(book_qs)
+
+    assert filter_cls.request is None
+    assert filter_cls.view is None
+
+
+@pytest.mark.django_db
+def test_request_and_view_are_available_to_a_custom_filter():
+    """A custom filter can reach the request being filtered, e.g. to stash state on it."""
+    seen = []
+
+    class CustomCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [
+            {
+                'filter': 'custom_filter',
+                'custom': True,
+                'lookups': {FilterLookups.EQ},
+            },
+        ]
+
+        def build_q_for_custom_filter(self, data):
+            seen.append((self.request, self.view))
+            return Q()
+
+    request, view = object(), object()
+    filter_cls = CustomCls(book_qs)
+    filter_cls.apply_filters('eq(custom_filter,value)', request, view)
+
+    assert seen == [(request, view)]
+
+
+@pytest.mark.django_db
+def test_request_and_view_are_cleared_once_filtering_is_over():
+    filter_cls = BooksFilterClass(book_qs)
+    filter_cls.apply_filters('eq(title,book)', object(), object())
+
+    assert filter_cls.request is None
+    assert filter_cls.view is None
+
+
 def test_lookup_error():
     bad_lookup = 'like(id,1)'
     with pytest.raises(RQLFilterLookupError):
