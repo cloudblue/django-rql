@@ -386,6 +386,11 @@ class BookFilters(RQLFilterClass):
         pass  #  Put your filtering logic here and return a ``django.db.models.Q`` object.
 ```
 
+While the filtering runs, the filter class exposes the request and the view it was
+called with, as `self.request` and `self.view`, so your logic can depend on them or
+stash per request state where the view will find it. Both are `None` outside of
+`apply_filters`.
+
 ## Django Rest Framework extensions
 
 ### Pagination
