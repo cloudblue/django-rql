@@ -1,12 +1,15 @@
 name: Build Django-RQL library
 
 on:
+  # Branch filters do not match names containing a slash, so the '*' this used
+  # to carry never fired for branches like fix/something. Pushes are covered
+  # for master and tags, and everything else through its pull request, whatever
+  # branch it targets, so that stacked pull requests get checked too.
   push:
-    branches: '*'
+    branches: [ master ]
     tags:
       - '*'
   pull_request:
-    branches: [ master ]
 
 # The quality analysis used to run here as a third job. It now lives in its own
 # sonar.yml workflow, so that a failing quality gate no longer reads as a failed
@@ -17,11 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install poetry
         run: pipx install poetry
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: poetry
@@ -35,11 +38,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Install poetry
         run: pipx install poetry
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.12'
           cache: poetry
@@ -64,13 +67,13 @@ jobs:
             django-version: '4.2'
     steps:
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install poetry
         run: pipx install poetry
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: poetry
