@@ -1953,4 +1953,4 @@ drf = ["djangorestframework"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4"
-content-hash = "bd856d1a7a5f0583fc28d6d7ca91809d27fa24326b2f56f0636613e7dea168e7"
+content-hash = "0d5e0bb46aa41a2d29504f9d27b15f7fe492410d372fe5ebe41eba0ac97f9928"
