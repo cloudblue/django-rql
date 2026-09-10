@@ -23,7 +23,7 @@ def apply_filters(query):
     return list(q)
 
 
-@pytest.mark.parametrize('bad_query', ['q=', '(select(stats.attributes))&select(stats.attributes)'])
+@pytest.mark.parametrize('bad_query', ['q='])
 def test_parsing_error(bad_query):
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(bad_query)
@@ -354,6 +354,21 @@ def test_several_ordering_operations():
         apply_filters('ordering(d_id)&ordering(author.email)')
 
     expected = 'Bad ordering filter: query can contain only one ordering operation.'
+    assert e.value.details['error'] == expected
+
+
+@pytest.mark.parametrize(
+    'bad_query',
+    (
+        'select(author)&select(published.at)',
+        '(select(stats.attributes))&select(stats.attributes)',
+    ),
+)
+def test_several_select_operations(bad_query):
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters(bad_query)
+
+    expected = 'Bad select filter: query can contain only one select operation.'
     assert e.value.details['error'] == expected
 
 
