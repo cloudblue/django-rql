@@ -189,6 +189,27 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._q()
 
 
+class RQLSelectTransformer(BaseRQLTransformer):
+    """Parsed RQL AST tree transformer to the tuple of requested select props.
+
+    Notes:
+        Unlike `RQLToDjangoORMTransformer`, this transformer only collects what the query
+        asks for: it doesn't validate the props against a filter class and doesn't reject
+        a query that holds more than one select operation, in which case the props of all
+        of them are collected. Rejecting such a query stays the job of
+        `RQLFilterClass.apply_filters`.
+    """
+
+    def __init__(self):
+        self._props = []
+
+    def start(self, args):
+        return tuple(self._props)
+
+    def select(self, args):
+        self._props.extend(args[1:])
+
+
 class RQLLimitOffsetTransformer(BaseRQLTransformer):
     """Parsed RQL AST tree transformer to (limit, offset) tuple for limit offset pagination."""
 
