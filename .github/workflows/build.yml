@@ -1,12 +1,15 @@
 name: Build Django-RQL library
 
 on:
+  # Branch filters do not match names containing a slash, so the '*' this used
+  # to carry never fired for branches like fix/something. Pushes are covered
+  # for master and tags, and everything else through its pull request, whatever
+  # branch it targets, so that stacked pull requests get checked too.
   push:
-    branches: '*'
+    branches: [ master ]
     tags:
       - '*'
   pull_request:
-    branches: [ master ]
 
 # The quality analysis used to run here as a third job. It now lives in its own
 # sonar.yml workflow, so that a failing quality gate no longer reads as a failed
