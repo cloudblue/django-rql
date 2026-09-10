@@ -71,10 +71,13 @@ More details about the specifications for the exceptions `py_rql.exceptions` cou
         members:
             - build_q_for_custom_filter
             - build_name_for_custom_ordering
-            - optimize_field apply_annotations
+            - optimize_field
+            - apply_annotations
             - apply_filters
             - build_q_for_filter
             - get_filter_base_item
+            - request
+            - view
         heading_level: 3
 
 ### dj_rql.filter_cls.<strong>AutoRQLFilterClass</strong>
