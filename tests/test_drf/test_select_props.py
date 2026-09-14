@@ -8,10 +8,10 @@ from py_rql.parser import RQLParser
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
+import tests.dj_rf.view
 from dj_rql.drf import get_select_props
 from tests.dj_rf.filters import BooksFilterClass, SelectBooksFilterClass
 from tests.dj_rf.models import Book
-from tests.dj_rf.view import select_props_seen
 
 factory = APIRequestFactory()
 
@@ -51,8 +51,26 @@ def test_get_select_props(query, expected):
     assert get_select_props(make_request(query)) == expected
 
 
+def test_no_request_at_all_yields_no_props():
+    """DRF's schema generators call get_queryset() with the request unset."""
+    assert get_select_props(None) == ()
+
+
 def test_props_are_not_validated_against_any_filter_class():
     assert get_select_props(make_request('select(-i_am_not_a_filter)')) == ('-i_am_not_a_filter',)
+
+
+def test_query_is_read_as_sent_when_no_rql_backend_is_involved():
+    class OtherBackend:
+        pass
+
+    class View:
+        filter_backends = (OtherBackend,)
+
+    request = make_request('select(books)')
+    request.parser_context = {'view': View()}
+
+    assert get_select_props(request) == ('books',)
 
 
 def test_parsed_ast_is_reused_when_the_request_already_carries_one():
@@ -114,35 +132,51 @@ def test_props_are_not_the_processed_select_data():
 
 
 @pytest.mark.django_db
-def test_props_are_available_while_building_the_queryset(api_client, clear_cache):
-    select_props_seen.clear()
+def test_props_are_available_while_building_the_queryset(api_client, clear_cache, mocker):
+    spy = mocker.spy(tests.dj_rf.view, 'get_select_props')
 
     response = api_client.get('/select_props/?select(author,-pages)&eq(title,book)')
 
     assert response.status_code == 200
-    assert select_props_seen == [('author', '-pages')]
+    assert spy.spy_return == ('author', '-pages')
 
 
 @pytest.mark.django_db
-def test_undeclared_props_are_neither_rejected_nor_dropped(api_client, clear_cache):
+def test_undeclared_props_are_neither_rejected_nor_dropped(api_client, clear_cache, mocker):
     """The filter class has no SELECT, so nothing validates the props of the query."""
-    select_props_seen.clear()
+    spy = mocker.spy(tests.dj_rf.view, 'get_select_props')
 
     response = api_client.get('/select_props/?select(i_am_not_a_filter)')
 
     assert response.status_code == 200
-    assert select_props_seen == [('i_am_not_a_filter',)]
+    assert spy.spy_return == ('i_am_not_a_filter',)
+
+
+@pytest.mark.django_db
+def test_props_of_a_query_a_backend_rewrites(api_client, clear_cache, mocker):
+    """The props have to be the ones of the query the filtering will be given.
+
+    This view sits behind a backend that turns django-filter syntax into RQL, so the
+    query string of the request is not valid RQL on its own.
+    """
+    spy = mocker.spy(tests.dj_rf.view, 'get_select_props')
+
+    response = api_client.get('/select_props_compat/?title__in=a,b&select(author)')
+
+    assert response.status_code == 200
+    assert spy.spy_return == ('author',)
 
 
 @pytest.mark.django_db
 def test_malformed_query_still_fails_the_request_after_the_props_are_read(
     api_client,
     clear_cache,
+    mocker,
 ):
     """The accessor stays out of the way and lets the filtering reject the query."""
-    select_props_seen.clear()
+    spy = mocker.spy(tests.dj_rf.view, 'get_select_props')
 
     with pytest.raises(RQLFilterParsingError):
         api_client.get('/select_props/?select(')
 
-    assert select_props_seen == [()]
+    assert spy.spy_return == ()

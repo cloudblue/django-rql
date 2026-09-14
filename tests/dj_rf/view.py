@@ -68,9 +68,6 @@ class DynamicFilterClsViewSet(mixins.RetrieveModelMixin, DRFViewSet):
         return SelectBooksFilterClass
 
 
-select_props_seen = []
-
-
 class SelectPropsViewSet(DRFViewSet):
     """Reads the requested select props while building the queryset, before filtering.
 
@@ -78,8 +75,14 @@ class SelectPropsViewSet(DRFViewSet):
     """
 
     def get_queryset(self):
-        select_props_seen.append(get_select_props(self.request))
+        get_select_props(self.request)
         return super().get_queryset()
+
+
+class SelectPropsCompatViewSet(SelectPropsViewSet):
+    """Same, behind a backend that rewrites the query before the filtering sees it."""
+
+    filter_backends = (DjangoFiltersRQLFilterBackend,)
 
 
 class NoFilterClsViewSet(DRFViewSet):
