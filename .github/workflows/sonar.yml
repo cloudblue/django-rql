@@ -1,6 +1,11 @@
 name: Quality analysis
 
 on:
+  # Unlike build.yml, which checks a pull request whatever branch it targets, the
+  # analysis is deliberately master-only: SonarQube works out what is new code by
+  # comparing against the base branch, and master is the only branch it analyses, so a
+  # pull request stacked on another one has nothing to be compared against. The commits
+  # of a stack are analysed when it lands on master.
   push:
     branches: [ master ]
   pull_request:

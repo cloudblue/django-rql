@@ -13,7 +13,8 @@ on:
 
 # The quality analysis used to run here as a third job. It now lives in its own
 # sonar.yml workflow, so that a failing quality gate no longer reads as a failed
-# build and the analysis does not wait for the whole version matrix.
+# build and the analysis does not wait for the whole version matrix. It is also
+# triggered differently, for the reason its own file explains.
 jobs:
   lint:
     name: Lint
