@@ -31,6 +31,30 @@ def test_parsing_error(bad_query):
     assert e.value.details['error'] == 'Bad filter query.'
 
 
+def test_parsing_error_from_an_assertion_while_transforming():
+    """Assertions raised while transforming surface as the generic parsing error."""
+
+    class AssertingCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [
+            {
+                'filter': 'custom_filter',
+                'custom': True,
+                'lookups': {FilterLookups.EQ},
+            },
+        ]
+
+        def build_q_for_custom_filter(self, data):
+            raise AssertionError('filtering logic of the filter class')
+
+    filter_cls = AssertingCls(book_qs)
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        filter_cls.apply_filters('eq(custom_filter,value)')
+
+    assert e.value.details['error'] == 'Bad filter query.'
+
+
 def test_lookup_error():
     bad_lookup = 'like(id,1)'
     with pytest.raises(RQLFilterLookupError):
