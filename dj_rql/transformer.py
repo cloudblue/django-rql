@@ -35,7 +35,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         self._filter_cls_instance = filter_cls_instance
 
         self._ordering = []
-        self._select = []
+        self._select = None
         self._filtered_props = set()
 
         self._namespace = []
@@ -87,7 +87,9 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     @property
     def select_filters(self):
-        return self._select
+        # None means the query holds no select operation at all, which is what tells a
+        # second one to be rejected. Callers only care about the props.
+        return self._select or []
 
     def start(self, args):
         qs = self._filter_cls_instance.apply_annotations(self._filtered_props)
@@ -177,7 +179,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._q()
 
     def select(self, args):
-        if self._select:
+        if self._select is not None:
             raise RQLFilterParsingError(
                 details={
                     'error': 'Bad select filter: query can contain only one select operation.',

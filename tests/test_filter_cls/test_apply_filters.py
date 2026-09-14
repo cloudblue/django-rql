@@ -362,6 +362,9 @@ def test_several_ordering_operations():
     (
         'select(author)&select(published.at)',
         '(select(stats.attributes))&select(stats.attributes)',
+        # An empty select is still a select operation.
+        'select()&select(author)',
+        'select(author)&select()',
     ),
 )
 def test_several_select_operations(bad_query):
