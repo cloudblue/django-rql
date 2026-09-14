@@ -151,6 +151,12 @@ The following DB optimizations could be done found on `dj_rql.filter_cls`.
             - filter_queryset
         heading_level: 3
 
+### dj_rql.drf.<strong>get_select_props</strong>
+
+::: dj_rql.drf.selects.get_select_props
+    options:
+        heading_level: 3
+
 ## Pagination
 
 The following pagination classes found on `dj_rql.drf.paginations`:

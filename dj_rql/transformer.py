@@ -10,6 +10,7 @@ from py_rql.constants import (
     ListOperators,
     LogicalOperators,
 )
+from py_rql.exceptions import RQLFilterParsingError
 from py_rql.transformer import BaseRQLTransformer
 
 from dj_rql._dataclasses import FilterArgs
@@ -34,7 +35,7 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         self._filter_cls_instance = filter_cls_instance
 
         self._ordering = []
-        self._select = []
+        self._select = None
         self._filtered_props = set()
 
         self._namespace = []
@@ -86,7 +87,9 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
 
     @property
     def select_filters(self):
-        return self._select
+        # None means the query holds no select operation at all, which is what tells a
+        # second one to be rejected. Callers only care about the props.
+        return self._select or []
 
     def start(self, args):
         qs = self._filter_cls_instance.apply_annotations(self._filtered_props)
@@ -176,7 +179,12 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
         return self._q()
 
     def select(self, args):
-        assert not self._select
+        if self._select is not None:
+            raise RQLFilterParsingError(
+                details={
+                    'error': 'Bad select filter: query can contain only one select operation.',
+                },
+            )
 
         props = args[1:]
         self._select = props
@@ -187,6 +195,27 @@ class RQLToDjangoORMTransformer(BaseRQLTransformer):
                     self._filtered_props.add(prop.replace('+', ''))
 
         return self._q()
+
+
+class RQLSelectTransformer(BaseRQLTransformer):
+    """Parsed RQL AST tree transformer to the tuple of requested select props.
+
+    Notes:
+        Unlike `RQLToDjangoORMTransformer`, this transformer only collects what the query
+        asks for: it doesn't validate the props against a filter class and doesn't reject
+        a query that holds more than one select operation, in which case the props of all
+        of them are collected. Rejecting such a query stays the job of
+        `RQLFilterClass.apply_filters`.
+    """
+
+    def __init__(self):
+        self._props = []
+
+    def start(self, args):
+        return tuple(self._props)
+
+    def select(self, args):
+        self._props.extend(args[1:])
 
 
 class RQLLimitOffsetTransformer(BaseRQLTransformer):

@@ -12,6 +12,8 @@ from tests.dj_rf.view import (
     DRFViewSet,
     DynamicFilterClsViewSet,
     NoFilterClsViewSet,
+    SelectPropsCompatViewSet,
+    SelectPropsViewSet,
     SelectViewSet,
 )
 
@@ -19,6 +21,12 @@ router = SimpleRouter()
 router.register(r'books', DRFViewSet, basename='book')
 router.register(r'old_books', DjangoFiltersViewSet, basename='old_book')
 router.register(r'select', SelectViewSet, basename='select')
+router.register(r'select_props', SelectPropsViewSet, basename='select_props')
+router.register(
+    r'select_props_compat',
+    SelectPropsCompatViewSet,
+    basename='select_props_compat',
+)
 router.register(r'nofiltercls', NoFilterClsViewSet, basename='nofiltercls')
 router.register(r'auto', AutoViewSet, basename='auto')
 router.register(r'dynamicfiltercls', DynamicFilterClsViewSet, basename='dynamicfiltercls')
