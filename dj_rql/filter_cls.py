@@ -100,6 +100,24 @@ class RQLFilterClass:
             self._validate_init()
             self._default_init(self._get_init_filters())
 
+    @property
+    def request(self):
+        """Request `apply_filters` was called with, or `None` while it isn't running."""
+        return self._request
+
+    @request.setter
+    def request(self, value):
+        self._request = value
+
+    @property
+    def view(self):
+        """View `apply_filters` was called with, or `None` while it isn't running."""
+        return self._view
+
+    @view.setter
+    def view(self, value):
+        self._view = value
+
     @classmethod
     def _is_valid_model_cls(cls, model):
         return issubclass(model, Model)
@@ -199,7 +217,7 @@ class RQLFilterClass:
             data (OptimizationArgs): An OptimizationArgs instance.
 
         Returns:
-            An Optimized QuerySet (could be None).
+            Optional[QuerySet]: An optimized QuerySet, or None.
         """
         pass
 
@@ -255,43 +273,47 @@ class RQLFilterClass:
         self._request = request
         self._view = view
 
-        rql_ast, qs, select_filters = None, self.queryset, []
-        qs.select_data = None
-
-        if query:
-            rql_ast = RQLParser.parse_query(query)
-            rql_transformer = RQLToDjangoORMTransformer(self)
-            try:
-                qs = rql_transformer.transform(rql_ast)
-            except LarkError as e:
-                # Lark reraises it's errors, but the original ones are needed
-                original_error = e.orig_exc
-                if not isinstance(original_error, (AssertionError, LarkError)):
-                    raise original_error
-
-                raise RQLFilterParsingError()
-
-            qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
-            select_filters = rql_transformer.select_filters
-
-            if self._is_distinct:
-                qs = qs.distinct()
-
+        try:
+            rql_ast, qs, select_filters = None, self.queryset, []
             qs.select_data = None
 
-        if self.SELECT:
-            select_data = self._build_select_data(select_filters)
-            qs = self._apply_optimizations(qs, select_data)
-            qs.select_data = {
-                'depth': 0,
-                'select': select_data,
-            }
+            if query:
+                rql_ast = RQLParser.parse_query(query)
+                rql_transformer = RQLToDjangoORMTransformer(self)
+                try:
+                    qs = rql_transformer.transform(rql_ast)
+                except LarkError as e:
+                    # Lark reraises it's errors, but the original ones are needed
+                    original_error = e.orig_exc
+                    if not isinstance(original_error, (AssertionError, LarkError)):
+                        raise original_error
 
-        self.queryset = qs
-        self._request = None
-        self._view = None
+                    raise RQLFilterParsingError()
 
-        return rql_ast, qs
+                qs = self._apply_ordering(qs, rql_transformer.ordering_filters)
+                select_filters = rql_transformer.select_filters
+
+                if self._is_distinct:
+                    qs = qs.distinct()
+
+                qs.select_data = None
+
+            if self.SELECT:
+                select_data = self._build_select_data(select_filters)
+                qs = self._apply_optimizations(qs, select_data)
+                qs.select_data = {
+                    'depth': 0,
+                    'select': select_data,
+                }
+
+            self.queryset = qs
+
+            return rql_ast, qs
+        finally:
+            # A failed query must not leave the request of one caller on an instance
+            # that the filter backend keeps for the next ones.
+            self._request = None
+            self._view = None
 
     def build_q_for_filter(self, data: FilterArgs) -> Q:
         """Django Q() builder for extracted from query RQL expression.

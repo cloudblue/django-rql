@@ -55,6 +55,59 @@ def test_parsing_error_from_an_assertion_while_transforming():
     assert e.value.details['error'] == 'Bad filter query.'
 
 
+def test_request_and_view_are_not_set_outside_filtering():
+    filter_cls = BooksFilterClass(book_qs)
+
+    assert filter_cls.request is None
+    assert filter_cls.view is None
+
+
+def test_request_and_view_are_available_to_a_custom_filter():
+    """A custom filter can reach the request being filtered, e.g. to stash state on it."""
+    seen = []
+
+    class CustomCls(BooksFilterClass):
+        def build_q_for_custom_filter(self, data):
+            seen.append((self.request, self.view))
+            return Q()
+
+    request, view = object(), object()
+    CustomCls(book_qs).apply_filters('eq(no_list_lookup,value)', request, view)
+
+    assert seen == [(request, view)]
+
+
+def test_request_and_view_are_cleared_once_filtering_is_over():
+    filter_cls = BooksFilterClass(book_qs)
+    filter_cls.apply_filters('eq(title,book)', object(), object())
+
+    assert filter_cls.request is None
+    assert filter_cls.view is None
+
+
+def test_request_and_view_are_cleared_when_the_filtering_fails():
+    """Otherwise the request of one caller stays on an instance reused for the next."""
+    filter_cls = BooksFilterClass(book_qs)
+
+    with pytest.raises(RQLFilterParsingError):
+        filter_cls.apply_filters('q=', object(), object())
+
+    assert filter_cls.request is None
+    assert filter_cls.view is None
+
+
+def test_request_and_view_can_be_set():
+    """Assigning them was possible before they became properties, and still is."""
+    filter_cls = BooksFilterClass(book_qs)
+    request, view = object(), object()
+
+    filter_cls.request = request
+    filter_cls.view = view
+
+    assert filter_cls.request is request
+    assert filter_cls.view is view
+
+
 def test_lookup_error():
     bad_lookup = 'like(id,1)'
     with pytest.raises(RQLFilterLookupError):

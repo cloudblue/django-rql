@@ -386,6 +386,21 @@ class BookFilters(RQLFilterClass):
         pass  #  Put your filtering logic here and return a ``django.db.models.Q`` object.
 ```
 
+While the filtering runs, the filter class exposes the request and the view it was
+called with, as `self.request` and `self.view`, so your logic can depend on them or
+stash per request state where the view will find it. Both are `None` outside of
+`apply_filters`.
+
+!!! warning
+
+    Filtering that depends on the request cannot be combined with the queryset cache
+    (`QUERIES_CACHE_BACKEND`). That cache is keyed on the base queryset and the query
+    string alone, with nothing of the request in it, so on a hit your custom filter is
+    not called at all and the queryset built for whoever came first is handed to
+    everyone else. A filter such as `Q(owner=self.request.user)` would serve one user
+    the rows of another. Leave the cache off on a filter class whose filtering depends
+    on the request.
+
 ## Django Rest Framework extensions
 
 ### Pagination
