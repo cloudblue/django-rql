@@ -217,7 +217,7 @@ class RQLFilterClass:
             data (OptimizationArgs): An OptimizationArgs instance.
 
         Returns:
-            QuerySet: An optimized QuerySet (could be None).
+            Optional[QuerySet]: An optimized QuerySet, or None.
         """
         pass
 
