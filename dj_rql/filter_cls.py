@@ -105,10 +105,18 @@ class RQLFilterClass:
         """Request `apply_filters` was called with, or `None` while it isn't running."""
         return self._request
 
+    @request.setter
+    def request(self, value):
+        self._request = value
+
     @property
     def view(self):
         """View `apply_filters` was called with, or `None` while it isn't running."""
         return self._view
+
+    @view.setter
+    def view(self, value):
+        self._view = value
 
     @classmethod
     def _is_valid_model_cls(cls, model):

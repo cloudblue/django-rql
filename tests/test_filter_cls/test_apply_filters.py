@@ -84,6 +84,18 @@ def test_request_and_view_are_cleared_when_the_filtering_fails():
     assert filter_cls.view is None
 
 
+def test_request_and_view_can_be_set():
+    """Assigning them was possible before they became properties, and still is."""
+    filter_cls = BooksFilterClass(book_qs)
+    request, view = object(), object()
+
+    filter_cls.request = request
+    filter_cls.view = view
+
+    assert filter_cls.request is request
+    assert filter_cls.view is view
+
+
 def test_lookup_error():
     bad_lookup = 'like(id,1)'
     with pytest.raises(RQLFilterLookupError):
