@@ -138,6 +138,7 @@ def test_props_are_available_while_building_the_queryset(api_client, clear_cache
     response = api_client.get('/select_props/?select(author,-pages)&eq(title,book)')
 
     assert response.status_code == 200
+    spy.assert_called_once()
     assert spy.spy_return == ('author', '-pages')
 
 
