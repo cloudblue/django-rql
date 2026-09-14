@@ -9,13 +9,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         fetch-depth: 0
     - name: Install poetry
       run: pipx install poetry
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
         cache: poetry
@@ -29,16 +29,19 @@ jobs:
     # twice adds nothing: the tagged commit is already analysed by sonar.yml
     # when it lands on master.
     - name: Extract tag name
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
       id: tag
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         result-encoding: string
         script: |
           return context.payload.ref.replace(/refs\/tags\//, '')
-    # TODO: PyPI no longer accepts username/password uploads. Replace this
-    # step with pypa/gh-action-pypi-publish once either an API token or
-    # Trusted Publishing is configured for the project on PyPI.
+    # PyPI has not accepted real passwords for uploads in a long time, so these
+    # two secrets carry an API token under the __token__ user. Moving the step to
+    # pypa/gh-action-pypi-publish with Trusted Publishing would do away with a
+    # long lived secret, which is worth doing on its own merits, but nothing is
+    # broken as it stands: the other libraries of the organisation publish
+    # through this very step, with secrets of the same age.
     - name: Build and publish to PyPI
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}

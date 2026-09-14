@@ -14,7 +14,6 @@ dist/
 tests/reports/
 .coverage
 
-docs/_build
 site/
 
 _generated_filters*.py

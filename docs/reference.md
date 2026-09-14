@@ -152,6 +152,7 @@ The following DB optimizations could be done found on `dj_rql.filter_cls`.
     options:
         members:
             - filter_queryset
+            - get_query_for_view
         heading_level: 3
 
 ### dj_rql.drf.<strong>get_select_props</strong>

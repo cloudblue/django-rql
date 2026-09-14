@@ -130,7 +130,7 @@ and Django Rest Framework calls it before the filter backend gets to run.
 
 `dj_rql.drf.get_select_props` reads the props of the request, asking the RQL backend of
 the view for the query, so it gets the same one the filtering will be given even when
-the backend rewrites it, as the [compatibility backends](#) do:
+the backend rewrites it, as the compatibility backends do:
 
 ``` py3
 from dj_rql.drf import get_select_props

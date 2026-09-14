@@ -74,7 +74,9 @@ pytest-randomly = ">=3.15"
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-mkdocs = ">=1.6"
+# MkDocs 2.0 removes the plugin system and rewrites the theming, with no migration
+# path, so it would break every plugin this documentation uses.
+mkdocs = ">=1.6,<2"
 mkdocs-material = ">=9.5"
 mkdocs-glightbox = ">=0.4"
 mkdocs-macros-plugin = ">=1.0"
