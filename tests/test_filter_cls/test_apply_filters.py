@@ -73,6 +73,17 @@ def test_request_and_view_are_cleared_once_filtering_is_over():
     assert filter_cls.view is None
 
 
+def test_request_and_view_are_cleared_when_the_filtering_fails():
+    """Otherwise the request of one caller stays on an instance reused for the next."""
+    filter_cls = BooksFilterClass(book_qs)
+
+    with pytest.raises(RQLFilterParsingError):
+        filter_cls.apply_filters('q=', object(), object())
+
+    assert filter_cls.request is None
+    assert filter_cls.view is None
+
+
 def test_lookup_error():
     bad_lookup = 'like(id,1)'
     with pytest.raises(RQLFilterLookupError):
