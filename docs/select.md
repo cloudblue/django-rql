@@ -120,3 +120,59 @@ class ProductSerializer(RQLMixin, serializers.ModelSerializer):
 
     A complete working example of how the `select` operator works can be
     found [here](https://github.com/maxipavlovic/django_rql_select_example).
+
+## Reading what a request selected
+
+Sometimes a view has to know what the caller selected *before* the filtering runs,
+because the queryset it builds depends on it. A typical case is deciding which
+`Prefetch` objects or annotations are worth adding, which happens in `get_queryset()`,
+and Django Rest Framework calls it before the filter backend gets to run.
+
+`dj_rql.drf.get_select_props` reads the props of the request, asking the RQL backend of
+the view for the query, so it gets the same one the filtering will be given even when
+the backend rewrites it, as the [compatibility backends](#) do:
+
+``` py3
+from dj_rql.drf import get_select_props
+
+
+class ProductViewSet(mixins.ListModelMixin, GenericViewSet):
+    filter_backends = (RQLFilterBackend,)
+    rql_filter_class = ProductFilters
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        selected = get_select_props(self.request)
+
+        if any(prop == 'reviews' or prop.startswith('reviews.') for prop in selected):
+            queryset = queryset.prefetch_related(
+                Prefetch('reviews', queryset=Review.objects.published()),
+            )
+
+        return queryset
+```
+
+The props come back as the query wrote them, so an exclusion keeps its `-` prefix and a
+nested prop stays a whole dotted path:
+
+```
+GET /products?select(reviews.author,-category)
+```
+
+``` py3
+('reviews.author', '-category')
+```
+
+Which is why the example above tests for the prefix rather than for equality: selecting
+`reviews.author` selects `reviews` too, and a plain `'reviews' in selected` would miss
+it.
+
+!!! note
+
+    The accessor doesn't check the props against the filters of the filter class, and
+    doesn't require `SELECT = True`, which is what makes it usable on a collection that
+    accepts prop names it doesn't declare. A query that cannot be parsed simply has no
+    props to read, and the request still gets rejected afterwards, by the filtering.
+
+    Nothing is memoised either, so keep the returned tuple around rather than calling
+    the accessor once per prop.

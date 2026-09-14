@@ -23,10 +23,34 @@ def apply_filters(query):
     return list(q)
 
 
-@pytest.mark.parametrize('bad_query', ['q=', '(select(stats.attributes))&select(stats.attributes)'])
+@pytest.mark.parametrize('bad_query', ['q='])
 def test_parsing_error(bad_query):
     with pytest.raises(RQLFilterParsingError) as e:
         apply_filters(bad_query)
+
+    assert e.value.details['error'] == 'Bad filter query.'
+
+
+def test_parsing_error_from_an_assertion_while_transforming():
+    """Assertions raised while transforming surface as the generic parsing error."""
+
+    class AssertingCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [
+            {
+                'filter': 'custom_filter',
+                'custom': True,
+                'lookups': {FilterLookups.EQ},
+            },
+        ]
+
+        def build_q_for_custom_filter(self, data):
+            raise AssertionError('filtering logic of the filter class')
+
+    filter_cls = AssertingCls(book_qs)
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        filter_cls.apply_filters('eq(custom_filter,value)')
 
     assert e.value.details['error'] == 'Bad filter query.'
 
@@ -407,6 +431,24 @@ def test_several_ordering_operations():
         apply_filters('ordering(d_id)&ordering(author.email)')
 
     expected = 'Bad ordering filter: query can contain only one ordering operation.'
+    assert e.value.details['error'] == expected
+
+
+@pytest.mark.parametrize(
+    'bad_query',
+    (
+        'select(author)&select(published.at)',
+        '(select(stats.attributes))&select(stats.attributes)',
+        # An empty select is still a select operation.
+        'select()&select(author)',
+        'select(author)&select()',
+    ),
+)
+def test_several_select_operations(bad_query):
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters(bad_query)
+
+    expected = 'Bad select filter: query can contain only one select operation.'
     assert e.value.details['error'] == expected
 
 
