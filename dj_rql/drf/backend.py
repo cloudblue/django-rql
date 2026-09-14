@@ -116,6 +116,30 @@ class RQLFilterBackend(BaseFilterBackend):
         return get_query(request)
 
     @classmethod
+    def get_query_for_view(cls, request, view):
+        """RQL query of a request, resolved the way this backend resolves it while filtering.
+
+        Backends are free to rewrite the query of a request, as the compatibility ones
+        do, so anything reading the query before `filter_queryset` runs has to ask the
+        backend for it rather than read the query string of the request.
+
+        Args:
+            request (Request): Request from API view.
+            view (View): API view.
+
+        Returns:
+            str: The RQL query the filtering will be given.
+        """
+        filter_class = cls.get_filter_class(view)
+        filter_instance = (
+            cls._get_filter_instance(filter_class, getattr(view, 'queryset', None), view)
+            if filter_class
+            else None
+        )
+
+        return cls.get_query(filter_instance, request, view)
+
+    @classmethod
     def _get_or_init_cache(cls, filter_class, view):
         qual_name = cls._get_filter_cls_qual_name(view, filter_class)
         return cls._CACHES.setdefault(
