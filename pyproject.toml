@@ -81,7 +81,7 @@ mkdocs-material = ">=9.5"
 mkdocs-glightbox = ">=0.4"
 mkdocs-macros-plugin = ">=1.0"
 mkdocstrings = ">=0.27"
-mkdocstrings-python = ">=1.11"
+mkdocstrings-python = ">=2.0.9"
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
