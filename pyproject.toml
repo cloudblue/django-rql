@@ -51,7 +51,7 @@ classifiers = [
 black = ">=24.1"
 pytest = ">=8.0"
 pytest-cov = ">=4.1"
-pytest-mock = ">=3.12"
+pytest-mock = ">=3.16.0"
 coverage = "^7"
 flake8 = ">=7.0"
 flake8-black = ">=0.3"
