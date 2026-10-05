@@ -31,6 +31,42 @@ def test_parsing_error(bad_query):
     assert e.value.details['error'] == 'Bad filter query.'
 
 
+def test_parsing_error_from_a_recursion_error_while_transforming():
+    """A recursion limit reached inside a transformer callback is a bad query, not a failure."""
+
+    class RecursingCls(RQLFilterClass):
+        MODEL = Book
+        FILTERS = [
+            {
+                'filter': 'custom_filter',
+                'custom': True,
+                'lookups': {FilterLookups.EQ},
+            },
+        ]
+
+        def build_q_for_custom_filter(self, data):
+            raise RecursionError('maximum recursion depth exceeded')
+
+    filter_cls = RecursingCls(book_qs)
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        filter_cls.apply_filters('eq(custom_filter,value)')
+
+    assert e.value.details['error'] == 'Bad filter query.'
+
+
+def test_parsing_error_from_a_recursion_error_raised_outside_a_callback(mocker):
+    mocker.patch(
+        'dj_rql.filter_cls.RQLToDjangoORMTransformer.transform',
+        side_effect=RecursionError('maximum recursion depth exceeded'),
+    )
+
+    with pytest.raises(RQLFilterParsingError) as e:
+        apply_filters('id=1')
+
+    assert e.value.details['error'] == 'Bad filter query.'
+
+
 def test_parsing_error_from_an_assertion_while_transforming():
     """Assertions raised while transforming surface as the generic parsing error."""
 
