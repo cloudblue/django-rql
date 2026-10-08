@@ -19,7 +19,7 @@ dynamic = [
     "classifiers",
 ]
 dependencies = [
-    "django>=4.2",
+    "django>=5.2.18",
     "lib-rql>=2.0,<3",
 ]
 
