@@ -25,7 +25,7 @@ dependencies = [
 
 [project.optional-dependencies]
 drf = [
-    "djangorestframework>=3.15",
+    "djangorestframework>=3.18.3",
 ]
 
 [project.urls]
@@ -62,7 +62,7 @@ flake8-isort = ">=6.1"
 flake8-broken-line = ">=1.0"
 flake8-pyproject = "^1.2.3"
 pytest-django = ">=4.7"
-djangorestframework = ">=3.15"
+djangorestframework = ">=3.18.3"
 inflection = ">=0.5"
 isort = "^9.0"
 django-fsm = ">=2.8.1"
