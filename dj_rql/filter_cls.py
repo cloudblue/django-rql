@@ -282,10 +282,12 @@ class RQLFilterClass:
                 rql_transformer = RQLToDjangoORMTransformer(self)
                 try:
                     qs = rql_transformer.transform(rql_ast)
+                except RecursionError:
+                    raise RQLFilterParsingError()
                 except LarkError as e:
                     # Lark reraises it's errors, but the original ones are needed
                     original_error = e.orig_exc
-                    if not isinstance(original_error, (AssertionError, LarkError)):
+                    if not isinstance(original_error, (AssertionError, LarkError, RecursionError)):
                         raise original_error
 
                     raise RQLFilterParsingError()
