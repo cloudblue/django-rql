@@ -13,6 +13,8 @@ updates:
       python-dependencies:
         applies-to: version-updates
         patterns: ["*"]
+        # Major updates come as their own pull requests, so one that fails can't hold back the rest.
+        update-types: ["minor", "patch"]
       python-security:
         applies-to: security-updates
         patterns: ["*"]
